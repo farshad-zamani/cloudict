@@ -63,7 +63,7 @@ compiles [`installer/Cloudict.iss`](installer/Cloudict.iss) with
 ## Build & run from source
 
 ```bash
-git clone <your-fork-url>
+git clone https://github.com/farshad-zamani/cloudict.git
 cd cloudict
 
 # Run
