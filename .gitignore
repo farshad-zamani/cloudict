@@ -1,0 +1,34 @@
+# ---- Build output ----
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+publish/
+*.binlog
+
+# ---- Visual Studio / Rider ----
+.vs/
+.idea/
+*.user
+*.suo
+*.userprefs
+
+# ---- App runtime / user-generated files ----
+settings.json
+settings.backup.json
+license.dat
+*.log
+
+# ---- Selenium / ChromeDriver (downloaded at runtime by WebDriverManager) ----
+**/Chrome/
+
+# ---- Internal localization tooling / temp test output ----
+_loctools/
+_run/
+last-answer.md
+
+# ---- Installer build output ----
+installer/Output/
+
+# ---- OS noise ----
+Thumbs.db
+.DS_Store

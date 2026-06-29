@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net7.0-windows10.0.22621.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>Cloudict</RootNamespace>
+    <AssemblyName>Cloudict</AssemblyName>
+    <Nullable>disable</Nullable>
+    <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Deterministic>true</Deterministic>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <!-- Folder publish (not single-file): embedded WPF fonts fail to initialize inside a
+         single-file bundle, so we ship a self-contained folder instead. The app already
+         needs the Chrome driver folder beside the executable anyway. -->
+    <PublishSingleFile>false</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SupportedOSPlatformVersion>10.0.22621.0</SupportedOSPlatformVersion>
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+    <NoWarn>NU1701;CS8632;CS8622;CS8625;CS8618;CS8600;CS8601;CS8602;CS8603;CS8604</NoWarn>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AngleSharp" Version="1.1.2" />
+    <PackageReference Include="H.InputSimulator" Version="1.5.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Polly" Version="7.2.3" />
+    <PackageReference Include="Selenium.WebDriver" Version="4.31.0" />
+    <PackageReference Include="SharpZipLib" Version="1.4.2" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.3" />
+    <PackageReference Include="System.Reactive.Windows.Forms" Version="6.0.1" />
+    <PackageReference Include="WebDriverManager" Version="2.17.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\Fonts\**\*.ttf" />
+    <Resource Include="Assets\app-icon.ico" />
+    <Resource Include="Assets\logo.png" />
+    <Resource Include="Assets\Fonts\Vazirmatn-Regular.ttf" />
+    <Resource Include="Assets\Fonts\Vazirmatn-Medium.ttf" />
+    <Resource Include="Assets\Fonts\Vazirmatn-SemiBold.ttf" />
+    <Resource Include="Assets\Fonts\Vazirmatn-Bold.ttf" />
+    <Resource Include="Assets\Fonts\Inter-Regular.ttf" />
+    <Resource Include="Assets\Fonts\Inter-Medium.ttf" />
+    <Resource Include="Assets\Fonts\Inter-SemiBold.ttf" />
+    <Resource Include="Assets\Fonts\Inter-Bold.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Chrome\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

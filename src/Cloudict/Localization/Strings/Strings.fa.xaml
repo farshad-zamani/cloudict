@@ -1,0 +1,338 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:s="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ============================================================= -->
+    <!-- Persian (Farsi) UI strings. Keys mirror Strings.en.xaml.      -->
+    <!-- ============================================================= -->
+
+    <!-- Common -->
+    <s:String x:Key="Common_Error_Title">خطا</s:String>
+    <s:String x:Key="Common_Info_Title">اطلاع</s:String>
+    <s:String x:Key="Common_Warning_Title">هشدار</s:String>
+    <s:String x:Key="Common_Success_Title">موفقیت</s:String>
+
+    <!-- App startup (App.xaml.cs) -->
+    <s:String x:Key="App_AlreadyRunning">برنامه در حال اجرا است.</s:String>
+    <s:String x:Key="App_UnexpectedError_MustClose">یک خطای غیرمنتظره رخ داد:&#10;{0}&#10;&#10;برنامه باید بسته شود.</s:String>
+    <s:String x:Key="App_UnexpectedError">یک خطای غیرمنتظره رخ داد:&#10;{0}</s:String>
+    <s:String x:Key="App_AdminPathError">امکان شناسایی مسیر اجرایی برنامه وجود ندارد. لطفاً برنامه را به صورت دستی با دسترسی مدیر اجرا کنید.</s:String>
+    <s:String x:Key="App_AdminRequired_Title">نیاز به دسترسی مدیر</s:String>
+    <s:String x:Key="App_AdminRequired">برای اجرای این برنامه نیاز به دسترسی مدیر سیستم است.&#10;&#10;خطا: {0}</s:String>
+
+    <!-- Settings manager (SettingsManager.cs) -->
+    <s:String x:Key="SettingsMgr_InvalidLoaded">تنظیمات بارگذاری شده نامعتبر است. از تنظیمات پیش‌فرض استفاده می‌شود.</s:String>
+    <s:String x:Key="SettingsMgr_LoadError_Title">خطا در بارگذاری تنظیمات</s:String>
+    <s:String x:Key="SettingsMgr_LoadedFromBackup">خطا در بارگذاری تنظیمات اصلی. از فایل پشتیبان استفاده شد.&#10;&#10;خطا: {0}</s:String>
+    <s:String x:Key="SettingsMgr_RestoredFromBackup_Title">بازیابی از پشتیبان</s:String>
+    <s:String x:Key="SettingsMgr_LoadErrorDefaults">خطا در بارگذاری تنظیمات. از تنظیمات پیش‌فرض استفاده می‌شود.&#10;&#10;خطا: {0}</s:String>
+    <s:String x:Key="SettingsMgr_Invalid">تنظیمات نامعتبر است.</s:String>
+    <s:String x:Key="SettingsMgr_SaveError_Title">خطا در ذخیره</s:String>
+    <s:String x:Key="SettingsMgr_InvalidEntered">تنظیمات وارد شده نامعتبر است. لطفاً مقادیر را بررسی کنید.</s:String>
+    <s:String x:Key="SettingsMgr_ValidationError_Title">خطا در اعتبارسنجی</s:String>
+    <s:String x:Key="SettingsMgr_SaveError">خطا در ذخیره تنظیمات:&#10;&#10;{0}</s:String>
+    <s:String x:Key="SettingsMgr_ResetError">خطا در بازگردانی به تنظیمات پیش‌فرض:&#10;&#10;{0}</s:String>
+
+
+    <!-- Window UI strings -->
+    <s:String x:Key="KeySel_Title">Cloudict │ انتخاب کلید</s:String>
+    <s:String x:Key="KeySel_Prompt">کلیدهای مورد نظر خود را فشار دهید:</s:String>
+    <s:String x:Key="KeySel_Help">توضیحات:&#x0A;• برای ترکیب کلیدها، کلیدها را همزمان فشار دهید&#x0A;• برای کلیدهای جداگانه، هر کلید را به تنهایی فشار دهید&#x0A;• برای پاک کردن، دکمه 'پاک کردن' را فشار دهید</s:String>
+    <s:String x:Key="Common_Clear">پاک کردن</s:String>
+    <s:String x:Key="Common_Confirm">تأیید</s:String>
+    <s:String x:Key="Common_Cancel">لغو</s:String>
+    <s:String x:Key="AddCmd_Title">Cloudict │ افزودن دستور صوتی</s:String>
+    <s:String x:Key="AddCmd_Header">افزودن دستور صوتی جدید</s:String>
+    <s:String x:Key="AddCmd_PhraseLabel">عبارت دستوری:</s:String>
+    <s:String x:Key="AddCmd_PhraseTooltip">کلمه یا عبارتی که با گفتن آن، دستور اجرا می‌شود</s:String>
+    <s:String x:Key="AddCmd_ActionTypeLabel">نوع عملیات:</s:String>
+    <s:String x:Key="Common_TypeText">تایپ متن</s:String>
+    <s:String x:Key="Common_SendKey">ارسال کلید</s:String>
+    <s:String x:Key="Common_ChangeToPersian">تغییر به فارسی</s:String>
+    <s:String x:Key="Common_ChangeToEnglish">تغییر به انگلیسی</s:String>
+    <s:String x:Key="Common_DeleteLastWords">حذف کلمات آخر</s:String>
+    <s:String x:Key="AddCmd_ActionValueLabel">مقدار عملیات:</s:String>
+    <s:String x:Key="Common_Discard">انصراف</s:String>
+    <s:String x:Key="Common_Save">ذخیره</s:String>
+    <s:String x:Key="Common_Settings">تنظیمات</s:String>
+    <s:String x:Key="Main_Credit">ساخته‌شده توسط فرشاد زمانی · کلادتارت </s:String>
+    <s:String x:Key="Main_StartHere">👉 برای شروع اینجا کلیک کنید</s:String>
+    <s:String x:Key="Main_MicControlsHint">با این دکمه‌ها عملکرد میکروفون را مدیریت کنید</s:String>
+    <s:String x:Key="Main_RecognizedLabel">متن تشخیص داده شده:</s:String>
+    <s:String x:Key="Main_WaitingForSpeech">در انتظار تشخیص صدا...</s:String>
+    <s:String x:Key="Main_CopyBtn">📋 کپی</s:String>
+    <s:String x:Key="Main_ClearBtn">🗑️ پاک کردن</s:String>
+    <s:String x:Key="Main_QuickTransfer">انتقال سریع</s:String>
+    <s:String x:Key="Main_FinalLabel">متن نهایی:</s:String>
+    <s:String x:Key="Main_FinalPlaceholder">متن نهایی در اینجا نمایش داده می‌شود...</s:String>
+    <s:String x:Key="Common_Copy">کپی</s:String>
+    <s:String x:Key="Common_Cut">برش</s:String>
+    <s:String x:Key="Common_Paste">چسباندن</s:String>
+    <s:String x:Key="Common_SelectAll">انتخاب همه</s:String>
+    <s:String x:Key="Main_TransferToCursor">انتقال به مکان نشانگر تایپ</s:String>
+    <s:String x:Key="Main_Ready">آماده</s:String>
+    <s:String x:Key="Settings_Title">Cloudict │ تنظیمات</s:String>
+    <s:String x:Key="Settings_Heading">تنظیمات برنامه</s:String>
+    <s:String x:Key="Settings_Subheading">پیکربندی عملکرد، میانبرها و دستورات صوتی</s:String>
+    <s:String x:Key="Settings_Tab_Delays">تاخیرهای انتقال متن</s:String>
+    <s:String x:Key="Settings_TimingGroup">تنظیمات زمان‌بندی متن</s:String>
+    <s:String x:Key="Settings_TimingHint">این تأخیرها برای هماهنگی با رفتار گوگل ترنسلیت تنظیم شده‌اند. مقادیر را معمولاً بین ۵۰ تا ۵۰۰۰ میلی‌ثانیه نگه دارید.</s:String>
+    <s:String x:Key="Settings_ProcessDelay">تأخیر پردازش متن</s:String>
+    <s:String x:Key="Settings_Milliseconds">میلی‌ثانیه</s:String>
+    <s:String x:Key="Settings_ProcessDelayHint">فاصلهٔ بین دریافت گفتار از گوگل ترنسلیت و آغاز پردازش. پیشنهاد: ۳۰۰–۵۰۰</s:String>
+    <s:String x:Key="Settings_WordDelay">تأخیر کلمه به کلمه</s:String>
+    <s:String x:Key="Settings_WordDelayHint">فاصلهٔ بین تایپ هر کلمه در برنامهٔ مقصد. پیشنهاد: ۲۵۰–۴۰۰</s:String>
+    <s:String x:Key="Settings_StartDelay">تأخیر شروع انتقال</s:String>
+    <s:String x:Key="Settings_StartDelayHint">زمان انتظار پس از اولین تشخیص قبل از شروع انتقال خودکار. پیشنهاد: ۱۵۰۰–۲۵۰۰</s:String>
+    <s:String x:Key="Settings_InactivityDelay">مدت مکث برای ریست میکروفون</s:String>
+    <s:String x:Key="Settings_InactivityDelayHint">مدت سکوت تا ریست خودکار میکروفون. پیشنهاد: ۲۵۰۰–۵۰۰۰</s:String>
+    <s:String x:Key="Settings_TimingFooter">این تأخیرها برای کار صحیح با گوگل ترنسلیت تنظیم شده‌اند. اگر متن دیر یا ناقص تایپ می‌شود، ابتدا تأخیر کلمه به کلمه را افزایش دهید.</s:String>
+    <s:String x:Key="Settings_Tab_GoogleTranslate">تنظیمات گوگل ترنسلیت</s:String>
+    <s:String x:Key="Settings_SelectorsGroup">سلکتورهای وب صفحهٔ گوگل ترنسلیت</s:String>
+    <s:String x:Key="Settings_SelectorsHint">این مقادیر برای شناسایی دکمهٔ میکروفون و باکس متن در صفحهٔ گوگل ترنسلیت استفاده می‌شود. در صورت تغییر طراحی گوگل، فقط این مقادیر را به‌روز کنید.</s:String>
+    <s:String x:Key="Settings_MicXPath">XPath دکمهٔ میکروفون</s:String>
+    <s:String x:Key="Settings_AriaLabels">Aria-Labels باکس متن (هر خط یک مورد)</s:String>
+    <s:String x:Key="Settings_ClassSelectors">Class Selectors باکس متن (هر خط یک مورد)</s:String>
+    <s:String x:Key="Settings_BrowserGroup">تنظیمات بارگذاری مرورگر</s:String>
+    <s:String x:Key="Settings_PreloadDelay">تأخیر پیش‌بارگذاری صفحه</s:String>
+    <s:String x:Key="Settings_PreloadDelayHint">زمان انتظار برای بارگذاری کامل صفحه گوگل ترنسلیت. پیشنهاد: ۲۵۰۰–۴۰۰۰</s:String>
+    <s:String x:Key="Settings_MicActivationDelay">تأخیر فعال‌سازی میکروفون</s:String>
+    <s:String x:Key="Settings_MicActivationHint">فاصلهٔ زمانی بین آماده شدن صفحه و کلیک روی دکمهٔ میکروفون. پیشنهاد: ۸۰۰–۱۵۰۰</s:String>
+    <s:String x:Key="Settings_TestSelectors">🔍 تست سلکتورها</s:String>
+    <s:String x:Key="Settings_TestSelectorsHint">پس از تغییر سلکتورها حتماً با دکمهٔ «تست سلکتورها» صحت آن‌ها را بسنجید.</s:String>
+    <s:String x:Key="Settings_Tab_Shortcuts">تنظیمات عمومی</s:String>
+    <s:String x:Key="Settings_GeneralGroup">تنظیمات عمومی</s:String>
+    <s:String x:Key="Settings_MinimizeToTray">هنگام بستن، برنامه به سینی سیستم منتقل شود</s:String>
+    <s:String x:Key="Settings_MinimizeToTrayHint">با فعال‌بودن این گزینه، بستن پنجره برنامه را به سینی منتقل می‌کند تا میانبرها فعال بمانند.</s:String>
+    <s:String x:Key="Settings_EnableGlobalShortcuts">فعال‌سازی کلیدهای میانبر سراسری</s:String>
+    <s:String x:Key="Settings_EnableGlobalShortcutsHint">با غیرفعال‌کردن این گزینه، میانبرهای زیر در ویندوز کار نمی‌کنند.</s:String>
+    <s:String x:Key="Settings_StartStopShortcut">میانبر «شروع / توقف» میکروفون</s:String>
+    <s:String x:Key="Settings_MainKey">کلید اصلی</s:String>
+    <s:String x:Key="Settings_Modifiers">کلیدهای تغییردهنده</s:String>
+    <s:String x:Key="Settings_CurrentShortcut">میانبر فعلی</s:String>
+    <s:String x:Key="Settings_StartStopValue">شروع/توقف: Ctrl+Alt+A</s:String>
+    <s:String x:Key="Settings_StopShortcut">میانبر «توقف» میکروفون</s:String>
+    <s:String x:Key="Settings_StopValue">توقف میکروفون: Ctrl+Alt+S</s:String>
+    <s:String x:Key="Settings_ShortcutsFooter">میانبرها در همهٔ برنامه‌های ویندوز کار می‌کنند. به‌طور پیش‌فرض Ctrl+Alt+A میکروفون را روشن/خاموش و Ctrl+Alt+S آن را متوقف می‌کند.</s:String>
+    <s:String x:Key="Settings_Tab_VoiceCommands">دستورات صوتی</s:String>
+    <s:String x:Key="Settings_EnableVoiceCommandsGroup">فعال‌سازی دستورات صوتی</s:String>
+    <s:String x:Key="Settings_EnableVoiceCommandsCheck">پردازش دستورات صوتی هنگام تشخیص گفتار فعال باشد</s:String>
+    <s:String x:Key="Settings_VoiceCommandsHint">دستورات صوتی به شما اجازه می‌دهند با گفتن کلمات کلیدی، علائم نگارشی درج کنید یا کلیدهای ویژه را اجرا کنید.</s:String>
+    <s:String x:Key="Settings_VoiceCommandsListGroup">لیست دستورات صوتی</s:String>
+    <s:String x:Key="Settings_Search">🔍 جستجو</s:String>
+    <s:String x:Key="Settings_Col_Command">دستور</s:String>
+    <s:String x:Key="Settings_Col_Action">عمل</s:String>
+    <s:String x:Key="Settings_Col_Parameter">پارامتر</s:String>
+    <s:String x:Key="Settings_Col_Enabled">فعال</s:String>
+    <s:String x:Key="Settings_AddCommand">افزودن دستور</s:String>
+    <s:String x:Key="Settings_EditCommand">ویرایش دستور</s:String>
+    <s:String x:Key="Settings_DeleteCommand">حذف دستور</s:String>
+    <s:String x:Key="Settings_RestoreDefaults">بازگردانی پیش‌فرض</s:String>
+    <s:String x:Key="Settings_CommandEditor">ویرایشگر دستور</s:String>
+    <s:String x:Key="Settings_VoiceCommandLabel">دستور صوتی:</s:String>
+    <s:String x:Key="Settings_ActionTypeLabel">نوع عمل:</s:String>
+    <s:String x:Key="Settings_ParameterLabel">پارامتر:</s:String>
+    <s:String x:Key="Settings_SelectKey">انتخاب کلید</s:String>
+    <s:String x:Key="Settings_ImportantWarning">هشدار مهم</s:String>
+    <s:String x:Key="Settings_WarningText">دستورات صوتی بهتر است حداکثر دو کلمه باشند و پس از اعلام هر دستور کمی مکث کنید.</s:String>
+    <s:String x:Key="Settings_ImportantNote">نکتهٔ مهم</s:String>
+    <s:String x:Key="Settings_NoteText">پس از افزودن یا ویرایش دستور جدید، یک‌بار برنامه را بسته و مجدداً اجرا کنید تا تغییرات از همان لحظه قابل اجرا باشد.</s:String>
+    <s:String x:Key="Settings_VoiceCommandsFooter">عملکرد دستورات صوتی به فعال بودن گوگل ترنسلیت و دقت تشخیص گفتار وابسته است.</s:String>
+    <s:String x:Key="Settings_ResetToDefaults">↺ بازگردانی به پیش‌فرض</s:String>
+    <s:String x:Key="Settings_SaveButton">✓ ذخیره</s:String>
+
+    <s:String x:Key="AddCmd_HelpText">راهنمای ساخت دستور صوتی:&#10;&#10;۱) عبارت دستور — همان کلمه یا عبارتی که می‌گویید تا دستور اجرا شود. مثال: ویرگول، خط جدید، واگرد.&#10;&#10;۲) نوع عملکرد — انتخاب کنید با گفتن عبارت چه اتفاقی بیفتد:&#10;• تایپ متن — هر چه در «مقدار عملکرد» بنویسید تایپ می‌شود (حروف، علائم نگارشی، نمادها).&#10;• ارسال کلید — یک کلید یا میانبر صفحه‌کلید از «مقدار عملکرد» فشرده می‌شود.&#10;• تغییر به فارسی — چیدمان صفحه‌کلید را به فارسی تغییر می‌دهد.&#10;• تغییر به انگلیسی — چیدمان صفحه‌کلید را به انگلیسی تغییر می‌دهد.&#10;• حذف کلمات آخر — کلماتی که همین الان تایپ کرده‌اید را پاک می‌کند.&#10;&#10;۳) مقدار عملکرد — فقط برای «تایپ متن» و «ارسال کلید» استفاده می‌شود:&#10;• تایپ متن: متن دقیق را وارد کنید. مثال:  ،  .  ؟  یا  با احترام&#10;• ارسال کلید: یک کلید یا میانبر. مثال‌ها:&#10;   Enter، Tab، Space، Backspace، Delete، Esc، F5&#10;   ^c = Ctrl+C،  ^v = Ctrl+V،  ^z = Ctrl+Z،  ^a = Ctrl+A&#10;   %{F4} = Alt+F4،  %{TAB} = Alt+Tab&#10;   (نمادها:  ^ = Ctrl،  % = Alt،  + = Shift)&#10;&#10;نکته: هر عبارت را کوتاه و متمایز انتخاب کنید تا مطمئن‌تر تشخیص داده شود.</s:String>
+
+    <!-- Code-behind strings -->
+    <s:String x:Key="Main_St_MicAttempt">تلاش {0} برای فعال کردن میکروفون...</s:String>
+    <s:String x:Key="Main_St_MicActivatedXPath">میکروفون با XPath فعال شد: ...{0}</s:String>
+    <s:String x:Key="Main_St_StopClickedAltXPath">دکمه توقف با xpath متفاوت کلیک شد</s:String>
+    <s:String x:Key="Main_St_MicClickedAltXPath">دکمه میکروفن با XPath جایگزین کلیک شد: ...{0}</s:String>
+    <s:String x:Key="Main_St_ShortcutEnableError">خطا در فعال‌سازی شورتکی: {0}</s:String>
+    <s:String x:Key="Main_St_ShortcutDisableError">خطا در غیرفعال‌سازی شورتکی: {0}</s:String>
+    <s:String x:Key="Main_St_VoiceSysInitError">خطا در راه‌اندازی سیستم دستورات صوتی: {0}</s:String>
+    <s:String x:Key="Main_St_VoiceUpdateError">خطا در به‌روزرسانی دستورات صوتی: {0}</s:String>
+    <s:String x:Key="Main_OpenSettingsError">خطا در باز کردن تنظیمات: {0}</s:String>
+    <s:String x:Key="Main_UpdateSettingsError">خطا در به‌روزرسانی تنظیمات: {0}</s:String>
+    <s:String x:Key="Main_OpenLinkError">خطا در باز کردن لینک: {0}</s:String>
+    <s:String x:Key="SW_LoadError">خطا در بارگذاری تنظیمات: {0}&#10;&#10;از تنظیمات پیش‌فرض استفاده می‌شود.</s:String>
+    <s:String x:Key="SW_EventHandlerError">خطا در تنظیم event handlers: {0}</s:String>
+    <s:String x:Key="SW_SaveError">خطا در ذخیره تنظیمات: {0}</s:String>
+    <s:String x:Key="SW_ResetError">خطا در بازگردانی تنظیمات: {0}</s:String>
+    <s:String x:Key="SW_TestSelectorsError">خطا در تست سلکتورها: {0}</s:String>
+    <s:String x:Key="SW_LoadShortcutError">خطا در بارگذاری تنظیمات شورتکی: {0}</s:String>
+    <s:String x:Key="SW_UpdateShortcutError">خطا در به‌روزرسانی تنظیمات شورتکی: {0}</s:String>
+    <s:String x:Key="SW_LoadVoiceError">خطا در بارگذاری دستورات صوتی: {0}</s:String>
+    <s:String x:Key="SW_UpdateVoiceError">خطا در به‌روزرسانی تنظیمات دستورات صوتی: {0}</s:String>
+    <s:String x:Key="SW_AddCommandError">خطا در افزودن دستور جدید: {0}</s:String>
+    <s:String x:Key="SW_EditCommandError">خطا در ویرایش دستور: {0}</s:String>
+    <s:String x:Key="SW_ConfirmDeleteCommand">آیا مطمئن هستید که می‌خواهید دستور '{0}' را حذف کنید؟</s:String>
+    <s:String x:Key="SW_DeleteCommandError">خطا در حذف دستور: {0}</s:String>
+    <s:String x:Key="SW_SaveCommandError">خطا در ذخیره دستور: {0}</s:String>
+    <s:String x:Key="SW_CancelEditError">خطا در لغو ویرایش: {0}</s:String>
+    <s:String x:Key="SW_ValidationError">خطا در اعتبارسنجی: {0}</s:String>
+    <s:String x:Key="SW_RestoreCommandsError">خطا در بازگردانی دستورات: {0}</s:String>
+    <s:String x:Key="SW_SelectKeyError">خطا در انتخاب کلید: {0}</s:String>
+    <s:String x:Key="SW_CurrentStartStop">شروع/توقف: {0}</s:String>
+    <s:String x:Key="SW_CurrentStop">توقف میکروفون: {0}</s:String>
+    <s:String x:Key="Notif_ErrorMsg">خطا: {0}</s:String>
+    <s:String x:Key="Main_St_PreparingBrowser">در حال آماده سازی مرورگر...</s:String>
+    <s:String x:Key="Main_St_StartTransfer">شروع انتقال متن...</s:String>
+    <s:String x:Key="Main_St_SendErrorPrefix">خطا در ارسال متن: </s:String>
+    <s:String x:Key="Main_St_ProcessErrorPrefix">خطا در پردازش متن: </s:String>
+    <s:String x:Key="Main_St_QuickTransferReset">انتقال سریع متن و ریست میکروفون...</s:String>
+    <s:String x:Key="Main_St_MicReset">میکروفون با موفقیت ریست شد</s:String>
+    <s:String x:Key="Main_St_MicResetErrorPrefix">خطا در ریست میکروفون: </s:String>
+    <s:String x:Key="Main_St_AutoTransferErrorPrefix">خطا در انتقال خودکار: </s:String>
+    <s:String x:Key="Main_St_AllTransferredSent">همه متن با موفقیت منتقل شد و به برنامه خارجی ارسال شد</s:String>
+    <s:String x:Key="Main_St_TransferredButSendErrorPrefix">متن منتقل شد ولی خطا در ارسال به برنامه خارجی: </s:String>
+    <s:String x:Key="Main_St_QuickTransferErrorPrefix">خطا در انتقال سریع: </s:String>
+    <s:String x:Key="Main_St_AllTransferred">همه متن با موفقیت منتقل شد</s:String>
+    <s:String x:Key="Main_St_NoTextToTransfer">متنی برای انتقال وجود ندارد</s:String>
+    <s:String x:Key="Main_St_RecognizedCopied">متن تشخیص داده شده با موفقیت کپی شد!</s:String>
+    <s:String x:Key="Main_St_CopyErrorPrefix">خطا در کپی متن: </s:String>
+    <s:String x:Key="Main_St_RecognizedCleared">متن تشخیص داده شده پاک شد</s:String>
+    <s:String x:Key="Main_St_FinalCopied">متن نهایی با موفقیت کپی شد!</s:String>
+    <s:String x:Key="Main_St_FinalCleared">متن نهایی پاک شد</s:String>
+    <s:String x:Key="Main_St_LiveOn">حالت انتقال لایو فعال شد - متن به صورت زنده ارسال می‌شود</s:String>
+    <s:String x:Key="Main_St_LiveOff">حالت انتقال لایو غیرفعال شد</s:String>
+    <s:String x:Key="Main_St_LiveToggleErrorPrefix">خطا در تغییر حالت انتقال لایو: </s:String>
+    <s:String x:Key="Main_St_SendToActiveError">خطا در ارسال متن به برنامه فعال</s:String>
+    <s:String x:Key="Main_St_SendKeysErrorPrefix">خطا در ارسال متن با SendKeys: </s:String>
+    <s:String x:Key="Main_St_PreInitGT">در حال آماده سازی اولیه گوگل ترنسلیت...</s:String>
+    <s:String x:Key="Main_St_GTReady">گوگل ترنسلیت آماده است. برنامه آماده استفاده می‌باشد.</s:String>
+    <s:String x:Key="Main_St_PreInitIncompletePrefix">پیش‌آماده‌سازی ناقص انجام شد: </s:String>
+    <s:String x:Key="Main_St_BrowserReady">مرورگر آماده شد</s:String>
+    <s:String x:Key="Main_St_BrowserPrepErrorPrefix">خطا در آماده سازی مرورگر: </s:String>
+    <s:String x:Key="Main_St_ErrorPrefix">خطا: </s:String>
+    <s:String x:Key="Main_St_ResetErrorPrefix">خطا در ریست کردن: </s:String>
+    <s:String x:Key="Main_St_ReopeningBrowserSuffix"> - درحال بازگشایی مرورگر</s:String>
+    <s:String x:Key="Main_St_ResettingGTPage">بازنشانی صفحه گوگل ترنسلیت...</s:String>
+    <s:String x:Key="Main_St_OpeningGT">در حال باز کردن گوگل ترنسلیت...</s:String>
+    <s:String x:Key="Main_St_WaitingPageLoad">در حال انتظار برای بارگذاری صفحه...</s:String>
+    <s:String x:Key="Main_St_BrowserReadyPressGreen">مرورگر آماده است. برای شروع، دکمه سبز را فشار دهید.</s:String>
+    <s:String x:Key="Main_St_BrowserStartErrorPrefix">خطا در راه‌اندازی مرورگر: </s:String>
+    <s:String x:Key="Main_St_ActivatingMic">در حال فعال کردن میکروفون...</s:String>
+    <s:String x:Key="Main_St_PageNotReadyContinue">صفحه هنوز کاملاً آماده نیست، ادامه می‌دهیم...</s:String>
+    <s:String x:Key="Main_St_MicXPathNotFoundTryOther">خطا در یافتن دکمه میکروفون با XPath. تلاش با روش‌های دیگر...</s:String>
+    <s:String x:Key="Main_St_MicActivateErrorPrefix">خطا در فعال‌سازی میکروفون: </s:String>
+    <s:String x:Key="Main_St_MicActivated">میکروفون فعال شد!</s:String>
+    <s:String x:Key="Main_St_MicButtonNotFound">نتوانستیم دکمه میکروفون را پیدا کنیم...</s:String>
+    <s:String x:Key="Main_St_MicEnableErrorPrefix">خطا در فعال کردن میکروفون: </s:String>
+    <s:String x:Key="Main_St_StopClickedJS">دکمه توقف با JavaScript کلیک شد</s:String>
+    <s:String x:Key="Main_St_StopClickedXPath">دکمه توقف با XPath کلیک شد</s:String>
+    <s:String x:Key="Main_St_StopXPathErrorPrefix">خطا در کلیک روی دکمه توقف با XPath: </s:String>
+    <s:String x:Key="Main_St_StopViaEsc">دکمه ESC برای توقف میکروفون استفاده شد</s:String>
+    <s:String x:Key="Main_St_MicDisableErrorPrefix">خطا در غیرفعال کردن میکروفون: </s:String>
+    <s:String x:Key="Main_St_OpenChromeFirstRed">ابتدا مرورگر کروم را باز کنید (دکمه قرمز)</s:String>
+    <s:String x:Key="Main_St_StartingRecognition">در حال شروع تشخیص گفتار...</s:String>
+    <s:String x:Key="Main_St_Listening">در حال گوش دادن...</s:String>
+    <s:String x:Key="Main_St_MicEnableError">خطا در فعال کردن میکروفون</s:String>
+    <s:String x:Key="Main_St_MicClickedOk">دکمه میکروفن (ترجمه گفتار) با موفقیت کلیک شد.</s:String>
+    <s:String x:Key="Main_St_MicNotFound2">دکمه میکروفن (ترجمه گفتار) پیدا نشد!</s:String>
+    <s:String x:Key="Main_St_MicClickErrorPrefix">خطا در کلیک دکمه میکروفن (ترجمه گفتار): </s:String>
+    <s:String x:Key="Main_St_StartClickErrorPrefix">خطا در اجرای کلیک دکمه استارت: </s:String>
+    <s:String x:Key="Main_St_BrowserNotActive">مرورگر فعال نیست</s:String>
+    <s:String x:Key="Main_St_StoppingRecognition">در حال توقف تشخیص گفتار...</s:String>
+    <s:String x:Key="Main_St_RecognitionStopped">تشخیص گفتار متوقف شد</s:String>
+    <s:String x:Key="Main_St_StopClickedDirect">دکمه توقف میکروفون مستقیماً کلیک شد</s:String>
+    <s:String x:Key="Main_St_StopDirectErrorPrefix">خطا در کلیک روی دکمه توقف مستقیم: </s:String>
+    <s:String x:Key="Main_St_StopClickedJS2">دکمه توقف میکروفون با JavaScript کلیک شد</s:String>
+    <s:String x:Key="Main_St_MicStoppedGeneric">میکروفون با روش عمومی متوقف شد</s:String>
+    <s:String x:Key="Main_St_StopAllFailed">تمام تلاش‌ها برای توقف میکروفون ناموفق بود</s:String>
+    <s:String x:Key="Main_St_MicStopped">میکروفون متوقف شد</s:String>
+    <s:String x:Key="Main_St_MicStopErrorPrefix">خطا در توقف میکروفون: </s:String>
+    <s:String x:Key="Main_St_OpeningChrome">در حال باز کردن مرورگر کروم...</s:String>
+    <s:String x:Key="Main_St_ChromeGTReady">مرورگر کروم با گوگل ترنسلیت آماده است</s:String>
+    <s:String x:Key="Main_St_OpenBrowserErrorPrefix">خطا در باز کردن مرورگر: </s:String>
+    <s:String x:Key="Main_St_ClosingChrome">در حال بستن مرورگر کروم...</s:String>
+    <s:String x:Key="Main_St_ChromeClosed">مرورگر کروم بسته شد</s:String>
+    <s:String x:Key="Main_St_CloseBrowserErrorPrefix">خطا در بستن مرورگر: </s:String>
+    <s:String x:Key="Main_St_OpenChromeFirst">ابتدا مرورگر کروم را باز کنید</s:String>
+    <s:String x:Key="Main_St_RecognitionErrorPrefix">خطا در تشخیص: </s:String>
+    <s:String x:Key="Main_St_VoiceCommandsDisabledVersion">در این نسخه، قابلیت دستورات صوتی غیرفعال شده است</s:String>
+    <s:String x:Key="Main_St_SettingsUpdated">تنظیمات به‌روزرسانی شد</s:String>
+    <s:String x:Key="Main_St_OpeningAndActivatingGT">در حال باز کردن مرورگر و فعال‌سازی گوگل ترنسلیت...</s:String>
+    <s:String x:Key="Main_St_StoppingMic">در حال توقف میکروفون...</s:String>
+    <s:String x:Key="Main_St_ActivatingMic2">در حال فعال‌سازی میکروفون...</s:String>
+    <s:String x:Key="Main_St_GlobalShortcutOnLive">شورتکی سراسری فعال - انتقال لایو آماده</s:String>
+    <s:String x:Key="Main_St_GlobalShortcutOff">شورتکی سراسری غیرفعال</s:String>
+    <s:String x:Key="Main_St_VoiceSysReady">سیستم دستورات صوتی آماده شد</s:String>
+    <s:String x:Key="Main_St_VoiceUpdated">دستورات صوتی به‌روزرسانی شد</s:String>
+    <s:String x:Key="Main_St_VoiceHistoryReset">تاریخچه دستورات صوتی ریست شد</s:String>
+    <s:String x:Key="Main_St_StopTransferBeforeReset">متوقف کردن انتقال متن قبل از ریست میکروفون...</s:String>
+    <s:String x:Key="Main_St_MicResetAfterCmd">ریست میکروفون بعد از دستور...</s:String>
+    <s:String x:Key="Main_St_RestoringTransferState">بازگردانی وضعیت انتقال متن...</s:String>
+    <s:String x:Key="Main_St_MicResetAndRestored">میکروفون با موفقیت ریست شد و انتقال متن بازگردانده شد</s:String>
+    <s:String x:Key="Main_St_RunningCommandPrefix">اجرای دستور: </s:String>
+    <s:String x:Key="Main_St_CommandDoneReady">دستور اجرا شد و برنامه آماده دریافت...</s:String>
+    <s:String x:Key="Main_St_CommandErrorPrefix">خطا در اجرای دستور: </s:String>
+    <s:String x:Key="Main_ConfirmExit_Msg">آیا می‌خواهید برنامه بسته شود؟</s:String>
+    <s:String x:Key="Common_ConfirmExit_Title">تأیید خروج</s:String>
+    <s:String x:Key="Settings_Saved">تنظیمات با موفقیت ذخیره شد.</s:String>
+    <s:String x:Key="Settings_UnsavedConfirm">تغییرات ذخیره نشده‌ای دارید. آیا مطمئن هستید که می‌خواهید خروج کنید؟</s:String>
+    <s:String x:Key="Settings_ConfirmResetAll">آیا مطمئن هستید که می‌خواهید همه تنظیمات به حالت پیش‌فرض بازگردانده شوند؟</s:String>
+    <s:String x:Key="Settings_ResetDoneSavePrompt">تنظیمات به حالت پیش‌فرض بازگردانده شد. برای اعمال تغییرات دکمه ذخیره را فشار دهید.</s:String>
+    <s:String x:Key="Settings_SelectCommandToEdit">لطفاً یک دستور برای ویرایش انتخاب کنید.</s:String>
+    <s:String x:Key="Settings_SelectCommandToDelete">لطفاً یک دستور برای حذف انتخاب کنید.</s:String>
+    <s:String x:Key="Settings_CommandSaved">دستور با موفقیت ذخیره شد.</s:String>
+    <s:String x:Key="Settings_VoiceResetDone">دستورات صوتی با موفقیت به حالت پیش‌فرض بازگردانده شد.</s:String>
+    <s:String x:Key="Settings_ValidationErrors_Title">خطاهای اعتبارسنجی</s:String>
+    <s:String x:Key="Settings_TestResult_Title">نتیجه تست سلکتورها</s:String>
+    <s:String x:Key="SW_Val_ProcessDelay">تاخیر پردازش متن باید بین 50 تا 10000 میلی‌ثانیه باشد.</s:String>
+    <s:String x:Key="SW_Val_WordDelay">تاخیر کلمه به کلمه باید بین 50 تا 10000 میلی‌ثانیه باشد.</s:String>
+    <s:String x:Key="SW_Val_StartDelay">تاخیر شروع انتقال باید بین 50 تا 10000 میلی‌ثانیه باشد.</s:String>
+    <s:String x:Key="SW_Val_InactivityDelay">مدت مکث ریست میکروفون باید بین 1000 تا 60000 میلی‌ثانیه باشد.</s:String>
+    <s:String x:Key="SW_Val_PreloadDelay">تاخیر پیش‌بارگذاری باید بین 100 تا 10000 میلی‌ثانیه باشد.</s:String>
+    <s:String x:Key="SW_Val_MicActivationDelay">تاخیر فعال‌سازی میکروفون باید بین 100 تا 10000 میلی‌ثانیه باشد.</s:String>
+    <s:String x:Key="SW_Val_MicXPathEmpty">XPath دکمه میکروفون نمی‌تواند خالی باشد.</s:String>
+    <s:String x:Key="SW_Val_AriaLabelRequired">حداقل یک Aria-Label برای باکس متن باید وارد شود.</s:String>
+    <s:String x:Key="SW_Val_CommandTextEmpty">متن دستور نمی‌تواند خالی باشد.</s:String>
+    <s:String x:Key="SW_Val_ActionTextEmpty">متن عمل نمی‌تواند خالی باشد.</s:String>
+    <s:String x:Key="Notif_CommandExec_Title">اجرای دستور</s:String>
+
+
+    <!-- Language selector -->
+    <s:String x:Key="Settings_Language">زبان رابط کاربری</s:String>
+    <s:String x:Key="Settings_LanguageRestartNote">تغییر زبان پس از راه‌اندازی مجدد برنامه اعمال می‌شود.</s:String>
+    <s:String x:Key="Settings_LanguageRestartPrompt">زبان رابط کاربری تغییر کرد. لطفاً برنامه را ببندید و دوباره باز کنید تا اعمال شود.</s:String>
+    <s:String x:Key="Settings_LanguageRestart_Title">نیاز به راه‌اندازی مجدد</s:String>
+
+    <s:String x:Key="AddCmd_EnterPhrase">لطفاً عبارت دستوری را وارد کنید.</s:String>
+    <s:String x:Key="AddCmd_EnterValue">لطفاً مقدار عملیات را وارد کنید.</s:String>
+    <s:String x:Key="KeySel_SelectAtLeastOne">لطفاً حداقل یک کلید را انتخاب کنید.</s:String>
+
+
+    <!-- Redesign / engine selection -->
+    <s:String x:Key="Main_SelectEngine">انتخاب موتور تبدیل گفتار</s:String>
+    <s:String x:Key="Main_OpenHelperBrowser">باز کردن مرورگر کمکی</s:String>
+    <s:String x:Key="Main_CloseHelperBrowser">بستن مرورگر کمکی</s:String>
+    <s:String x:Key="Main_HelperBrowser">مرورگر کمکی کرومیوم</s:String>
+    <s:String x:Key="Settings_Tab_Engine">موتور تبدیل گفتار</s:String>
+    <s:String x:Key="Settings_EngineGroup">موتور تبدیل گفتار به متن</s:String>
+    <s:String x:Key="Settings_EngineHint">نحوهٔ تشخیص گفتار را انتخاب کنید. موتورهای بیشتری به‌زودی اضافه می‌شوند.</s:String>
+    <s:String x:Key="Settings_Engine_GoogleTranslate">گوگل ترنسلیت (مرورگر کمکی)</s:String>
+    <s:String x:Key="Settings_Engine_GoogleApi">Google Cloud Speech API</s:String>
+    <s:String x:Key="Settings_Engine_Whisper">OpenAI Whisper (آفلاین)</s:String>
+    <s:String x:Key="Settings_Engine_WindowsSpeech">تشخیص گفتار ویندوز</s:String>
+    <s:String x:Key="Settings_ComingSoon">به‌زودی</s:String>
+    <s:String x:Key="Settings_TypingLanguage">زبان تایپ (گفتار)</s:String>
+    <s:String x:Key="Settings_TypingLanguageHint">زبانی که با آن صحبت می‌کنید؛ تنظیمات موتور (مثلاً صفحهٔ گوگل ترنسلیت) را تعیین می‌کند.</s:String>
+
+
+    <s:String x:Key="Main_GitHub">گیت‌هاب</s:String>
+    <s:String x:Key="Main_Website">وب‌سایت</s:String>
+    <s:String x:Key="Main_AuthorName">فرشاد زمانی</s:String>
+
+
+    <s:String x:Key="Settings_ConfirmRestoreVoice">آیا مطمئن هستید که می‌خواهید تمام دستورات صوتی را به حالت پیش‌فرض بازگردانید؟&#10;&#10;توجه: تمام دستورات سفارشی شما حذف خواهد شد.</s:String>
+    <s:String x:Key="Settings_ConfirmRestoreVoice_Title">تأیید بازگردانی</s:String>
+
+    <s:String x:Key="Main_WindowTitle">Cloudict │ هر جا با صدای خود تایپ کنید</s:String>
+
+    <s:String x:Key="Settings_SelectorsHelp">Cloudict با کنترل صفحهٔ وب گوگل ترنسلیت گفتار را تشخیص می‌دهد؛ بنابراین این سلکتورها مشخص می‌کنند دکمهٔ میکروفون و کادر متن مبدأ کجای آن صفحه هستند. معمولاً نیازی به تغییرشان نیست. اگر تشخیص گفتار یا ریستِ خودکار میکروفون از کار افتاد — مثلاً بعد از تغییر صفحهٔ گوگل یا هنگام عوض‌کردن زبان تایپ — گوگل ترنسلیت را در کروم باز کنید، F12 را بزنید، روی عنصر میکروفون (یا متن) راست‌کلیک کرده و «Inspect» را بزنید، سپس شناسهٔ آن (jsname یا class یا aria-label) را در کادر مربوطهٔ زیر وارد کنید.</s:String>
+    <s:String x:Key="Settings_MicXPath_Hint">XPath دکمهٔ میکروفون. ترجیحاً از یک ویژگیِ پایدار و مستقل از زبان استفاده کنید (مثل //button[@jsname='...']) تا در همهٔ زبان‌ها کار کند.</s:String>
+    <s:String x:Key="Settings_AriaLabels_Hint">برچسب‌های دسترس‌پذیریِ کادر متن مبدأ (هر کدام در یک خط). این‌ها وابسته به زبان‌اند؛ سلکتورهای کلاسِ پایین جایگزینِ مستقل‌از‌زبان هستند.</s:String>
+    <s:String x:Key="Settings_ClassSelectors_Hint">نام کلاس‌های CSS کادر متن مبدأ (هر کدام در یک خط). مستقل از زبان — وقتی برچسب‌های بالا مطابقت نکنند به‌عنوان جایگزین استفاده می‌شوند.</s:String>
+
+</ResourceDictionary>

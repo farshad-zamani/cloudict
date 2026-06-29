@@ -1,0 +1,15 @@
+# Normalize line endings on checkin; let Git pick native on checkout.
+* text=auto
+
+# Windows-specific files keep CRLF
+*.sln    text eol=crlf
+*.csproj text eol=crlf
+*.bat    text eol=crlf
+*.manifest text eol=crlf
+
+# Binary assets (never normalize/diff)
+*.png binary
+*.ico binary
+*.bmp binary
+*.ttf binary
+*.otf binary

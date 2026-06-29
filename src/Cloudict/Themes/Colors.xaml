@@ -1,0 +1,65 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ============================================================ -->
+    <!-- Dark "acrylic glass" palette. Light overlays read as frosted -->
+    <!-- panels on top of the blurred backdrop; dark overlays improve -->
+    <!-- text contrast where needed.                                  -->
+    <!-- ============================================================ -->
+
+    <!-- Brand accent (crimson) -->
+    <Color x:Key="AccentColor">#C2454E</Color>
+    <SolidColorBrush x:Key="AccentBrush" Color="#C2454E"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#D25A62"/>
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="#A53B43"/>
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#33C2454E"/>
+
+    <!-- Semantic -->
+    <SolidColorBrush x:Key="SuccessBrush" Color="#3E9080"/>
+    <SolidColorBrush x:Key="SuccessHoverBrush" Color="#4AA08D"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#C2454E"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#E9A23B"/>
+    <SolidColorBrush x:Key="InfoBrush" Color="#4C8DF6"/>
+
+    <!-- Text -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F4F6FA"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#AEB6C2"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#7C8593"/>
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFF"/>
+
+    <!-- Surfaces (translucent, sit on the acrylic backdrop) -->
+    <SolidColorBrush x:Key="WindowOverlayBrush" Color="#FA14141A"/>
+    <SolidColorBrush x:Key="GlassPanelBrush" Color="#14FFFFFF"/>
+    <SolidColorBrush x:Key="GlassPanelHoverBrush" Color="#22FFFFFF"/>
+    <SolidColorBrush x:Key="GlassPanelStrongBrush" Color="#1FFFFFFF"/>
+    <SolidColorBrush x:Key="InputBackgroundBrush" Color="#59000000"/>
+    <SolidColorBrush x:Key="InputHoverBrush" Color="#73000000"/>
+
+    <!-- Borders -->
+    <SolidColorBrush x:Key="BorderSubtleBrush" Color="#22FFFFFF"/>
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="#3AFFFFFF"/>
+
+    <!-- Title bar caption buttons -->
+    <SolidColorBrush x:Key="CaptionHoverBrush" Color="#1FFFFFFF"/>
+    <SolidColorBrush x:Key="CaptionCloseHoverBrush" Color="#C2454E"/>
+
+    <!-- Scrollbar -->
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#4DFFFFFF"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#80FFFFFF"/>
+
+    <!-- Aliases referenced directly by window content (kept for compatibility) -->
+    <SolidColorBrush x:Key="AccentPrimary" Color="#C2454E"/>
+    <SolidColorBrush x:Key="AccentInfo" Color="#4C8DF6"/>
+    <SolidColorBrush x:Key="AccentSuccess" Color="#3E9080"/>
+    <SolidColorBrush x:Key="AccentWarning" Color="#E9A23B"/>
+    <SolidColorBrush x:Key="BgWindow" Color="Transparent"/>
+    <SolidColorBrush x:Key="BgCard" Color="#14FFFFFF"/>
+    <SolidColorBrush x:Key="BgInput" Color="#59000000"/>
+    <SolidColorBrush x:Key="BgInputHover" Color="#73000000"/>
+    <SolidColorBrush x:Key="BorderSubtle" Color="#22FFFFFF"/>
+    <SolidColorBrush x:Key="BorderFocus" Color="#C2454E"/>
+    <SolidColorBrush x:Key="TextPrimary" Color="#F4F6FA"/>
+    <SolidColorBrush x:Key="TextSecondary" Color="#AEB6C2"/>
+    <SolidColorBrush x:Key="TextMuted" Color="#7C8593"/>
+
+</ResourceDictionary>

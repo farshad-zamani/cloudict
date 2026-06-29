@@ -1,0 +1,776 @@
+<local:GlassWindow x:Class="Cloudict.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{DynamicResource Settings_Title}" Height="950" Width="1100"
+        MinHeight="700" MinWidth="900" Foreground="White"
+        FlowDirection="{DynamicResource AppFlowDirection}"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        UseLayoutRounding="True"
+        FontFamily="{DynamicResource AppFontFamily}"
+        xmlns:local="clr-namespace:Cloudict">
+
+    
+    <Grid Margin="24,20,24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header card -->
+        <Border Grid.Row="0" Background="{StaticResource BgCard}"
+                CornerRadius="12" Padding="22,18" Margin="0,0,0,16"
+                BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{DynamicResource Settings_Heading}"
+                               FontSize="26" FontWeight="Bold"
+                               FontFamily="{DynamicResource AppFontFamily}"
+                               Foreground="{StaticResource TextPrimary}"/>
+                    <TextBlock Text="{DynamicResource Settings_Subheading}"
+                               FontSize="13"
+                               FontFamily="{DynamicResource AppFontFamily}"
+                               Foreground="{StaticResource TextSecondary}"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+                <Image Grid.Column="1" Source="pack://application:,,,/Assets/logo.png"
+                       Height="64" Stretch="Uniform" VerticalAlignment="Center"
+                       Margin="16,0,4,0" SnapsToDevicePixels="True"
+                       RenderOptions.BitmapScalingMode="HighQuality"/>
+            </Grid>
+        </Border>
+        
+        <!-- Tab Control -->
+        <TabControl x:Name="tabControl" Grid.Row="1" Style="{StaticResource DarkTabControlStyle}">
+
+            <!-- Speech Engine Tab -->
+            <TabItem x:Name="tabEngine" Header="{DynamicResource Settings_Tab_Engine}" Style="{StaticResource DarkTabItemStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{StaticResource BgWindow}">
+                    <StackPanel Margin="22,20,22,20">
+
+                        <GroupBox Header="{DynamicResource Settings_EngineGroup}" Style="{StaticResource DarkGroupBoxStyle}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource HintTextStyle}" Text="{DynamicResource Settings_EngineHint}"/>
+
+                                <RadioButton x:Name="rbEngineGoogleTranslate" GroupName="engine" Tag="GoogleTranslate"
+                                             Margin="0,12,0,0" Content="{DynamicResource Settings_Engine_GoogleTranslate}"
+                                             Checked="EngineRadio_Checked"/>
+
+                                <Grid Margin="0,14,0,0">
+                                    <RadioButton GroupName="engine" IsEnabled="False" HorizontalAlignment="Left"
+                                                 Content="{DynamicResource Settings_Engine_GoogleApi}"/>
+                                    <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="6" Padding="8,2" HorizontalAlignment="Right">
+                                        <TextBlock Text="{DynamicResource Settings_ComingSoon}" FontSize="11" Foreground="{DynamicResource AccentBrush}"/>
+                                    </Border>
+                                </Grid>
+                                <Grid Margin="0,14,0,0">
+                                    <RadioButton GroupName="engine" IsEnabled="False" HorizontalAlignment="Left"
+                                                 Content="{DynamicResource Settings_Engine_Whisper}"/>
+                                    <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="6" Padding="8,2" HorizontalAlignment="Right">
+                                        <TextBlock Text="{DynamicResource Settings_ComingSoon}" FontSize="11" Foreground="{DynamicResource AccentBrush}"/>
+                                    </Border>
+                                </Grid>
+                                <Grid Margin="0,14,0,0">
+                                    <RadioButton GroupName="engine" IsEnabled="False" HorizontalAlignment="Left"
+                                                 Content="{DynamicResource Settings_Engine_WindowsSpeech}"/>
+                                    <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="6" Padding="8,2" HorizontalAlignment="Right">
+                                        <TextBlock Text="{DynamicResource Settings_ComingSoon}" FontSize="11" Foreground="{DynamicResource AccentBrush}"/>
+                                    </Border>
+                                </Grid>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Header="{DynamicResource Settings_TypingLanguage}" Style="{StaticResource DarkGroupBoxStyle}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource HintTextStyle}" Text="{DynamicResource Settings_TypingLanguageHint}"/>
+                                <ComboBox x:Name="cmbTypingLanguage" Style="{StaticResource DarkComboBoxStyle}"
+                                          Width="280" HorizontalAlignment="Left" Margin="0,8,0,0">
+                                    <ComboBoxItem Tag="fa" Content="فارسی — Persian" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="en" Content="English" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="ar" Content="العربية — Arabic" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="fr" Content="Français — French" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="de" Content="Deutsch — German" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="es" Content="Español — Spanish" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="it" Content="Italiano — Italian" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="pt" Content="Português — Portuguese" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="ru" Content="Русский — Russian" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="tr" Content="Türkçe — Turkish" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="nl" Content="Nederlands — Dutch" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="pl" Content="Polski — Polish" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="uk" Content="Українська — Ukrainian" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="sv" Content="Svenska — Swedish" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="hi" Content="हिन्दी — Hindi" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="ur" Content="اردو — Urdu" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="id" Content="Indonesia — Indonesian" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="zh-CN" Content="中文 — Chinese" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="ja" Content="日本語 — Japanese" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="ko" Content="한국어 — Korean" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </GroupBox>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Text Transfer Delays Tab -->
+            <TabItem Header="{DynamicResource Settings_Tab_Delays}" Style="{StaticResource DarkTabItemStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{StaticResource BgWindow}">
+                    <StackPanel Margin="22,20,22,20">
+
+                        <GroupBox Header="{DynamicResource Settings_TimingGroup}" Style="{StaticResource DarkGroupBoxStyle}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource HintTextStyle}"
+                                           Text="{DynamicResource Settings_TimingHint}"/>
+
+                                <Grid Margin="0,8,0,0" FlowDirection="{DynamicResource AppFlowDirection}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="130"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Label Grid.Row="0" Grid.Column="0" Content="{DynamicResource Settings_ProcessDelay}" Style="{StaticResource DarkLabelStyle}"/>
+                                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtProcessDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4"/>
+                                    <Label Grid.Row="0" Grid.Column="2" Content="{DynamicResource Settings_Milliseconds}" Style="{StaticResource DarkLabelStyle}"/>
+                                    <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Style="{StaticResource HintTextStyle}"
+                                               Text="{DynamicResource Settings_ProcessDelayHint}"/>
+
+                                    <Label Grid.Row="2" Grid.Column="0" Content="{DynamicResource Settings_WordDelay}" Style="{StaticResource DarkLabelStyle}"/>
+                                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtWordByWordDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4"/>
+                                    <Label Grid.Row="2" Grid.Column="2" Content="{DynamicResource Settings_Milliseconds}" Style="{StaticResource DarkLabelStyle}"/>
+                                    <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Style="{StaticResource HintTextStyle}"
+                                               Text="{DynamicResource Settings_WordDelayHint}"/>
+
+                                    <Label Grid.Row="4" Grid.Column="0" Content="{DynamicResource Settings_StartDelay}" Style="{StaticResource DarkLabelStyle}"/>
+                                    <TextBox Grid.Row="4" Grid.Column="1" x:Name="txtTransferStartDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4"/>
+                                    <Label Grid.Row="4" Grid.Column="2" Content="{DynamicResource Settings_Milliseconds}" Style="{StaticResource DarkLabelStyle}"/>
+                                    <TextBlock Grid.Row="5" Grid.ColumnSpan="3" Style="{StaticResource HintTextStyle}"
+                                               Text="{DynamicResource Settings_StartDelayHint}"/>
+
+                                    <Label Grid.Row="6" Grid.Column="0" Content="{DynamicResource Settings_InactivityDelay}" Style="{StaticResource DarkLabelStyle}"/>
+                                    <TextBox Grid.Row="6" Grid.Column="1" x:Name="txtInactivityDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4"/>
+                                    <Label Grid.Row="6" Grid.Column="2" Content="{DynamicResource Settings_Milliseconds}" Style="{StaticResource DarkLabelStyle}"/>
+                                    <TextBlock Grid.Row="7" Grid.ColumnSpan="3" Style="{StaticResource HintTextStyle}"
+                                               Text="{DynamicResource Settings_InactivityDelayHint}"/>
+                                </Grid>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <Border Background="#1B2A3F" BorderBrush="#264A78" BorderThickness="1"
+                                CornerRadius="8" Padding="14,12" Margin="0,6,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="💡" FontSize="18" VerticalAlignment="Top" Margin="0,0,10,0"/>
+                                <TextBlock Style="{StaticResource HintTextStyle}"
+                                           Foreground="#CFE0FA"
+                                           Text="{DynamicResource Settings_TimingFooter}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            
+            <!-- Google Translate Settings Tab -->
+            <TabItem x:Name="tabGoogleTranslate" Header="{DynamicResource Settings_Tab_GoogleTranslate}" Style="{StaticResource DarkTabItemStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{StaticResource BgWindow}">
+                    <StackPanel Margin="22,20,22,20">
+
+                        <GroupBox Header="{DynamicResource Settings_SelectorsGroup}" Style="{StaticResource DarkGroupBoxStyle}">
+                            <StackPanel>
+                                <!-- Short summary; the full how-to explanation opens on hover (tooltip). -->
+                                <TextBlock Style="{StaticResource HintTextStyle}" TextWrapping="Wrap"
+                                           ToolTipService.ShowDuration="120000" ToolTipService.InitialShowDelay="150">
+                                    <Run Text="ⓘ" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/><Run Text="  "/><Run Text="{DynamicResource Settings_SelectorsHint}"/>
+                                    <TextBlock.ToolTip>
+                                        <ToolTip MaxWidth="460">
+                                            <TextBlock Text="{DynamicResource Settings_SelectorsHelp}"
+                                                       TextWrapping="Wrap"
+                                                       FlowDirection="{DynamicResource AppFlowDirection}"
+                                                       FontFamily="{DynamicResource AppFontFamily}"/>
+                                        </ToolTip>
+                                    </TextBlock.ToolTip>
+                                </TextBlock>
+
+                                <TextBlock Text="{DynamicResource Settings_MicXPath}" Style="{StaticResource SectionTitleStyle}" Margin="0,12,0,2"/>
+                                <TextBlock Text="{DynamicResource Settings_MicXPath_Hint}" Style="{StaticResource HintTextStyle}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                <TextBox x:Name="txtMicButtonXPath" Style="{StaticResource DarkTextBoxStyle}"
+                                         FontFamily="{StaticResource CodeFont}" FontSize="13"
+                                         TextAlignment="Left" FlowDirection="LeftToRight"
+                                         ToolTip="{DynamicResource Settings_MicXPath_Hint}"
+                                         Margin="0,0,0,12"/>
+
+                                <TextBlock Text="{DynamicResource Settings_AriaLabels}" Style="{StaticResource SectionTitleStyle}" Margin="0,6,0,2"/>
+                                <TextBlock Text="{DynamicResource Settings_AriaLabels_Hint}" Style="{StaticResource HintTextStyle}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                <TextBox x:Name="txtTextBoxAriaLabels" Style="{StaticResource DarkTextBoxStyle}"
+                                         MinHeight="92" AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto"
+                                         ToolTip="{DynamicResource Settings_AriaLabels_Hint}"
+                                         TextWrapping="Wrap" Margin="0,0,0,12"
+                                         VerticalContentAlignment="Top"/>
+
+                                <TextBlock Text="{DynamicResource Settings_ClassSelectors}" Style="{StaticResource SectionTitleStyle}" Margin="0,6,0,2"/>
+                                <TextBlock Text="{DynamicResource Settings_ClassSelectors_Hint}" Style="{StaticResource HintTextStyle}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                <TextBox x:Name="txtTextBoxClassSelectors" Style="{StaticResource DarkTextBoxStyle}"
+                                         FontFamily="{StaticResource CodeFont}" FontSize="13"
+                                         TextAlignment="Left" FlowDirection="LeftToRight"
+                                         MinHeight="72" AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto"
+                                         ToolTip="{DynamicResource Settings_ClassSelectors_Hint}"
+                                         TextWrapping="Wrap" Margin="0,0,0,6"
+                                         VerticalContentAlignment="Top"/>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <GroupBox Header="{DynamicResource Settings_BrowserGroup}" Style="{StaticResource DarkGroupBoxStyle}">
+                            <Grid FlowDirection="{DynamicResource AppFlowDirection}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="130"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <Label Grid.Row="0" Grid.Column="0" Content="{DynamicResource Settings_PreloadDelay}" Style="{StaticResource DarkLabelStyle}"/>
+                                <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtPreloadDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4"/>
+                                <Label Grid.Row="0" Grid.Column="2" Content="{DynamicResource Settings_Milliseconds}" Style="{StaticResource DarkLabelStyle}"/>
+                                <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Style="{StaticResource HintTextStyle}"
+                                           Text="{DynamicResource Settings_PreloadDelayHint}"/>
+
+                                <Label Grid.Row="2" Grid.Column="0" Content="{DynamicResource Settings_MicActivationDelay}" Style="{StaticResource DarkLabelStyle}"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtMicActivationDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4"/>
+                                <Label Grid.Row="2" Grid.Column="2" Content="{DynamicResource Settings_Milliseconds}" Style="{StaticResource DarkLabelStyle}"/>
+                                <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Style="{StaticResource HintTextStyle}"
+                                           Text="{DynamicResource Settings_MicActivationHint}"/>
+                            </Grid>
+                        </GroupBox>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                            <Button Content="{DynamicResource Settings_TestSelectors}" x:Name="btnTestSelectors"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    Click="btnTestSelectors_Click"/>
+                        </StackPanel>
+
+                        <Border Background="#1B2A3F" BorderBrush="#264A78" BorderThickness="1"
+                                CornerRadius="8" Padding="14,12" Margin="0,10,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="💡" FontSize="18" VerticalAlignment="Top" Margin="0,0,10,0"/>
+                                <TextBlock Style="{StaticResource HintTextStyle}"
+                                           Foreground="#CFE0FA"
+                                           Text="{DynamicResource Settings_TestSelectorsHint}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            
+            <!-- Global Shortcut Tab -->
+            <TabItem Header="{DynamicResource Settings_Tab_Shortcuts}" Style="{StaticResource DarkTabItemStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{StaticResource BgWindow}">
+                    <StackPanel Margin="22,20,22,20">
+
+                        <GroupBox Header="{DynamicResource Settings_GeneralGroup}" Style="{StaticResource DarkGroupBoxStyle}">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource Settings_Language}" Style="{StaticResource HintTextStyle}" Margin="0,0,0,4"/>
+                                <ComboBox x:Name="cmbLanguage"
+                                          Style="{StaticResource DarkComboBoxStyle}"
+                                          Width="220" Height="40" FontSize="14"
+                                          HorizontalAlignment="Left" Margin="0,0,0,2">
+                                    <ComboBoxItem Tag="en" Content="English" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Tag="fa" Content="فارسی" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                </ComboBox>
+                                <TextBlock Style="{StaticResource HintTextStyle}"
+                                           Text="{DynamicResource Settings_LanguageRestartNote}" Margin="0,0,0,12"/>
+
+                                <CheckBox x:Name="chkMinimizeToTray"
+                                          Style="{StaticResource DarkCheckBoxStyle}"
+                                          Content="{DynamicResource Settings_MinimizeToTray}"
+                                          Margin="0,4,0,2"/>
+                                <TextBlock Style="{StaticResource HintTextStyle}"
+                                           Text="{DynamicResource Settings_MinimizeToTrayHint}"/>
+
+                                <CheckBox x:Name="chkEnableGlobalShortcut"
+                                          Style="{StaticResource DarkCheckBoxStyle}"
+                                          Content="{DynamicResource Settings_EnableGlobalShortcuts}"
+                                          Margin="0,10,0,2"/>
+                                <TextBlock Style="{StaticResource HintTextStyle}"
+                                           Text="{DynamicResource Settings_EnableGlobalShortcutsHint}"/>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <!-- Toggle shortcut card -->
+                        <GroupBox Header="{DynamicResource Settings_StartStopShortcut}" Style="{StaticResource DarkGroupBoxStyle}">
+                            <Grid FlowDirection="{DynamicResource AppFlowDirection}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,18,0">
+                                    <TextBlock Text="{DynamicResource Settings_MainKey}" Style="{StaticResource HintTextStyle}" Margin="0,0,0,4"/>
+                                    <Border Background="{StaticResource BgInput}" BorderBrush="{StaticResource BorderSubtle}"
+                                            BorderThickness="1" CornerRadius="8" Padding="4"
+                                            Width="84" Height="84" HorizontalAlignment="Right">
+                                        <TextBox x:Name="txtShortcutKey" MaxLength="1"
+                                                 Text="A" FontSize="32" TextAlignment="Center" CharacterCasing="Upper"
+                                                 FontWeight="Bold" VerticalContentAlignment="Center"
+                                                 HorizontalContentAlignment="Center"
+                                                 Background="Transparent" BorderThickness="0"
+                                                 Foreground="{StaticResource TextPrimary}"
+                                                 CaretBrush="{StaticResource TextPrimary}"
+                                                 FontFamily="{DynamicResource AppFontFamily}"
+                                                 TextChanged="txtShortcutKey_TextChanged"/>
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{DynamicResource Settings_Modifiers}" Style="{StaticResource HintTextStyle}" Margin="0,0,0,4"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <CheckBox x:Name="chkCtrlModifier" Content="Ctrl"
+                                                  Style="{StaticResource DarkCheckBoxStyle}" IsChecked="True"
+                                                  Margin="0,0,18,0"
+                                                  Checked="chkModifier_CheckedChanged" Unchecked="chkModifier_CheckedChanged"/>
+                                        <CheckBox x:Name="chkShiftModifier" Content="Shift"
+                                                  Style="{StaticResource DarkCheckBoxStyle}" IsChecked="True"
+                                                  Margin="0,0,18,0"
+                                                  Checked="chkModifier_CheckedChanged" Unchecked="chkModifier_CheckedChanged"/>
+                                        <CheckBox x:Name="chkAltModifier" Content="Alt"
+                                                  Style="{StaticResource DarkCheckBoxStyle}" IsChecked="False"
+                                                  Checked="chkModifier_CheckedChanged" Unchecked="chkModifier_CheckedChanged"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="{DynamicResource Settings_CurrentShortcut}" Style="{StaticResource HintTextStyle}" Margin="0,14,0,4"/>
+                                    <Border Background="#1F3A2A" BorderBrush="{StaticResource AccentSuccess}" BorderThickness="1"
+                                            CornerRadius="8" Padding="14,8" HorizontalAlignment="Right">
+                                        <TextBlock x:Name="txtCurrentShortcut" Text="{DynamicResource Settings_StartStopValue}"
+                                                   Foreground="#9FF0AE" FontWeight="SemiBold"
+                                                   FontFamily="{DynamicResource AppFontFamily}" FontSize="14"/>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </GroupBox>
+
+                        <!-- Stop-only shortcut card -->
+                        <GroupBox Header="{DynamicResource Settings_StopShortcut}" Style="{StaticResource DarkGroupBoxStyle}">
+                            <Grid FlowDirection="{DynamicResource AppFlowDirection}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,18,0">
+                                    <TextBlock Text="{DynamicResource Settings_MainKey}" Style="{StaticResource HintTextStyle}" Margin="0,0,0,4"/>
+                                    <Border Background="{StaticResource BgInput}" BorderBrush="{StaticResource BorderSubtle}"
+                                            BorderThickness="1" CornerRadius="8" Padding="4"
+                                            Width="84" Height="84" HorizontalAlignment="Right">
+                                        <TextBox x:Name="txtStopShortcutKey" MaxLength="1"
+                                                 Text="S" FontSize="32" TextAlignment="Center" CharacterCasing="Upper"
+                                                 FontWeight="Bold" VerticalContentAlignment="Center"
+                                                 HorizontalContentAlignment="Center"
+                                                 Background="Transparent" BorderThickness="0"
+                                                 Foreground="{StaticResource TextPrimary}"
+                                                 CaretBrush="{StaticResource TextPrimary}"
+                                                 FontFamily="{DynamicResource AppFontFamily}"
+                                                 TextChanged="txtStopShortcutKey_TextChanged"/>
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{DynamicResource Settings_Modifiers}" Style="{StaticResource HintTextStyle}" Margin="0,0,0,4"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <CheckBox x:Name="chkStopCtrlModifier" Content="Ctrl"
+                                                  Style="{StaticResource DarkCheckBoxStyle}" IsChecked="True"
+                                                  Margin="0,0,18,0"
+                                                  Checked="chkStopModifier_CheckedChanged" Unchecked="chkStopModifier_CheckedChanged"/>
+                                        <CheckBox x:Name="chkStopShiftModifier" Content="Shift"
+                                                  Style="{StaticResource DarkCheckBoxStyle}" IsChecked="False"
+                                                  Margin="0,0,18,0"
+                                                  Checked="chkStopModifier_CheckedChanged" Unchecked="chkStopModifier_CheckedChanged"/>
+                                        <CheckBox x:Name="chkStopAltModifier" Content="Alt"
+                                                  Style="{StaticResource DarkCheckBoxStyle}" IsChecked="True"
+                                                  Checked="chkStopModifier_CheckedChanged" Unchecked="chkStopModifier_CheckedChanged"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="{DynamicResource Settings_CurrentShortcut}" Style="{StaticResource HintTextStyle}" Margin="0,14,0,4"/>
+                                    <Border Background="#3A2222" BorderBrush="{StaticResource AccentPrimary}" BorderThickness="1"
+                                            CornerRadius="8" Padding="14,8" HorizontalAlignment="Right">
+                                        <TextBlock x:Name="txtStopShortcut" Text="{DynamicResource Settings_StopValue}"
+                                                   Foreground="#FFB3B8" FontWeight="SemiBold"
+                                                   FontFamily="{DynamicResource AppFontFamily}" FontSize="14"/>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </GroupBox>
+
+                        <Border Background="#1B2A3F" BorderBrush="#264A78" BorderThickness="1"
+                                CornerRadius="8" Padding="14,12" Margin="0,4,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="💡" FontSize="18" VerticalAlignment="Top" Margin="0,0,10,0"/>
+                                <TextBlock Style="{StaticResource HintTextStyle}"
+                                           Foreground="#CFE0FA"
+                                           Text="{DynamicResource Settings_ShortcutsFooter}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            
+            <!-- Voice Commands Tab -->
+            <TabItem x:Name="tabVoiceCommands" Header="{DynamicResource Settings_Tab_VoiceCommands}" Style="{StaticResource DarkTabItemStyle}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Background="{StaticResource BgWindow}">
+                    <StackPanel Margin="22,20,22,20">
+
+                        <!-- Voice Commands Settings -->
+                        <GroupBox Header="{DynamicResource Settings_EnableVoiceCommandsGroup}" Style="{StaticResource DarkGroupBoxStyle}">
+                            <StackPanel>
+                                <CheckBox x:Name="chkEnableVoiceCommands"
+                                          Style="{StaticResource DarkCheckBoxStyle}"
+                                          Content="{DynamicResource Settings_EnableVoiceCommandsCheck}"
+                                          Margin="0,4,0,2"
+                                          Checked="chkEnableVoiceCommands_CheckedChanged"
+                                          Unchecked="chkEnableVoiceCommands_CheckedChanged"/>
+                                <TextBlock Style="{StaticResource HintTextStyle}"
+                                           Text="{DynamicResource Settings_VoiceCommandsHint}"/>
+                            </StackPanel>
+                        </GroupBox>
+                        
+                        <!-- Voice Commands List -->
+                        <GroupBox Header="{DynamicResource Settings_VoiceCommandsListGroup}" Style="{StaticResource DarkGroupBoxStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="320" MinHeight="220" MaxHeight="600"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto" MinHeight="60"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Search Box -->
+                                <Grid Grid.Row="0" Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Label Grid.Column="0" Content="{DynamicResource Settings_Search}" Style="{StaticResource DarkLabelStyle}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBox Grid.Column="1" x:Name="txtSearchCommands"
+                                             Style="{StaticResource DarkTextBoxStyle}"
+                                             FontSize="13"
+                                             VerticalContentAlignment="Center"
+                                             TextChanged="txtSearchCommands_TextChanged"
+                                             Margin="0,0,10,0"/>
+                                    <Button Grid.Column="2" Content="{DynamicResource Common_Clear}"
+                                            Style="{StaticResource CancelButtonStyle}"
+                                            MinWidth="100"
+                                            Click="btnClearSearch_Click"/>
+                                </Grid>
+                                
+                                <!-- Commands ListView -->
+                                <ListView Grid.Row="1" x:Name="lstVoiceCommands" 
+                                              Background="#2D2D30" 
+                                              Foreground="White" 
+                                              BorderBrush="#404040" 
+                                              BorderThickness="1" 
+                                              FontFamily="{DynamicResource AppFontFamily}"
+                                              Style="{StaticResource DarkListViewStyle}"
+                                              ItemContainerStyle="{StaticResource VoiceCommandsListViewItemStyle}"
+                                              SelectionChanged="lstVoiceCommands_SelectionChanged"
+                                              ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                        <ListView.View>
+                                            <GridView>
+                                                <GridViewColumn Header="#" Width="50">
+                                                    <GridViewColumn.HeaderContainerStyle>
+                                                        <Style TargetType="GridViewColumnHeader">
+                                                            <Setter Property="Background" Value="#404040"/>
+                                                            <Setter Property="Foreground" Value="White"/>
+                                                            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
+                                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                                            <Setter Property="Padding" Value="5"/>
+                                                            <Setter Property="BorderBrush" Value="#606060"/>
+                                                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                                        </Style>
+                                                    </GridViewColumn.HeaderContainerStyle>
+                                                    <GridViewColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding RowNumber}" HorizontalAlignment="Center" Foreground="White"/>
+                                                        </DataTemplate>
+                                                    </GridViewColumn.CellTemplate>
+                                                </GridViewColumn>
+                                                <GridViewColumn Header="{DynamicResource Settings_Col_Command}" Width="200">
+                                                    <GridViewColumn.HeaderContainerStyle>
+                                                        <Style TargetType="GridViewColumnHeader">
+                                                            <Setter Property="Background" Value="#404040"/>
+                                                            <Setter Property="Foreground" Value="White"/>
+                                                            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
+                                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                                            <Setter Property="Padding" Value="5"/>
+                                                            <Setter Property="BorderBrush" Value="#606060"/>
+                                                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                            <EventSetter Event="Click" Handler="GridViewColumnHeader_Click"/>
+                                                        </Style>
+                                                    </GridViewColumn.HeaderContainerStyle>
+                                                    <GridViewColumn.DisplayMemberBinding>
+                                                        <Binding Path="Command"/>
+                                                    </GridViewColumn.DisplayMemberBinding>
+                                                </GridViewColumn>
+                                                <GridViewColumn Header="{DynamicResource Settings_Col_Action}" Width="150">
+                                                    <GridViewColumn.HeaderContainerStyle>
+                                                        <Style TargetType="GridViewColumnHeader">
+                                                            <Setter Property="Background" Value="#404040"/>
+                                                            <Setter Property="Foreground" Value="White"/>
+                                                            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
+                                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                                            <Setter Property="Padding" Value="5"/>
+                                                            <Setter Property="BorderBrush" Value="#606060"/>
+                                                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                            <EventSetter Event="Click" Handler="GridViewColumnHeader_Click"/>
+                                                        </Style>
+                                                    </GridViewColumn.HeaderContainerStyle>
+                                                    <GridViewColumn.DisplayMemberBinding>
+                                                        <Binding Path="Action"/>
+                                                    </GridViewColumn.DisplayMemberBinding>
+                                                </GridViewColumn>
+                                                <GridViewColumn Header="{DynamicResource Settings_Col_Parameter}" Width="200">
+                                                    <GridViewColumn.HeaderContainerStyle>
+                                                        <Style TargetType="GridViewColumnHeader">
+                                                            <Setter Property="Background" Value="#404040"/>
+                                                            <Setter Property="Foreground" Value="White"/>
+                                                            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
+                                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                                            <Setter Property="Padding" Value="5"/>
+                                                            <Setter Property="BorderBrush" Value="#606060"/>
+                                                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                            <EventSetter Event="Click" Handler="GridViewColumnHeader_Click"/>
+                                                        </Style>
+                                                    </GridViewColumn.HeaderContainerStyle>
+                                                    <GridViewColumn.DisplayMemberBinding>
+                                                        <Binding Path="Parameter"/>
+                                                    </GridViewColumn.DisplayMemberBinding>
+                                                </GridViewColumn>
+                                                <GridViewColumn Header="{DynamicResource Settings_Col_Enabled}" Width="80">
+                                                    <GridViewColumn.HeaderContainerStyle>
+                                                        <Style TargetType="GridViewColumnHeader">
+                                                            <Setter Property="Background" Value="#404040"/>
+                                                            <Setter Property="Foreground" Value="White"/>
+                                                            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
+                                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                                            <Setter Property="Padding" Value="5"/>
+                                                            <Setter Property="BorderBrush" Value="#606060"/>
+                                                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                                            <Setter Property="Cursor" Value="Hand"/>
+                                                            <EventSetter Event="Click" Handler="GridViewColumnHeader_Click"/>
+                                                        </Style>
+                                                    </GridViewColumn.HeaderContainerStyle>
+                                                    <GridViewColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <CheckBox IsChecked="{Binding IsEnabled}" HorizontalAlignment="Center"/>
+                                                        </DataTemplate>
+                                                    </GridViewColumn.CellTemplate>
+                                                </GridViewColumn>
+                                            </GridView>
+                                        </ListView.View>
+                                    </ListView>
+                                
+                                <!-- GridSplitter for resizing -->
+                                <GridSplitter Grid.Row="2"
+                                              Height="6"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"
+                                              Background="#3A3F4B"
+                                              ShowsPreview="True"
+                                              ResizeDirection="Rows"
+                                              ResizeBehavior="PreviousAndNext"
+                                              Cursor="SizeNS"
+                                              Margin="0,4,0,4"/>
+
+                                <!-- Command Management Buttons -->
+                                <WrapPanel Grid.Row="3" Orientation="Horizontal"
+                                           FlowDirection="{DynamicResource AppFlowDirection}"
+                                           HorizontalAlignment="Right" Margin="0,10,0,0">
+                                    <Button Content="{DynamicResource Settings_AddCommand}" x:Name="btnAddCommand"
+                                            Style="{StaticResource VoiceCommandAddButtonStyle}"
+                                            Click="btnAddCommand_Click"/>
+                                    <Button Content="{DynamicResource Settings_EditCommand}" x:Name="btnEditCommand"
+                                            Style="{StaticResource VoiceCommandEditButtonStyle}"
+                                            Click="btnEditCommand_Click"
+                                            IsEnabled="False"/>
+                                    <Button Content="{DynamicResource Settings_DeleteCommand}" x:Name="btnDeleteCommand"
+                                            Style="{StaticResource VoiceCommandDeleteButtonStyle}"
+                                            Click="btnDeleteCommand_Click"
+                                            IsEnabled="False"/>
+                                    <Button Content="{DynamicResource Settings_RestoreDefaults}" x:Name="btnRestoreDefaultCommands"
+                                            Style="{StaticResource ResetButtonStyle}"
+                                            Click="btnRestoreDefaultCommands_Click"/>
+                                </WrapPanel>
+                            </Grid>
+                        </GroupBox>
+                        
+                        <!-- Command Editor -->
+                        <GroupBox Header="{DynamicResource Settings_CommandEditor}" Style="{StaticResource DarkGroupBoxStyle}" x:Name="grpCommandEditor" Visibility="Collapsed">
+                            <Grid Margin="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <Label Grid.Row="0" Content="{DynamicResource Settings_VoiceCommandLabel}" Style="{StaticResource DarkLabelStyle}" Margin="0,0,0,5" FontSize="14" FontWeight="Bold"/>
+                                <TextBox Grid.Row="1" x:Name="txtCommandText" Style="{StaticResource DarkTextBoxStyle}" Height="50" FontSize="14" Margin="0,0,0,5" VerticalContentAlignment="Center"/>
+                                
+                                <Label Grid.Row="2" Content="{DynamicResource Settings_ActionTypeLabel}" Style="{StaticResource DarkLabelStyle}" Margin="0,0,0,5" FontSize="14" FontWeight="Bold"/>
+                                <ComboBox Grid.Row="3" x:Name="cmbActionType" 
+                                          Style="{StaticResource DarkComboBoxStyle}"
+                                          Height="40" 
+                                          FontSize="14"
+                                          Margin="0,0,0,15"
+                                          SelectionChanged="cmbActionType_SelectionChanged">
+                                    <ComboBoxItem Content="{DynamicResource Common_TypeText}" Tag="TypeText" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Content="{DynamicResource Common_SendKey}" Tag="SendKeys" Style="{StaticResource DarkComboBoxItemStyle}"/>
+    
+                                    <ComboBoxItem Content="{DynamicResource Common_ChangeToPersian}" Tag="ChangeToFarsi" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                    <ComboBoxItem Content="{DynamicResource Common_ChangeToEnglish}" Tag="ChangeToEnglish" Style="{StaticResource DarkComboBoxItemStyle}"/>
+                                </ComboBox>
+                                
+                                <Label Grid.Row="4" Content="{DynamicResource Settings_ParameterLabel}" Style="{StaticResource DarkLabelStyle}" Margin="0,0,0,5" FontSize="14" FontWeight="Bold"/>
+                                <Grid Grid.Row="5" Margin="0,0,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" x:Name="txtCommandParameter" Style="{StaticResource DarkTextBoxStyle}" Height="50" FontSize="14" VerticalContentAlignment="Center" Margin="0,0,10,0"/>
+                                    <Button Grid.Column="1" x:Name="btnSelectKey" Content="{DynamicResource Settings_SelectKey}" 
+                                            Style="{StaticResource SaveButtonStyle}" 
+                                            Height="50" 
+                                            MinWidth="100" 
+                                            FontSize="12"
+                                            Visibility="Collapsed"
+                                            Click="btnSelectKey_Click"/>
+                                </Grid>
+                                
+                                <CheckBox Grid.Row="6" x:Name="chkCommandEnabled" 
+                                          Content="{DynamicResource Settings_Col_Enabled}" 
+                                          Foreground="White" 
+                                          FontFamily="{DynamicResource AppFontFamily}" 
+                                          FontSize="14"
+                                          Margin="0,0,0,15"/>
+                                
+                                <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,10,0,0">
+                                    <Button Content="{DynamicResource Common_Save}" x:Name="btnSaveCommand" 
+                                            Style="{StaticResource SaveButtonStyle}" 
+                                            Height="40"
+                                            MinWidth="100"
+                                            FontSize="14"
+                                            Click="btnSaveCommand_Click"/>
+                                    <Button Content="{DynamicResource Common_Cancel}" x:Name="btnCancelCommand" 
+                                            Style="{StaticResource CancelButtonStyle}" 
+                                            Height="40"
+                                            MinWidth="100"
+                                            FontSize="14"
+                                            Click="btnCancelCommand_Click"/>
+                                </StackPanel>
+                            </Grid>
+                        </GroupBox>
+                        
+                        <!-- هشدار مهم -->
+                        <Border Background="#3F2418" BorderBrush="#A04522" BorderThickness="1"
+                                CornerRadius="8" Padding="14,12" Margin="0,10,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⚠️" FontSize="20" VerticalAlignment="Top" Margin="0,0,10,0"/>
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource Settings_ImportantWarning}"
+                                               Foreground="#FFC9A0" FontWeight="Bold" FontSize="14"
+                                               FontFamily="{DynamicResource AppFontFamily}"
+                                               Margin="0,0,0,4"/>
+                                    <TextBlock Text="{DynamicResource Settings_WarningText}"
+                                               Foreground="#F0E0D0" FontSize="13"
+                                               FontFamily="{DynamicResource AppFontFamily}"
+                                               TextWrapping="Wrap" LineHeight="20"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- نکته مهم -->
+                        <Border Background="#1B2A3F" BorderBrush="#264A78" BorderThickness="1"
+                                CornerRadius="8" Padding="14,12" Margin="0,10,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="💡" FontSize="20" VerticalAlignment="Top" Margin="0,0,10,0"/>
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource Settings_ImportantNote}"
+                                               Foreground="#CFE0FA" FontWeight="Bold" FontSize="14"
+                                               FontFamily="{DynamicResource AppFontFamily}"
+                                               Margin="0,0,0,4"/>
+                                    <TextBlock Text="{DynamicResource Settings_NoteText}"
+                                               Foreground="#E1ECFB" FontSize="13"
+                                               FontFamily="{DynamicResource AppFontFamily}"
+                                               TextWrapping="Wrap" LineHeight="20"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="{DynamicResource Settings_VoiceCommandsFooter}"
+                                   Style="{StaticResource HintTextStyle}"
+                                   Margin="2,12,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            
+        </TabControl>
+        
+        <!-- Footer bar with action buttons -->
+        <Border Grid.Row="2" Background="{StaticResource BgCard}"
+                BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1"
+                CornerRadius="12" Padding="18,14" Margin="0,16,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Content="{DynamicResource Settings_ResetToDefaults}" x:Name="btnRestoreDefaults"
+                        Style="{StaticResource ResetButtonStyle}"
+                        Click="btnRestoreDefaults_Click"/>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" FlowDirection="{DynamicResource AppFlowDirection}">
+                    <Button Content="{DynamicResource Settings_SaveButton}" x:Name="btnSave"
+                            Style="{StaticResource SaveButtonStyle}"
+                            MinWidth="130"
+                            Click="btnSave_Click"/>
+                    <Button Content="{DynamicResource Common_Cancel}" x:Name="btnCancel"
+                            Style="{StaticResource CancelButtonStyle}"
+                            MinWidth="130"
+                            Click="btnCancel_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+    </Grid>
+</local:GlassWindow>
