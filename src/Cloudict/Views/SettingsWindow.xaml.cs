@@ -37,6 +37,13 @@ namespace Cloudict
             _voiceCommandManager = voiceCommandManager;
             LoadSettings();
             PopulateControls();
+
+            // Populating the controls above (and XAML default values like IsChecked="True")
+            // fires change events that would otherwise mark the window "dirty" before the user
+            // touches anything. All of those events fire synchronously during construction, so
+            // establish a clean baseline here — the unsaved-changes prompt then only appears
+            // after a genuine user edit.
+            _hasChanges = false;
         }
 
         private void LoadSettings()

@@ -59,12 +59,12 @@
     <s:String x:Key="Main_Credit">Built by Farshad Zamani · CloudTart </s:String>
     <s:String x:Key="Main_StartHere">👉 Click here to start</s:String>
     <s:String x:Key="Main_MicControlsHint">Use these buttons to control the microphone</s:String>
-    <s:String x:Key="Main_RecognizedLabel">Recognized text:</s:String>
+    <s:String x:Key="Main_RecognizedLabel">Recognized text</s:String>
     <s:String x:Key="Main_WaitingForSpeech">Waiting for speech...</s:String>
     <s:String x:Key="Main_CopyBtn">📋 Copy</s:String>
     <s:String x:Key="Main_ClearBtn">🗑️ Clear</s:String>
     <s:String x:Key="Main_QuickTransfer">Quick transfer</s:String>
-    <s:String x:Key="Main_FinalLabel">Final text:</s:String>
+    <s:String x:Key="Main_FinalLabel">Final text</s:String>
     <s:String x:Key="Main_FinalPlaceholder">The final text appears here...</s:String>
     <s:String x:Key="Common_Copy">Copy</s:String>
     <s:String x:Key="Common_Cut">Cut</s:String>

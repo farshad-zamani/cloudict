@@ -8,6 +8,31 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [2.2.3] – 2026-06-29
+
+### Changed
+- **Cleaner main-window layout.** The two box titles (“Recognized text” / “Final text”) are
+  now centered and no longer end with a colon, and the action buttons under each box are
+  centered within the box.
+- **Correct text alignment per interface language.** Text in the Recognized/Final boxes now
+  aligns to the right in Persian and to the left in English (previously reversed), following
+  the app's UI language.
+
+## [2.2.1.1] – 2026-06-29
+
+### Fixed
+- **Stop no longer wipes your text when you're using the app locally.** When live transfer
+  is *off* (you want to read/copy the text inside Cloudict), pressing Stop now keeps the
+  Final-text box intact. In live-transfer mode, the boxes still reset as before.
+- **No more false “unsaved changes” prompt.** Closing Settings without changing anything no
+  longer asks to confirm — the dirty flag is now a clean baseline after the window loads, so
+  the prompt only appears after a real edit.
+
+### Changed
+- **Nicer delay tooltips.** Each delay in *Settings → Text Transfer Delays* now has a small
+  ⓘ icon next to its title; hovering it opens a clean, rounded, app-font info card with the
+  explanation (instead of a long one-line tooltip on the field).
+
 ## [2.2.1] – 2026-06-29
 
 ### Fixed

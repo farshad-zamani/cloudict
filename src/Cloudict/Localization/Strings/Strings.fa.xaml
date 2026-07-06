@@ -58,12 +58,12 @@
     <s:String x:Key="Main_Credit">ساخته‌شده توسط فرشاد زمانی · کلادتارت </s:String>
     <s:String x:Key="Main_StartHere">👉 برای شروع اینجا کلیک کنید</s:String>
     <s:String x:Key="Main_MicControlsHint">با این دکمه‌ها عملکرد میکروفون را مدیریت کنید</s:String>
-    <s:String x:Key="Main_RecognizedLabel">متن تشخیص داده شده:</s:String>
+    <s:String x:Key="Main_RecognizedLabel">متن تشخیص داده شده</s:String>
     <s:String x:Key="Main_WaitingForSpeech">در انتظار تشخیص صدا...</s:String>
     <s:String x:Key="Main_CopyBtn">📋 کپی</s:String>
     <s:String x:Key="Main_ClearBtn">🗑️ پاک کردن</s:String>
     <s:String x:Key="Main_QuickTransfer">انتقال سریع</s:String>
-    <s:String x:Key="Main_FinalLabel">متن نهایی:</s:String>
+    <s:String x:Key="Main_FinalLabel">متن نهایی</s:String>
     <s:String x:Key="Main_FinalPlaceholder">متن نهایی در اینجا نمایش داده می‌شود...</s:String>
     <s:String x:Key="Common_Copy">کپی</s:String>
     <s:String x:Key="Common_Cut">برش</s:String>

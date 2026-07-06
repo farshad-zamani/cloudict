@@ -155,9 +155,9 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="{DynamicResource Main_RecognizedLabel}" Grid.Row="0" FontSize="14" FontWeight="Bold" 
-                               Foreground="#FFFFFF" Margin="0,0,0,8" HorizontalAlignment="Right"
-                               TextAlignment="Right" FlowDirection="{DynamicResource AppFlowDirection}"
+                    <TextBlock Text="{DynamicResource Main_RecognizedLabel}" Grid.Row="0" FontSize="14" FontWeight="Bold"
+                               Foreground="#FFFFFF" Margin="0,0,0,8" HorizontalAlignment="Center"
+                               TextAlignment="Center"
                                FontFamily="{DynamicResource AppFontFamily}"/>
                 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" FlowDirection="{DynamicResource AppFlowDirection}">
@@ -166,11 +166,11 @@
                                    FontFamily="{DynamicResource AppFontFamily}"
                                    Background="Transparent" Padding="6" IsReadOnly="True" BorderThickness="0"
                                    CaretBrush="#C2454E" MinHeight="60" MaxHeight="90"
-                                   HorizontalContentAlignment="Right" TextAlignment="Right" FlowDirection="{DynamicResource AppFlowDirection}"
+                                   FlowDirection="{DynamicResource AppFlowDirection}"
                                    HorizontalAlignment="Stretch"/>
                     </ScrollViewer>
                 
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0" FlowDirection="{DynamicResource AppFlowDirection}">
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0" FlowDirection="{DynamicResource AppFlowDirection}">
                         <Button x:Name="btnCopyRecognized" Content="{DynamicResource Main_CopyBtn}" Style="{StaticResource CopyButtonStyle}" 
                                 Click="BtnCopyRecognized_Click" Margin="0,0,8,0"/>
                         <Button x:Name="btnClearRecognized" Content="{DynamicResource Main_ClearBtn}" Style="{StaticResource ActionButtonStyle}" 
@@ -192,9 +192,9 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="{DynamicResource Main_FinalLabel}" Grid.Row="0" FontSize="14" FontWeight="Bold" 
-                               Foreground="#FFFFFF" Margin="0,0,0,8" HorizontalAlignment="Right"
-                               TextAlignment="Right" FlowDirection="{DynamicResource AppFlowDirection}"
+                    <TextBlock Text="{DynamicResource Main_FinalLabel}" Grid.Row="0" FontSize="14" FontWeight="Bold"
+                               Foreground="#FFFFFF" Margin="0,0,0,8" HorizontalAlignment="Center"
+                               TextAlignment="Center"
                                FontFamily="{DynamicResource AppFontFamily}"/>
                 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" FlowDirection="{DynamicResource AppFlowDirection}">
@@ -203,7 +203,7 @@
                                    FontFamily="{DynamicResource AppFontFamily}"
                                    Background="Transparent" Padding="6" BorderThickness="0"
                                    AcceptsReturn="True" CaretBrush="#C2454E" MinHeight="80"
-                                   HorizontalContentAlignment="Right" TextAlignment="Right" FlowDirection="{DynamicResource AppFlowDirection}"
+                                   FlowDirection="{DynamicResource AppFlowDirection}"
                                    HorizontalAlignment="Stretch">
                             <TextBox.ContextMenu>
                                 <ContextMenu>
@@ -216,7 +216,7 @@
                         </TextBox>
                     </ScrollViewer>
                 
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0" FlowDirection="{DynamicResource AppFlowDirection}">
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0" FlowDirection="{DynamicResource AppFlowDirection}">
                         <ToggleButton x:Name="btnLiveTransfer" Content="{DynamicResource Main_TransferToCursor}" 
                                       Style="{StaticResource LiveTransferToggleStyle}" 
                                       Click="BtnLiveTransfer_Click" Margin="0,0,8,0"/>

@@ -2341,10 +2341,11 @@ namespace Cloudict
                 _cancellationTokenSource?.Dispose();
                 _cancellationTokenSource = null;
 
-                // پاک‌سازی کامل state تشخیص: متن باکس‌ها، بافر کلمات، textarea گوگل ترنسلیت
-                // این کار جلوی بازتولید متن قبلی پس از مینیمایز شدن مرورگر کرومیوم را می‌گیرد
-                // و مطابق درخواست کاربر، باکس متن نهایی نیز پاک می‌شود.
-                ClearAllRecognitionState(clearFinalText: true);
+                // پاک‌سازی state تشخیص: متن باکس تشخیص، بافر کلمات، textarea گوگل ترنسلیت
+                // (جلوی بازتولید متن قبلی پس از مینیمایز شدن مرورگر کرومیوم را می‌گیرد).
+                // باکس «متن نهایی» فقط در حالت انتقال زنده پاک می‌شود؛ در حالت استفادهٔ محلی
+                // (کاربر می‌خواهد متن را در خود برنامه ببیند/کپی کند) متن آن حفظ می‌شود.
+                ClearAllRecognitionState(clearFinalText: _isLiveTransferActive);
 
                 // به‌روزرسانی چراغ وضعیت
                 UpdateStatusIndicatorBasedOnMicrophone();
@@ -2365,7 +2366,8 @@ namespace Cloudict
                 _cancellationTokenSource = null;
 
                 // در صورت خطا هم سعی می‌کنیم state تشخیص را تمیز نگه داریم
-                try { ClearAllRecognitionState(clearFinalText: true); }
+                // (باز هم باکس متن نهایی فقط در حالت انتقال زنده پاک می‌شود)
+                try { ClearAllRecognitionState(clearFinalText: _isLiveTransferActive); }
                 catch (Exception clearEx) { System.Diagnostics.Debug.WriteLine($"Cleanup after stop error failed: {clearEx.Message}"); }
 
                 // به‌روزرسانی چراغ وضعیت در صورت خطا

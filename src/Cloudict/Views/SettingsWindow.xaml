@@ -12,7 +12,28 @@
         FontFamily="{DynamicResource AppFontFamily}"
         xmlns:local="clr-namespace:Cloudict">
 
-    
+    <local:GlassWindow.Resources>
+        <!-- Styled tooltip box used by the ⓘ info icons: rounded dark card, app font, wraps. -->
+        <Style x:Key="InfoTooltipStyle" TargetType="ToolTip">
+            <Setter Property="Background" Value="#1E2433"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="MaxWidth" Value="380"/>
+            <Setter Property="HasDropShadow" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="#3A4560"
+                                BorderThickness="1" CornerRadius="8" Padding="14,11" MaxWidth="380">
+                            <ContentPresenter/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </local:GlassWindow.Resources>
+
     <Grid Margin="24,20,24,20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -147,26 +168,78 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <Label Grid.Row="0" Grid.Column="0" Content="{DynamicResource Settings_ProcessDelay}" Style="{StaticResource DarkLabelStyle}" ToolTip="{DynamicResource Settings_ProcessDelay_Tip}" ToolTipService.ShowDuration="60000"/>
-                                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtProcessDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4" ToolTip="{DynamicResource Settings_ProcessDelay_Tip}" ToolTipService.ShowDuration="60000"/>
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal">
+                                        <Label Content="{DynamicResource Settings_ProcessDelay}" Style="{StaticResource DarkLabelStyle}"/>
+                                        <TextBlock Text="ⓘ" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" FontSize="15"
+                                                   VerticalAlignment="Center" Margin="6,0,0,0" Cursor="Help"
+                                                   ToolTipService.InitialShowDelay="150" ToolTipService.ShowDuration="60000" ToolTipService.Placement="Right">
+                                            <TextBlock.ToolTip>
+                                                <ToolTip Style="{StaticResource InfoTooltipStyle}">
+                                                    <TextBlock Text="{DynamicResource Settings_ProcessDelay_Tip}" TextWrapping="Wrap" MaxWidth="352"
+                                                               FontFamily="{DynamicResource AppFontFamily}" Foreground="{DynamicResource TextPrimaryBrush}"
+                                                               FlowDirection="{DynamicResource AppFlowDirection}"/>
+                                                </ToolTip>
+                                            </TextBlock.ToolTip>
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtProcessDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4"/>
                                     <Label Grid.Row="0" Grid.Column="2" Content="{DynamicResource Settings_Milliseconds}" Style="{StaticResource DarkLabelStyle}"/>
                                     <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Style="{StaticResource HintTextStyle}"
                                                Text="{DynamicResource Settings_ProcessDelayHint}"/>
 
-                                    <Label Grid.Row="2" Grid.Column="0" Content="{DynamicResource Settings_WordDelay}" Style="{StaticResource DarkLabelStyle}" ToolTip="{DynamicResource Settings_WordDelay_Tip}" ToolTipService.ShowDuration="60000"/>
-                                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtWordByWordDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4" ToolTip="{DynamicResource Settings_WordDelay_Tip}" ToolTipService.ShowDuration="60000"/>
+                                    <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal">
+                                        <Label Content="{DynamicResource Settings_WordDelay}" Style="{StaticResource DarkLabelStyle}"/>
+                                        <TextBlock Text="ⓘ" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" FontSize="15"
+                                                   VerticalAlignment="Center" Margin="6,0,0,0" Cursor="Help"
+                                                   ToolTipService.InitialShowDelay="150" ToolTipService.ShowDuration="60000" ToolTipService.Placement="Right">
+                                            <TextBlock.ToolTip>
+                                                <ToolTip Style="{StaticResource InfoTooltipStyle}">
+                                                    <TextBlock Text="{DynamicResource Settings_WordDelay_Tip}" TextWrapping="Wrap" MaxWidth="352"
+                                                               FontFamily="{DynamicResource AppFontFamily}" Foreground="{DynamicResource TextPrimaryBrush}"
+                                                               FlowDirection="{DynamicResource AppFlowDirection}"/>
+                                                </ToolTip>
+                                            </TextBlock.ToolTip>
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtWordByWordDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4"/>
                                     <Label Grid.Row="2" Grid.Column="2" Content="{DynamicResource Settings_Milliseconds}" Style="{StaticResource DarkLabelStyle}"/>
                                     <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Style="{StaticResource HintTextStyle}"
                                                Text="{DynamicResource Settings_WordDelayHint}"/>
 
-                                    <Label Grid.Row="4" Grid.Column="0" Content="{DynamicResource Settings_StartDelay}" Style="{StaticResource DarkLabelStyle}" ToolTip="{DynamicResource Settings_StartDelay_Tip}" ToolTipService.ShowDuration="60000"/>
-                                    <TextBox Grid.Row="4" Grid.Column="1" x:Name="txtTransferStartDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4" ToolTip="{DynamicResource Settings_StartDelay_Tip}" ToolTipService.ShowDuration="60000"/>
+                                    <StackPanel Grid.Row="4" Grid.Column="0" Orientation="Horizontal">
+                                        <Label Content="{DynamicResource Settings_StartDelay}" Style="{StaticResource DarkLabelStyle}"/>
+                                        <TextBlock Text="ⓘ" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" FontSize="15"
+                                                   VerticalAlignment="Center" Margin="6,0,0,0" Cursor="Help"
+                                                   ToolTipService.InitialShowDelay="150" ToolTipService.ShowDuration="60000" ToolTipService.Placement="Right">
+                                            <TextBlock.ToolTip>
+                                                <ToolTip Style="{StaticResource InfoTooltipStyle}">
+                                                    <TextBlock Text="{DynamicResource Settings_StartDelay_Tip}" TextWrapping="Wrap" MaxWidth="352"
+                                                               FontFamily="{DynamicResource AppFontFamily}" Foreground="{DynamicResource TextPrimaryBrush}"
+                                                               FlowDirection="{DynamicResource AppFlowDirection}"/>
+                                                </ToolTip>
+                                            </TextBlock.ToolTip>
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <TextBox Grid.Row="4" Grid.Column="1" x:Name="txtTransferStartDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4"/>
                                     <Label Grid.Row="4" Grid.Column="2" Content="{DynamicResource Settings_Milliseconds}" Style="{StaticResource DarkLabelStyle}"/>
                                     <TextBlock Grid.Row="5" Grid.ColumnSpan="3" Style="{StaticResource HintTextStyle}"
                                                Text="{DynamicResource Settings_StartDelayHint}"/>
 
-                                    <Label Grid.Row="6" Grid.Column="0" Content="{DynamicResource Settings_InactivityDelay}" Style="{StaticResource DarkLabelStyle}" ToolTip="{DynamicResource Settings_InactivityDelay_Tip}" ToolTipService.ShowDuration="60000"/>
-                                    <TextBox Grid.Row="6" Grid.Column="1" x:Name="txtInactivityDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4" ToolTip="{DynamicResource Settings_InactivityDelay_Tip}" ToolTipService.ShowDuration="60000"/>
+                                    <StackPanel Grid.Row="6" Grid.Column="0" Orientation="Horizontal">
+                                        <Label Content="{DynamicResource Settings_InactivityDelay}" Style="{StaticResource DarkLabelStyle}"/>
+                                        <TextBlock Text="ⓘ" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold" FontSize="15"
+                                                   VerticalAlignment="Center" Margin="6,0,0,0" Cursor="Help"
+                                                   ToolTipService.InitialShowDelay="150" ToolTipService.ShowDuration="60000" ToolTipService.Placement="Right">
+                                            <TextBlock.ToolTip>
+                                                <ToolTip Style="{StaticResource InfoTooltipStyle}">
+                                                    <TextBlock Text="{DynamicResource Settings_InactivityDelay_Tip}" TextWrapping="Wrap" MaxWidth="352"
+                                                               FontFamily="{DynamicResource AppFontFamily}" Foreground="{DynamicResource TextPrimaryBrush}"
+                                                               FlowDirection="{DynamicResource AppFlowDirection}"/>
+                                                </ToolTip>
+                                            </TextBlock.ToolTip>
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <TextBox Grid.Row="6" Grid.Column="1" x:Name="txtInactivityDelay" Style="{StaticResource DarkNumericUpDownStyle}" Margin="8,4"/>
                                     <Label Grid.Row="6" Grid.Column="2" Content="{DynamicResource Settings_Milliseconds}" Style="{StaticResource DarkLabelStyle}"/>
                                     <TextBlock Grid.Row="7" Grid.ColumnSpan="3" Style="{StaticResource HintTextStyle}"
                                                Text="{DynamicResource Settings_InactivityDelayHint}"/>
