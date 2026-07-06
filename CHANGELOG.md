@@ -8,6 +8,23 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [2.2.1] – 2026-06-29
+
+### Fixed
+- **First two words no longer stick together during live typing.** The leading-space
+  decision for each word is now made at send time (reading the up-to-date already-typed
+  text), fixing a race where two words dispatched close together were typed with no space
+  between them.
+
+### Changed
+- **Clearer delay settings.** Each field in *Settings → Text Transfer Delays* now has a
+  detailed hover tooltip explaining what it does and *why* it exists (e.g. Google Translate
+  revising words as you keep speaking) — in both English and Persian.
+- **Documentation.** The README now presents Cloudict as free, Google-powered voice typing
+  (like Gboard, but for any Windows app), emphasizes free typing via Google Translate,
+  many-language support, and voice commands, and adds a “Tips for best results” section
+  (don't minimize the helper browser; tune the delays to stay in sync).
+
 ## [2.2.0] – 2026-06-29
 
 ### Changed

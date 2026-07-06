@@ -1,8 +1,9 @@
 # Cloudict
 
-> Free, open-source **speech-to-text dictation for Windows** that types what you say
-> *anywhere*, in **many languages** — with a built-in voice-command system and a bilingual
-> (English / Persian) interface.
+> Free, open-source **voice typing for Windows**, powered by **Google's speech recognition**
+> (through the Google Translate website) — so you can type by voice into *any* app, **for
+> free**, in **many of the world's languages**, with a built-in voice-command system and a
+> bilingual (English / Persian) interface.
 
 <p align="center">
   <em>Built by <a href="https://cloudtart.com">Farshad Zamani · cloudtart.com</a></em>
@@ -14,10 +15,11 @@ English | [فارسی](README.fa.md)
 
 ## What it does
 
-Cloudict turns your speech into text and types it directly into whatever
-app is in focus — your editor, browser, chat, Word, anywhere. It recognizes speech by
-automating the **Google Translate** web page through a headless-style Chrome session, so it
-works without any paid API or local model.
+Cloudict turns your speech into text and types it directly into whatever app is in focus —
+your editor, browser, chat, Word, anywhere. Think of it as **Google's voice typing (like
+Gboard on Android), but for any Windows app**: it uses **Google's speech recognition — among
+the most accurate available — completely free**, by automating the **Google Translate** web
+page through a Chrome session. No paid API, no account, and no local model.
 
 It also includes a **voice-command** system: say a keyword to insert punctuation, press a
 key (Enter, Tab, …), switch the keyboard language, or run a program.
@@ -94,6 +96,18 @@ from that folder (no .NET install required). Zip the whole folder to distribute 
 ### Switching language
 Open **Settings → General Settings → Language**, choose English or فارسی, save, and restart
 the app. English is the default and the fallback for any untranslated text.
+
+## Tips for best results
+
+- **Don't minimize the helper browser window.** When you open the helper browser (the
+  Chromium / Chrome window that loads Google Translate), keep it open. You may place other
+  windows **on top of** it — but if you **minimize** it, recognition stops and typing breaks.
+- **Tune the delays to your setup.** Because Cloudict works *through* the live Google
+  Translate page, a few timing delays keep the two in sync (Google Translate keeps revising
+  each word as you keep speaking). The defaults work for most people, but you may need to
+  fine-tune them in **Settings → Text Transfer Delays** — hover any field to see exactly what
+  it does and why — until typing stays perfectly in sync with your voice. Once tuned, just
+  speak and it types.
 
 ## Project structure
 

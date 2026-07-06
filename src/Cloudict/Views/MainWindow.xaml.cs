@@ -458,44 +458,24 @@ namespace Cloudict
                             // بررسی حالت انتقال لایو
                         if (_isLiveTransferActive)
                         {
-                            // انتقال لایو: ارسال متن به پنجره فعال با رعایت تاخیر
-                            // محاسبه موقعیت کلمه در متن اصلی برای تعیین نیاز به اسپیس
-                            string recognizedText = lblRecognizedText.Text;
-                            int wordStartIndex = 0;
-                            
-                            // پیدا کردن موقعیت کلمه فعلی در متن اصلی
-                            for (int i = 0; i < nextWordIndex; i++)
-                            {
-                                if (i < _allWords.Count)
-                                {
-                                    int foundIndex = recognizedText.IndexOf(_allWords[i], wordStartIndex);
-                                    if (foundIndex >= 0)
-                                    {
-                                        wordStartIndex = foundIndex + _allWords[i].Length;
-                                    }
-                                }
-                            }
-                            
-                            // پیدا کردن موقعیت کلمه فعلی
-                            int currentWordIndex = recognizedText.IndexOf(word, wordStartIndex);
-                            
-                            // تعیین متن برای ارسال با همان منطق انتقال به باکس متن نهایی
-                            string textToSend = word;
-                            
-                            // اضافه کردن اسپیس فقط اگر _lastSentText خالی نباشد و کاراکتر آخر آن اسپیس نباشد
-                            if (!string.IsNullOrEmpty(_lastSentText) && !_lastSentText.EndsWith(" "))
-                            {
-                                textToSend = " " + textToSend;
-                            }
-                            
+                            // Live transfer: send this word into the active window after the
+                            // word-by-word delay. The leading-space decision is made HERE, at
+                            // *send time*, reading the up-to-date _lastSentText. Deciding it
+                            // earlier (at tick time) races with the previous word's delayed
+                            // send — which updates _lastSentText later — so two words dispatched
+                            // close together would concatenate without a separating space
+                            // (the classic "first two words stick together" bug).
+                            string wordToSend = word;
                             try
                             {
-                                // رعایت تاخیر WordByWordDelayMs در حالت لایو
                                 Task.Run(async () => {
                                     await Task.Delay(_settings.WordByWordDelayMs);
                                     Dispatcher.Invoke(() => {
                                         try
                                         {
+                                            string textToSend = wordToSend;
+                                            if (!string.IsNullOrEmpty(_lastSentText) && !_lastSentText.EndsWith(" "))
+                                                textToSend = " " + textToSend;
                                             SendTextToActiveWindowImproved(textToSend);
                                             _lastSentText += textToSend;
                                         }
