@@ -33,12 +33,12 @@ namespace Cloudict
         /// <summary>
         /// تاخیر پردازش متن (میلی‌ثانیه)
         /// </summary>
-        public int ProcessDelayMs { get; set; } = 400;
+        public int ProcessDelayMs { get; set; } = 600;
 
         /// <summary>
         /// تاخیر انتقال کلمه به کلمه (میلی‌ثانیه)
         /// </summary>
-        public int WordByWordDelayMs { get; set; } = 300;
+        public int WordByWordDelayMs { get; set; } = 700;
 
         /// <summary>
         /// تاخیر شروع انتقال متن (میلی‌ثانیه)

@@ -80,13 +80,13 @@
     <s:String x:Key="Settings_TimingHint">These delays keep Cloudict in sync with Google Translate. Hover over each field to see exactly what it does and why it matters. Keep values roughly between 50 and 5000 milliseconds.</s:String>
     <s:String x:Key="Settings_ProcessDelay">Text processing delay</s:String>
     <s:String x:Key="Settings_Milliseconds">ms</s:String>
-    <s:String x:Key="Settings_ProcessDelayHint">Time between receiving speech from Google Translate and starting processing. Suggested: 300–500</s:String>
+    <s:String x:Key="Settings_ProcessDelayHint">How often the app reads new text from Google Translate. Suggested 400–800 ms — use a higher value on slow or unstable internet.</s:String>
     <s:String x:Key="Settings_WordDelay">Word-by-word delay</s:String>
-    <s:String x:Key="Settings_WordDelayHint">Time between typing each word into the target app. Suggested: 250–400</s:String>
+    <s:String x:Key="Settings_WordDelayHint">Wait before typing each word so Google can finalize it. Suggested 500–1000 ms — increase on slow/weak internet so words aren't typed before Google corrects them.</s:String>
     <s:String x:Key="Settings_StartDelay">Transfer start delay</s:String>
-    <s:String x:Key="Settings_StartDelayHint">Wait time after the first recognition before auto-transfer begins. Suggested: 1500–2500</s:String>
+    <s:String x:Key="Settings_StartDelayHint">Wait after the first words before auto-typing begins. Suggested 1500–3000 ms — higher on slow internet.</s:String>
     <s:String x:Key="Settings_InactivityDelay">Pause before microphone reset</s:String>
-    <s:String x:Key="Settings_InactivityDelayHint">Silence duration before the microphone auto-resets. Suggested: 2500–5000</s:String>
+    <s:String x:Key="Settings_InactivityDelayHint">Silence before the microphone auto-resets. Suggested 3000–6000 ms — a bit higher on slow internet avoids premature resets.</s:String>
     <s:String x:Key="Settings_TimingFooter">These delays are tuned to work correctly with Google Translate. If text is typed late or incompletely, increase the word-by-word delay first.</s:String>
     <s:String x:Key="Settings_Tab_GoogleTranslate">Google Translate Settings</s:String>
     <s:String x:Key="Settings_SelectorsGroup">Google Translate Web Selectors</s:String>
@@ -336,9 +336,9 @@
     <s:String x:Key="Settings_AriaLabels_Hint">Accessibility labels of the source text box (one per line). These are language-specific; the class selectors below are the language-independent fallback.</s:String>
     <s:String x:Key="Settings_ClassSelectors_Hint">CSS class names of the source text box (one per line). Language-independent — used as a fallback when the labels above don't match.</s:String>
 
-    <s:String x:Key="Settings_ProcessDelay_Tip">How often Cloudict reads newly recognized text from the Google Translate page. Shorter = reacts faster but checks more often; longer = gentler. Suggested 300–500 ms.</s:String>
-    <s:String x:Key="Settings_WordDelay_Tip">Why this exists: while you keep speaking, Google Translate often REVISES a word it just showed once it hears the next one (it corrects its first guess). So Cloudict waits this long before typing each word, to type the corrected/final word instead of the wrong first guess. Too short → wrong or partial words; too long → typing lags behind your speech. Suggested 250–400 ms.</s:String>
-    <s:String x:Key="Settings_StartDelay_Tip">Why this exists: after you start speaking, Cloudict waits this long before it begins typing into your target app — giving Google Translate time to settle the first few words (which it revises the most) so they transfer correctly and properly spaced. Too short → the first words may be wrong or run together; too long → typing starts late. Suggested 1500–2500 ms.</s:String>
-    <s:String x:Key="Settings_InactivityDelay_Tip">Why this exists: Google Translate can freeze after a while. When you stop speaking for this long, Cloudict quietly restarts the microphone so you can keep dictating without it getting stuck. Suggested 2500–5000 ms.</s:String>
+    <s:String x:Key="Settings_ProcessDelay_Tip">How often Cloudict reads newly recognized text from the Google Translate page. Shorter = reacts faster but checks more often; longer = gentler and steadier on a weak connection. Suggested 400–800 ms — use the higher end on slow or unstable internet.</s:String>
+    <s:String x:Key="Settings_WordDelay_Tip">Why this exists: while you keep speaking, Google Translate often REVISES a word it just showed once it hears the next one (it corrects its first guess). So Cloudict waits this long before typing each word, to type the corrected/final word instead of the wrong first guess. On slow or weak internet Google needs more time, so increase this. Too short means wrong or partial words; too long means typing lags behind. Suggested 500–1000 ms.</s:String>
+    <s:String x:Key="Settings_StartDelay_Tip">Why this exists: after you start speaking, Cloudict waits this long before it begins typing into your target app, giving Google Translate time to settle the first few words (which it revises the most) so they transfer correctly and properly spaced. On slow internet, give it more time. Too short means the first words may be wrong or run together; too long means typing starts late. Suggested 1500–3000 ms.</s:String>
+    <s:String x:Key="Settings_InactivityDelay_Tip">Why this exists: Google Translate can freeze after a while. When you stop speaking for this long, Cloudict quietly restarts the microphone so you can keep dictating without it getting stuck. On slow internet a slightly higher value avoids premature resets. Suggested 3000–6000 ms.</s:String>
 
 </ResourceDictionary>

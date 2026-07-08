@@ -90,6 +90,16 @@ namespace Cloudict
         private DateTime _lastTextUpdateTime;
         private bool _hasRecognizedText = false;
 
+        // When true, the recognition polling loop stops reading/observing the Google Translate
+        // box entirely (used during a microphone reset so leftover/incoming text is neither
+        // shown nor transferred while the reset is in progress).
+        private volatile bool _suspendRecognition = false;
+
+        // Becomes true once a word has actually been transferred to the target since the last
+        // reset. The inactivity reset only fires when this is true, so a pause with no new
+        // speech can never trigger a reset that re-sends old Google Translate text.
+        private bool _wordTransferredSinceReset = false;
+
         // Live text transfer variables
         private bool _isLiveTransferActive = false;
         private string _lastSentText = string.Empty;
@@ -522,6 +532,9 @@ namespace Cloudict
                         // بروزرسانی متغیرهای کنترلی
                         _lastAddedWord = word;
                         _lastProcessedWordIndex = nextWordIndex;
+                        // A real word was transferred to the target — this arms the inactivity
+                        // reset (so a later pause can legitimately flush + reset).
+                        _wordTransferredSinceReset = true;
                         }
                         else
                         {
@@ -552,123 +565,70 @@ namespace Cloudict
         private void InactivityTimer_Tick(object sender, EventArgs e)
         {
             _inactivityTimer.Stop();
-            
-            // متوقف کردن تایمر پردازش برای جلوگیری از ادامه انتقال کلمه به کلمه
+
+            // Stop word-by-word transfer immediately so nothing is typed during the reset.
             _processingTimer.Stop();
 
-            // Only reset microphone if there was text and we are still listening
-            if (_hasRecognizedText && _isListening && !string.IsNullOrWhiteSpace(lblRecognizedText.Text))
+            // A reset (and its "flush everything pending" step) must ONLY happen when the user
+            // actually spoke AND we were transferring word-by-word since the last reset.
+            // Guarding on _wordTransferredSinceReset prevents a phantom reset — after an idle
+            // pause with no new speech — from re-sending whatever text is still sitting in the
+            // Google Translate box (the bug where the whole text got re-typed from scratch).
+            if (!_isListening || !_hasRecognizedText
+                || string.IsNullOrWhiteSpace(lblRecognizedText.Text)
+                || !_wordTransferredSinceReset)
             {
-                // غیرفعال کردن باکس متن تشخیص داده شده قبل از ریست میکروفون
-                lblRecognizedText.IsEnabled = false;
-                
-                // نمایش نوتیفیکیشن ریست میکروفون
-                NotificationManager.ShowBalloonTip("میکروفون ریست شد", "میکروفون به دلیل عدم فعالیت ریست شد");
-                // پیاده‌سازی منطق جدید: متوقف کردن انتقال کلمه به کلمه، مکث 0.5 ثانیه، ارسال یکجای باقی متن
-                if (_isLiveTransferActive)
+                return;
+            }
+
+            // BEFORE anything else, completely stop observing the Google Translate box: no
+            // reading, no transfer, until the reset finishes. We still flush what we already
+            // recognized (the pending buffer), then reset, then resume observation.
+            _suspendRecognition = true;
+            lblRecognizedText.IsEnabled = false;
+            NotificationManager.ShowBalloonTip("میکروفون ریست شد", "میکروفون به دلیل عدم فعالیت ریست شد");
+
+            Task.Run(async () =>
+            {
+                try
                 {
-                    Task.Run(async () =>
-                    {
-                        try
-                        {
-                            // مکث 0.5 ثانیه برای اطمینان از توقف انتقال کلمه به کلمه
-                            await Task.Delay(500);
-                            
-                            // ارسال یکجای باقی متن
-                            Dispatcher.Invoke(() =>
-                            {
-                                BtnFastTransfer_Click(null, null);
-                                statusText.Text = Loc.Get("Main_St_QuickTransferReset");
-                            });
-                            
-                            // Wait a moment for the fast transfer to complete
-                            await Task.Delay(200);
-                            
-                            // Then reset microphone by clicking Stop then Start after delay
-                            try
-                            {
-                                // Click the Stop button
-                                await Task.Run(() => btnStopMic_Click_Internal());
-
-                                // Wait for Google Translate to settle back to idle before restarting
-                                await Task.Delay(700);
-
-                                // Click the Start button
-                                await Task.Run(() => btnStartMic_Click_Internal());
-
-                                Dispatcher.Invoke(() =>
-                        {
-                            statusText.Text = Loc.Get("Main_St_MicReset");
-                            // فعال کردن مجدد باکس متن تشخیص داده شده بعد از ریست میکروفون
-                            lblRecognizedText.IsEnabled = true;
-                        });
-                            }
-                            catch (Exception micEx)
-                            {
-                                Dispatcher.Invoke(() =>
-                                {
-                                    statusText.Text = Loc.Get("Main_St_MicResetErrorPrefix") + micEx.Message;
-                                    // فعال کردن مجدد باکس متن تشخیص داده شده در صورت بروز خطا
-                                    lblRecognizedText.IsEnabled = true;
-                                });
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Dispatcher.Invoke(() =>
-                            {
-                                statusText.Text = Loc.Get("Main_St_AutoTransferErrorPrefix") + ex.Message;
-                                // فعال کردن مجدد باکس متن تشخیص داده شده در صورت بروز خطا
-                                lblRecognizedText.IsEnabled = true;
-                            });
-                        }
-                    });
-                }
-                else
-                {
-                    // First click fast transfer button to quickly send all pending text
+                    // Let any in-flight word-by-word sends finish, then flush the remaining
+                    // recognized words (BtnFastTransfer handles both live and local modes).
+                    await Task.Delay(500);
                     Dispatcher.Invoke(() =>
                     {
                         BtnFastTransfer_Click(null, null);
                         statusText.Text = Loc.Get("Main_St_QuickTransferReset");
                     });
+                    await Task.Delay(200);
 
-                    // Wait a moment for the fast transfer to complete
-                    Thread.Sleep(200);
+                    // Reset the microphone: stop, then wipe ALL leftover recognition state and
+                    // the Google Translate box (so nothing old can be re-read or re-sent), then
+                    // start again. The Final-text box is preserved.
+                    await Task.Run(() => btnStopMic_Click_Internal());
+                    await Task.Delay(700);
+                    Dispatcher.Invoke(() => ClearAllRecognitionState(clearFinalText: false));
+                    await Task.Run(() => btnStartMic_Click_Internal());
 
-                    // Then reset microphone by clicking Stop then Start after delay
-                    Task.Run(async () =>
+                    _wordTransferredSinceReset = false;
+                    _suspendRecognition = false;   // resume observation only now
+
+                    Dispatcher.Invoke(() =>
                     {
-                        try
-                        {
-                            // Click the Stop button
-                            await Task.Run(() => btnStopMic_Click_Internal());
-
-                            // Wait for Google Translate to settle back to idle before restarting
-                            await Task.Delay(700);
-
-                            // Click the Start button
-                            await Task.Run(() => btnStartMic_Click_Internal());
-
-                            Dispatcher.Invoke(() =>
-                            {
-                                statusText.Text = Loc.Get("Main_St_MicReset");
-                                // فعال کردن مجدد باکس متن تشخیص داده شده بعد از ریست میکروفون
-                                lblRecognizedText.IsEnabled = true;
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            Dispatcher.Invoke(() =>
-                            {
-                                statusText.Text = Loc.Get("Main_St_MicResetErrorPrefix") + ex.Message;
-                                // فعال کردن مجدد باکس متن تشخیص داده شده در صورت بروز خطا
-                                lblRecognizedText.IsEnabled = true;
-                            });
-                        }
+                        statusText.Text = Loc.Get("Main_St_MicReset");
+                        lblRecognizedText.IsEnabled = true;
                     });
                 }
-            }
+                catch (Exception ex)
+                {
+                    _suspendRecognition = false;
+                    Dispatcher.Invoke(() =>
+                    {
+                        statusText.Text = Loc.Get("Main_St_MicResetErrorPrefix") + ex.Message;
+                        lblRecognizedText.IsEnabled = true;
+                    });
+                }
+            });
         }
 
         private bool _isProcessingText = false;
@@ -678,9 +638,13 @@ namespace Cloudict
             // جلوگیری از پردازش مکرر
             if (_isProcessingText)
                 return;
-                
+
+            // Ignore text changes while a reset is in progress (observation is suspended).
+            if (_suspendRecognition)
+                return;
+
             _isProcessingText = true;
-            
+
             try
             {
                 // Stop any running inactivity timer
@@ -935,6 +899,7 @@ namespace Cloudict
                 _lastSentText = string.Empty;
                 _pendingWords.Clear();
                 _hasRecognizedText = false;
+                _wordTransferredSinceReset = false;
 
                 ResetTransferVariables();
 
@@ -2658,6 +2623,16 @@ namespace Cloudict
             {
                 try
                 {
+                    // While a mic reset is in progress, stop observing the Google Translate box
+                    // completely: don't read it and don't push text to the UI. Drop our snapshot
+                    // so leftover text isn't treated as "new" when observation resumes.
+                    if (_suspendRecognition)
+                    {
+                        lastRecognizedText = "";
+                        await Task.Delay(100, cancellationToken);
+                        continue;
+                    }
+
                     // Get text from source textarea
                     string recognizedText = await GetRecognizedTextAsync();
 

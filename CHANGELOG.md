@@ -18,6 +18,25 @@ project aims to follow [Semantic Versioning](https://semver.org/).
   aligns to the right in Persian and to the left in English (previously reversed), following
   the app's UI language.
 
+## [2.2.4] – 2026-06-29
+
+### Fixed
+- **No more duplicate / from-scratch re-typing on microphone reset.** Under weak internet, or
+  when speech arrived in the final moments before an automatic reset, the app could re-transfer
+  everything it had already typed (or leftover text from Google Translate). The reset now:
+  1. only fires when a word was actually transferred since the last reset (a pause with no new
+     speech no longer triggers a reset that re-sends old text);
+  2. **stops observing the Google Translate box first** — no reading, no transfer — before the
+     reset begins;
+  3. clears Google Translate's box and all word buffers during the reset, so nothing stale can
+     be re-read or re-sent, then resumes cleanly.
+
+### Changed
+- **New default delays** tuned for reliability: text-processing 600 ms, word-by-word 700 ms
+  (transfer-start 2000 ms and reset pause 3500 ms unchanged).
+- **Expanded delay explanations** with clearer suggested ranges and explicit **internet-speed**
+  guidance (slower/weaker connections need higher values), in English and Persian.
+
 ## [2.2.1.1] – 2026-06-29
 
 ### Fixed
