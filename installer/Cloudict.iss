@@ -5,7 +5,7 @@
 ; ============================================================================
 
 #define MyAppName        "Cloudict"
-#define MyAppVersion     "2.2.6"
+#define MyAppVersion     "2.3.1"
 #define MyAppPublisher   "Cloudtart"
 #define MyAppURL         "https://cloudtart.com"
 #define MyAppExeName     "Cloudict.exe"
@@ -57,12 +57,20 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: checkedonce
 
+[InstallDelete]
+; Files that earlier versions installed and this one no longer uses. Inno only overwrites and
+; adds, so without this an upgrade would leave them behind forever.
+Type: files;          Name: "{app}\WebDriverManager.dll"
+Type: filesandordirs; Name: "{app}\selenium-manager\linux"
+Type: filesandordirs; Name: "{app}\selenium-manager\macos"
+
 [Files]
 ; Ship the entire self-contained publish folder — including Drivers\, which carries the bundled
 ; ChromeDriver so the app works on first run with no internet connection. Excluded: debug symbols,
-; the stale WebDriverManager download cache, and Selenium Manager's non-Windows binaries (the app
-; resolves its own driver, so none of them are ever used).
-Source: "{#MyPublishDir}\*"; DestDir: "{app}"; Excludes: "*.pdb,Chrome\*,selenium-manager\linux\*,selenium-manager\macos\*"; Flags: ignoreversion recursesubdirs createallsubdirs
+; the stale WebDriverManager download cache, Selenium Manager's non-Windows binaries (the app
+; resolves its own driver, so none of them are ever used), and any settings.json left behind by
+; running the app from the publish folder — that would ship the developer's own configuration.
+Source: "{#MyPublishDir}\*"; DestDir: "{app}"; Excludes: "*.pdb,Chrome\*,selenium-manager\linux\*,selenium-manager\macos\*,settings.json,settings.backup.json"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

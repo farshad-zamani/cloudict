@@ -203,6 +203,11 @@ namespace Cloudict
         {
             InitializeComponent();
 
+            // Shrink to fit when the screen is smaller than the preferred size (laptop panels).
+            WindowSizing.FitToWorkArea(this, 520, 820);
+
+            txtAppVersion.Text = AppInfo.DisplayVersion;
+
             // Initialize settings
             _settingsManager = new SettingsManager();
             _settings = _settingsManager.LoadSettings() ?? new AppSettings();
@@ -2538,7 +2543,7 @@ namespace Cloudict
                             {
                                 Dispatcher.Invoke(() => {
                                     statusText.Text = Loc.Get("Main_St_ChromeGTReady");
-                                    btnMicrophone.Content = "❌"; // Close icon
+                                    if (txtHelperBrowserIcon != null) txtHelperBrowserIcon.Text = "❌"; // Close icon
                                     if (txtHelperBrowserLabel != null) txtHelperBrowserLabel.Text = Loc.Get("Main_CloseHelperBrowser");
                                 });
                             }
@@ -2576,7 +2581,7 @@ namespace Cloudict
                             
                             Dispatcher.Invoke(() => {
                                 statusText.Text = Loc.Get("Main_St_ChromeClosed");
-                                btnMicrophone.Content = "🌐"; // Globe icon for opening browser
+                                if (txtHelperBrowserIcon != null) txtHelperBrowserIcon.Text = "🌐"; // Globe icon for opening browser
                                 if (txtHelperBrowserLabel != null) txtHelperBrowserLabel.Text = Loc.Get("Main_OpenHelperBrowser");
                             });
                         }
@@ -2907,21 +2912,6 @@ namespace Cloudict
                     // Settings were saved, refresh our local copy
                     RefreshSettings();
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(Loc.Get("Main_OpenSettingsError", ex.Message), Loc.Get("Common_Error_Title"), MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void BtnSelectEngine_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var settingsWindow = new SettingsWindow(_voiceCommandManager);
-                settingsWindow.SelectEngineTab();
-                if (settingsWindow.ShowDialog() == true)
-                    RefreshSettings();
             }
             catch (Exception ex)
             {

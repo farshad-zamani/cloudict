@@ -315,7 +315,6 @@
 
 
     <!-- Redesign / engine selection -->
-    <s:String x:Key="Main_SelectEngine">انتخاب موتور تبدیل گفتار</s:String>
     <s:String x:Key="Main_OpenHelperBrowser">باز کردن مرورگر کمکی</s:String>
     <s:String x:Key="Main_CloseHelperBrowser">بستن مرورگر کمکی</s:String>
     <s:String x:Key="Main_HelperBrowser">مرورگر کمکی کرومیوم</s:String>

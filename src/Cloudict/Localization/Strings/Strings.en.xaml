@@ -316,7 +316,6 @@
 
 
     <!-- Redesign / engine selection -->
-    <s:String x:Key="Main_SelectEngine">Select speech engine</s:String>
     <s:String x:Key="Main_OpenHelperBrowser">Open helper browser</s:String>
     <s:String x:Key="Main_CloseHelperBrowser">Close helper browser</s:String>
     <s:String x:Key="Main_HelperBrowser">Helper Chromium browser</s:String>

@@ -33,6 +33,12 @@ namespace Cloudict
         public SettingsWindow(VoiceCommandManager voiceCommandManager = null)
         {
             InitializeComponent();
+
+            // Shrink to fit when the screen is smaller than the preferred size (laptop panels).
+            WindowSizing.FitToWorkArea(this, 960, 700);
+
+            txtAppVersion.Text = AppInfo.DisplayVersion;
+
             _settingsManager = new SettingsManager();
             _voiceCommandManager = voiceCommandManager;
             LoadSettings();
@@ -123,13 +129,6 @@ namespace Cloudict
         {
             UpdateGoogleTranslateTabVisibility();
             if (!_suppressEngineChange) _hasChanges = true;
-        }
-
-        /// <summary>Selects the Speech Engine tab (used by the main window's "Select engine" button).</summary>
-        public void SelectEngineTab()
-        {
-            if (tabControl != null && tabEngine != null)
-                tabControl.SelectedItem = tabEngine;
         }
 
         private string GetSelectedTypingLanguage()

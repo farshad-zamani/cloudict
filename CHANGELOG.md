@@ -8,6 +8,31 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [2.3.1] – 2026-08-07
+
+### Added
+- **The app version is now visible in the UI** — as a small badge beside the logo in the main
+  window and beside the heading in Settings, so it's obvious which build is running without
+  digging into file properties. It is read from the assembly, so it can never disagree with the
+  build.
+
+### Changed
+- **Both windows now fit laptop screens.** Settings opened at 950×1100 with a 700 px minimum
+  height — taller than the usable area of a 1366×768 laptop, so its bottom (including the Save
+  and Cancel buttons) was pushed off-screen. It now opens at 960×700 with a more compact header,
+  and both windows shrink further to fit whatever display they open on.
+- **The status bar no longer cuts messages in half.** It was a fixed 35 px single line, so longer
+  updates were clipped. It now wraps onto additional lines as needed, keeps the full text in a
+  tooltip, and the main window is slightly taller (820 px) to accommodate it.
+- **The settings button now reads "Settings"** next to its gear icon instead of being an
+  unlabelled square, in both interface languages.
+- **The helper-browser button now carries its label inside the button**, next to the globe icon,
+  rather than as loose text underneath it.
+
+### Removed
+- The **"Select speech engine" button** from the main window. Google Translate is the only active
+  engine, and the choice is still available in *Settings → Speech Engine*.
+
 ## [2.2.6] – 2026-08-07
 
 ### Fixed

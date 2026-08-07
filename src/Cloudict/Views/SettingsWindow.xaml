@@ -1,8 +1,8 @@
 <local:GlassWindow x:Class="Cloudict.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="{DynamicResource Settings_Title}" Height="950" Width="1100"
-        MinHeight="700" MinWidth="900" Foreground="White"
+        Title="{DynamicResource Settings_Title}" Height="700" Width="960"
+        MinHeight="520" MinWidth="820" Foreground="White"
         FlowDirection="{DynamicResource AppFlowDirection}"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize"
@@ -41,9 +41,10 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header card -->
+        <!-- Header card. Kept compact (padding, heading size, logo) so the tab area below still
+             gets usable height on a laptop screen. -->
         <Border Grid.Row="0" Background="{StaticResource BgCard}"
-                CornerRadius="12" Padding="22,18" Margin="0,0,0,16"
+                CornerRadius="12" Padding="18,13" Margin="0,0,0,12"
                 BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -51,18 +52,29 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Text="{DynamicResource Settings_Heading}"
-                               FontSize="26" FontWeight="Bold"
-                               FontFamily="{DynamicResource AppFontFamily}"
-                               Foreground="{StaticResource TextPrimary}"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{DynamicResource Settings_Heading}"
+                                   FontSize="23" FontWeight="Bold"
+                                   FontFamily="{DynamicResource AppFontFamily}"
+                                   Foreground="{StaticResource TextPrimary}"/>
+                        <!-- Version reads left-to-right in both UI languages. -->
+                        <Border Background="{StaticResource BgWindow}" BorderBrush="{StaticResource BorderSubtle}"
+                                BorderThickness="1" CornerRadius="5" Padding="7,2"
+                                Margin="10,3,0,0" VerticalAlignment="Center" FlowDirection="LeftToRight">
+                            <TextBlock x:Name="txtAppVersion" Text="v0.0.0"
+                                       FontSize="12"
+                                       FontFamily="{DynamicResource AppFontFamily}"
+                                       Foreground="{StaticResource TextSecondary}"/>
+                        </Border>
+                    </StackPanel>
                     <TextBlock Text="{DynamicResource Settings_Subheading}"
                                FontSize="13"
                                FontFamily="{DynamicResource AppFontFamily}"
                                Foreground="{StaticResource TextSecondary}"
-                               Margin="0,4,0,0"/>
+                               Margin="0,3,0,0"/>
                 </StackPanel>
                 <Image Grid.Column="1" Source="pack://application:,,,/Assets/logo.png"
-                       Height="64" Stretch="Uniform" VerticalAlignment="Center"
+                       Height="52" Stretch="Uniform" VerticalAlignment="Center"
                        Margin="16,0,4,0" SnapsToDevicePixels="True"
                        RenderOptions.BitmapScalingMode="HighQuality"/>
             </Grid>
