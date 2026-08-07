@@ -39,7 +39,6 @@
     <PackageReference Include="SharpZipLib" Version="1.4.2" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.3" />
     <PackageReference Include="System.Reactive.Windows.Forms" Version="6.0.1" />
-    <PackageReference Include="WebDriverManager" Version="2.17.5" />
   </ItemGroup>
 
   <ItemGroup>
@@ -56,8 +55,13 @@
     <Resource Include="Assets\Fonts\Inter-Bold.ttf" />
   </ItemGroup>
 
+  <!-- ChromeDriver ships with the app so the first run never needs the network. Google's driver
+       host is unreachable from several regions (403 / TLS reset), which used to leave the browser
+       unpreparable. BrowserProvisioner picks the newest driver on the machine, so this bundled
+       copy is a floor, not a ceiling: a newer driver already installed locally still wins.
+       Run scripts\fetch-chromedriver.ps1 to refresh it for a newer Chrome. -->
   <ItemGroup>
-    <Content Include="Chrome\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Drivers\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

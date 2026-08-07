@@ -49,9 +49,32 @@ _Add screenshots to `docs/screenshots/` and reference them here._
 ## Requirements
 
 - Windows 10 / 11 (x64)
-- Google Chrome installed
+- **Google Chrome installed** — Cloudict drives a Chrome window as its helper browser. Chrome
+  specifically: Chromium builds are compiled without Google's API keys, so the speech
+  recognition Google Translate relies on silently does nothing there.
 - Administrator rights (needed for global hotkeys and sending keystrokes to other apps)
 - For building from source: [.NET 7 SDK](https://dotnet.microsoft.com/download/dotnet/7.0)
+
+### About the bundled browser driver
+
+Cloudict talks to Chrome through **ChromeDriver**, which must match your Chrome's major
+version. The installer **ships a ChromeDriver**, so the app works the moment it is installed —
+no download, no waiting, and nothing to configure, even with no internet connection.
+
+Chrome updates itself, so sooner or later it moves past the bundled driver. Cloudict handles
+that on its own, in this order:
+
+1. **Any newer, matching driver already on your machine wins.** Cloudict scans its own
+   folder, its download cache, `%LOCALAPPDATA%\ChromeDriver`, Selenium's cache and your `PATH`,
+   and always picks the newest driver matching your Chrome. A driver you already had is never
+   overwritten, replaced, or downgraded by the one in our installer.
+2. **If your Chrome is newer than every driver on the machine**, Cloudict fetches the matching
+   one *once*, into `%LOCALAPPDATA%\Cloudict\Drivers` (never the install folder). Mirrors are
+   tried before Google's own host, which is unreachable from some regions.
+3. **If that download can't happen either** (offline or blocked), Cloudict falls back to the
+   closest driver it has rather than refusing to start.
+
+So the only thing you ever need is Chrome itself.
 
 ## Install
 
@@ -82,8 +105,10 @@ This produces a self-contained folder under
 `src/Cloudict/bin/Release/.../publish/`. Run `Cloudict.exe`
 from that folder (no .NET install required). Zip the whole folder to distribute it.
 
-> The `Chrome/` driver folder is **not** committed — `WebDriverManager` downloads the
-> matching ChromeDriver automatically at runtime.
+> The ChromeDriver that ships with the app lives in `src/Cloudict/Drivers/` and **is**
+> committed, so a fresh clone builds an installer that works offline. To bundle the driver for
+> a newer Chrome, run `powershell -ExecutionPolicy Bypass -File scripts\fetch-chromedriver.ps1`
+> (it replaces the driver in place, taking the current Chrome-for-Testing stable by default).
 
 ## Usage
 

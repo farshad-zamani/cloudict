@@ -5,7 +5,7 @@
 ; ============================================================================
 
 #define MyAppName        "Cloudict"
-#define MyAppVersion     "2.2.4"
+#define MyAppVersion     "2.2.6"
 #define MyAppPublisher   "Cloudtart"
 #define MyAppURL         "https://cloudtart.com"
 #define MyAppExeName     "Cloudict.exe"
@@ -58,9 +58,11 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: checkedonce
 
 [Files]
-; Ship the entire self-contained publish folder, but NOT the ChromeDriver cache
-; (WebDriverManager downloads the matching driver at runtime) or debug symbols.
-Source: "{#MyPublishDir}\*"; DestDir: "{app}"; Excludes: "Chrome\*,*.pdb"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Ship the entire self-contained publish folder — including Drivers\, which carries the bundled
+; ChromeDriver so the app works on first run with no internet connection. Excluded: debug symbols,
+; the stale WebDriverManager download cache, and Selenium Manager's non-Windows binaries (the app
+; resolves its own driver, so none of them are ever used).
+Source: "{#MyPublishDir}\*"; DestDir: "{app}"; Excludes: "*.pdb,Chrome\*,selenium-manager\linux\*,selenium-manager\macos\*"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

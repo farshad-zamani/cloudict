@@ -205,7 +205,18 @@
     <s:String x:Key="Main_St_PreInitIncompletePrefix">Pre-initialization was incomplete: </s:String>
     <s:String x:Key="Main_St_BrowserReady">The browser is ready</s:String>
     <s:String x:Key="Main_St_BrowserPrepErrorPrefix">Error preparing the browser: </s:String>
+    <s:String x:Key="Main_St_BrowserPrepFailed">We couldn't prepare the browser.</s:String>
+    <s:String x:Key="Main_St_DebugSavedSuffix"> | Diagnostics saved under AppData\Local\Cloudict\Diagnostics</s:String>
     <s:String x:Key="Main_St_ErrorPrefix">Error: </s:String>
+
+    <!-- Chrome / ChromeDriver provisioning (BrowserProvisioner) -->
+    <s:String x:Key="Browser_St_LookingForChrome">Looking for Google Chrome...</s:String>
+    <s:String x:Key="Browser_St_LookingForDriver">Looking for a matching browser driver...</s:String>
+    <s:String x:Key="Browser_St_DownloadingDriver">Your Chrome is newer than the bundled driver — fetching a matching one (one time only)...</s:String>
+    <s:String x:Key="Browser_St_DriverDownloaded">Browser driver {0} is ready.</s:String>
+    <s:String x:Key="Browser_St_VersionMismatch">Using driver {0} with Chrome {1}. If the browser misbehaves, connect to the internet once so Cloudict can fetch the matching driver.</s:String>
+    <s:String x:Key="Browser_Err_ChromeNotInstalled">Google Chrome was not found. Cloudict uses Chrome as its helper browser — install it from google.com/chrome, then press the browser button again.</s:String>
+    <s:String x:Key="Browser_Err_NoDriver">No compatible browser driver could be found or downloaded. Connect to the internet once and press the browser button again, or reinstall Cloudict.</s:String>
     <s:String x:Key="Main_St_ResetErrorPrefix">Error resetting: </s:String>
     <s:String x:Key="Main_St_ReopeningBrowserSuffix"> - reopening the browser</s:String>
     <s:String x:Key="Main_St_ResettingGTPage">Resetting the Google Translate page...</s:String>

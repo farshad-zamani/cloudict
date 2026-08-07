@@ -18,7 +18,9 @@ settings.backup.json
 license.dat
 *.log
 
-# ---- Selenium / ChromeDriver (downloaded at runtime by WebDriverManager) ----
+# ---- Legacy ChromeDriver download cache (superseded by src/Cloudict/Drivers/) ----
+# The driver Cloudict ships lives in src/Cloudict/Drivers/ and IS tracked, so the installer
+# can work offline. Only the old runtime-download cache is ignored.
 **/Chrome/
 
 # ---- Internal localization tooling / temp test output ----

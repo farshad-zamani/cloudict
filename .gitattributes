@@ -5,6 +5,7 @@
 *.sln    text eol=crlf
 *.csproj text eol=crlf
 *.bat    text eol=crlf
+*.ps1    text eol=crlf
 *.manifest text eol=crlf
 
 # Binary assets (never normalize/diff)
@@ -13,3 +14,7 @@
 *.bmp binary
 *.ttf binary
 *.otf binary
+
+# Executables — above all the bundled ChromeDriver. `text=auto` would only guess here, and a
+# driver silently corrupted by line-ending normalization would break every install.
+*.exe binary

@@ -21,8 +21,8 @@ user-defined **voice commands**.
 
 1. `App.OnStartup` applies the saved UI language, ensures a single instance, requests
    administrator rights, then opens `MainWindow`.
-2. `MainWindow` launches Chrome via Selenium/WebDriverManager, opens Google Translate,
-   and clicks the microphone button.
+2. `MainWindow` resolves Chrome + ChromeDriver through `BrowserProvisioner`, launches Chrome
+   via Selenium, opens Google Translate, and clicks the microphone button.
 3. As Google transcribes speech, the recognized text is read from the page and sent,
    word by word, into the active application using `H.InputSimulator`.
 4. Recognized words are matched against **voice commands**; a match runs an action
@@ -33,10 +33,11 @@ user-defined **voice commands**.
 | Path | Purpose |
 |------|---------|
 | `src/Cloudict/Views/` | WPF windows: `MainWindow`, `SettingsWindow`, `AddCommandWindow`, `KeySelectionWindow`, `DesktopStatusIndicator` |
-| `src/Cloudict/Services/` | `VoiceCommandManager`, `VoiceCommandProcessor`, `SystemCommandExecutor`, `WordTracker`, `SettingsManager`, `GlobalShortcutManager`, `NotificationManager` |
+| `src/Cloudict/Services/` | `BrowserProvisioner`, `VoiceCommandManager`, `VoiceCommandProcessor`, `SystemCommandExecutor`, `WordTracker`, `SettingsManager`, `GlobalShortcutManager`, `NotificationManager` |
 | `src/Cloudict/Models/` | `AppSettings`, `VoiceCommand` |
 | `src/Cloudict/Localization/` | `LocalizationManager` + `Strings/Strings.<lang>.xaml` dictionaries |
 | `src/Cloudict/Assets/` | Application icon and the Inter & Vazirmatn fonts |
+| `src/Cloudict/Drivers/` | The ChromeDriver bundled into the installer (see below) |
 
 ## Key components
 
@@ -52,10 +53,51 @@ user-defined **voice commands**.
   execute the corresponding system action.
 - **GlobalShortcutManager** — registers system-wide hotkeys (default `Ctrl+Alt+A` to
   start/stop and `Ctrl+Alt+S` to stop).
+- **BrowserProvisioner** — finds Chrome and a compatible ChromeDriver *without needing the
+  network*. See below; this is the component that makes startup reliable.
+
+## Browser provisioning
+
+ChromeDriver must match the installed Chrome's major version, and Chrome updates itself, so
+"which driver do we run?" is a moving target. Cloudict used to delegate this to
+`WebDriverManager`, which downloaded the driver from Google on every startup. That made the app
+unusable wherever `storage.googleapis.com` is blocked — it answers **403 Forbidden**, or the TLS
+handshake is intercepted — and it broke working installs the moment Chrome auto-updated.
+
+`BrowserProvisioner.Resolve()` now runs disk-first:
+
+```
+detect Chrome (App Paths registry + standard install folders)
+        │
+        ▼
+collect every chromedriver.exe on the machine
+  Drivers\ (bundled)  ·  %LOCALAPPDATA%\Cloudict\Drivers (our cache)
+  Chrome\ (legacy cache)  ·  %LOCALAPPDATA%\ChromeDriver
+  ~\.cache\selenium\chromedriver  ·  PATH
+        │
+        ├─ a driver with Chrome's major version?  ──▶ newest one wins. Done, offline.
+        │
+        ├─ otherwise download it once, into our per-user cache.
+        │     mirrors first (cdn/registry.npmmirror.com), Google's host last.
+        │
+        └─ otherwise use the closest driver we have, with
+           ChromeDriverService.DisableBuildCheck = true.
+```
+
+Two properties matter and are deliberate:
+
+- **A driver already on the machine is never overwritten or downgraded.** The bundled driver is
+  a floor, not a ceiling — if the user's Chrome is newer and they already have a matching
+  driver, theirs is used.
+- **Downloads never write into the install folder**, only `%LOCALAPPDATA%\Cloudict\Drivers`, so
+  provisioning needs no elevation and can't corrupt the shipped copy.
+
+The version bundled in `src/Cloudict/Drivers/` is committed so a fresh clone can build an
+offline-capable installer; refresh it with `scripts\fetch-chromedriver.ps1`.
 
 ## Notable dependencies
-Selenium.WebDriver + WebDriverManager (browser automation), H.InputSimulator (keystroke
-injection), NAudio, Newtonsoft.Json, Polly, AngleSharp, SharpZipLib.
+Selenium.WebDriver (browser automation), H.InputSimulator (keystroke injection), NAudio,
+Newtonsoft.Json, Polly, AngleSharp, SharpZipLib.
 
 ## Caveats
 The recognition engine depends on the **public Google Translate web UI**. If Google

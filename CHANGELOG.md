@@ -8,6 +8,52 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [2.2.6] – 2026-08-07
+
+### Fixed
+- **The browser can no longer fail to start because of a blocked download.** On a fresh install
+  the app reported *“Error preparing the browser: The remote server returned an error: (403)
+  Forbidden”* (or an SSL/connection error on some networks), and the browser button then failed
+  with *“We couldn't prepare the browser.”* The cause was that Cloudict asked WebDriverManager
+  to fetch ChromeDriver from Google's host on every startup — and that host
+  (`storage.googleapis.com`) answers **403 Forbidden** in a number of regions, while others see
+  the TLS handshake intercepted. The installer also deliberately excluded the driver, so a
+  first run *always* depended on that download succeeding.
+
+  The same download was re-triggered whenever Chrome auto-updated to a new major version, which
+  is why machines that had worked fine for months suddenly broke without anything changing.
+
+- **The installer now ships a ChromeDriver.** The app works offline from the moment it is
+  installed — no download, no waiting on a slow connection, nothing to configure.
+
+### Added
+- **`BrowserProvisioner`** — resolves Chrome and its driver from disk first, and only touches
+  the network as a last resort:
+  1. Chrome is located via the Windows *App Paths* registry entries plus the usual install
+     folders, so per-user and non-standard installs are found too.
+  2. Every ChromeDriver on the machine is collected — the bundled one, Cloudict's own download
+     cache, `%LOCALAPPDATA%\ChromeDriver`, Selenium's cache, and `PATH` — and the **newest
+     driver matching the installed Chrome wins**. A driver you already had is never overwritten
+     or downgraded by the bundled one.
+  3. If Chrome is newer than every local driver, the matching driver is fetched **once** into
+     `%LOCALAPPDATA%\Cloudict\Drivers` (never the install folder, so no elevation is needed).
+     Mirrors are tried **before** Google's host.
+  4. If even that is impossible, the closest available driver is used with ChromeDriver's build
+     check disabled, so an offline machine still gets a working browser instead of an error.
+- **`scripts\fetch-chromedriver.ps1`** — refreshes the bundled driver for a newer Chrome before
+  cutting a release.
+
+### Changed
+- Failed browser startup no longer dead-ends: the button stays enabled and a click retries the
+  whole resolution, so a machine that was offline at launch recovers without a restart.
+- Missing Chrome and missing-driver situations now produce an actionable message
+  (*“Google Chrome was not found… install it, then press the browser button again”*) instead of
+  a raw exception string, in both English and Persian.
+- Diagnostics written on a browser failure (`page_debug.html`, `error_screenshot.png`) now go to
+  `%LOCALAPPDATA%\Cloudict\Diagnostics` instead of the install folder.
+- Dropped the `WebDriverManager` dependency, and stopped shipping Selenium Manager's Linux and
+  macOS binaries.
+
 ## [2.2.3] – 2026-06-29
 
 ### Changed

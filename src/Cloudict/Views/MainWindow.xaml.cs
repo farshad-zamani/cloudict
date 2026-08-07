@@ -12,9 +12,7 @@ using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
-using WebDriverManager;
-using WebDriverManager.DriverConfigs.Impl;
-using WebDriverManager.Helpers;
+using Cloudict.Services;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -48,6 +46,14 @@ namespace Cloudict
         private bool _preloadBrowser = false;
         private IWebDriver _preloadedDriver = null;
         private bool _browserReady = false;
+
+        /// <summary>
+        /// Chrome + ChromeDriver resolved by <see cref="BrowserProvisioner"/>. Resolved once at
+        /// startup and reused for every browser instance; null until it succeeds, which is what
+        /// lets the microphone button retry a failed startup instead of dead-ending.
+        /// </summary>
+        private BrowserProvisioner.Provision _browserProvision;
+        private readonly object _browserProvisionLock = new object();
 
         // UI Elements Identification - Updated with correct XPath
         private const string MIC_BUTTON_XPATH = "//*[@id=\"yDmH0d\"]/c-wiz/div/div[2]/c-wiz/div[2]/c-wiz/div[1]/div[2]/div[2]/div/c-wiz/div[5]/div/div[1]/c-wiz/span[2]/span/button/div[3]";
@@ -1545,8 +1551,9 @@ namespace Cloudict
                 Task.Run(async () => {
                     try
                     {
-                        // Setup Chrome driver
-                        new DriverManager().SetUpDriver(new ChromeConfig(), VersionResolveStrategy.MatchingBrowser);
+                        // Locate Chrome and a compatible driver. This reads from disk first and only
+                        // reaches for the network when Chrome has moved past every driver we have.
+                        EnsureBrowserProvision();
 
                         if (preload)
                         {
@@ -1596,10 +1603,21 @@ namespace Cloudict
                             });
                         }
                     }
+                    catch (BrowserProvisioner.ProvisionException ex)
+                    {
+                        Dispatcher.Invoke(() => {
+                            // Already an actionable sentence ("Chrome isn't installed…") — show it
+                            // as-is, and keep the button live so a click retries the whole thing.
+                            statusText.Text = ex.Message;
+                            btnMicrophone.IsEnabled = true;
+                        });
+                    }
                     catch (Exception ex)
                     {
                         Dispatcher.Invoke(() => {
                             statusText.Text = Loc.Get("Main_St_BrowserPrepErrorPrefix") + ex.Message;
+                            // Keep the button live: provisioning is retried on click, so a machine
+                            // that was offline at startup can still recover without a restart.
                             btnMicrophone.IsEnabled = true;
                         });
                     }
@@ -1612,8 +1630,40 @@ namespace Cloudict
             }
         }
 
+        /// <summary>
+        /// Resolves Chrome and its driver if that hasn't succeeded yet. Safe to call repeatedly —
+        /// once a provision is in hand it is reused, so only failed attempts are retried.
+        /// </summary>
+        private void EnsureBrowserProvision()
+        {
+            // Startup preloading and a user click can both land here; serialize so a driver is
+            // never downloaded twice concurrently.
+            lock (_browserProvisionLock)
+            {
+                if (_browserProvision != null) return;
+
+                var provision = BrowserProvisioner.Resolve(
+                    message => Dispatcher.Invoke(() => statusText.Text = message));
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Cloudict] Chrome {provision.ChromeVersion} @ {provision.ChromePath} | " +
+                    $"driver {provision.DriverVersion} ({provision.DriverSource}) @ {provision.DriverPath}");
+
+                if (provision.RequiresBuildCheckOverride)
+                {
+                    var warning = Loc.Get("Browser_St_VersionMismatch",
+                        provision.DriverVersion, provision.ChromeVersion);
+                    Dispatcher.Invoke(() => statusText.Text = warning);
+                }
+
+                _browserProvision = provision;
+            }
+        }
+
         private IWebDriver InitializeBrowserInstance()
         {
+            EnsureBrowserProvision();
+
             var options = new ChromeOptions();
             options.AddArgument("--disable-gpu");
             options.AddArgument("--window-size=450,540");
@@ -1625,15 +1675,27 @@ namespace Cloudict
             options.AddArgument("--use-fake-ui-for-media-stream"); // Auto-allow microphone
             options.AddArgument("--lang=fa");
 
+            // Point Chrome at the exact binary we detected, so a Chrome installed outside the
+            // default folders (or per-user) is still found.
+            if (!string.IsNullOrWhiteSpace(_browserProvision.ChromePath))
+                options.BinaryLocation = _browserProvision.ChromePath;
+
             // Allow microphone access
             options.AddUserProfilePreference("profile.default_content_setting_values.media_stream_mic", 1);
 
             // Set Persian language
             options.AddUserProfilePreference("intl.accept_languages", "fa-IR,fa");
 
-            // Hide ChromeDriver console window
-            var driverService = ChromeDriverService.CreateDefaultService();
+            // Start the driver we resolved ourselves. Passing an explicit path also stops Selenium
+            // Manager from silently trying to download one of its own.
+            var driverService = ChromeDriverService.CreateDefaultService(
+                _browserProvision.DriverDirectory, _browserProvision.DriverFileName);
             driverService.HideCommandPromptWindow = true;
+
+            // Only set when Chrome outran every driver on the machine and the network was no help;
+            // without it ChromeDriver refuses to start at all on a major-version mismatch.
+            if (_browserProvision.RequiresBuildCheckOverride)
+                driverService.DisableBuildCheck = true;
 
             return new ChromeDriver(driverService, options);
         }
@@ -1731,6 +1793,12 @@ namespace Cloudict
 
                 return true;
             }
+            catch (BrowserProvisioner.ProvisionException)
+            {
+                // Let this one through: it carries an actionable message (install Chrome, no driver
+                // available) that the caller reports as-is instead of a generic failure.
+                throw;
+            }
             catch (Exception ex)
             {
                 Dispatcher.Invoke(() => {
@@ -1739,15 +1807,23 @@ namespace Cloudict
                     {
                         try
                         {
-                            // Save debug info
-                            string pageSource = _driver.PageSource;
-                            File.WriteAllText("page_debug.html", pageSource);
-                            statusText.Text += " | فایل دیباگ در مسیر برنامه ذخیره شد";
+                            // Debug artifacts go under LocalAppData — the working directory is the
+                            // install folder, which is not ours to write into.
+                            var debugDir = Path.Combine(
+                                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                                "Cloudict", "Diagnostics");
+                            Directory.CreateDirectory(debugDir);
 
-                            var screenshot = ((ITakesScreenshot)_driver).GetScreenshot();
-                            screenshot.SaveAsFile("error_screenshot.png");
+                            File.WriteAllText(Path.Combine(debugDir, "page_debug.html"), _driver.PageSource);
+                            ((ITakesScreenshot)_driver).GetScreenshot()
+                                .SaveAsFile(Path.Combine(debugDir, "error_screenshot.png"));
+
+                            statusText.Text += Loc.Get("Main_St_DebugSavedSuffix");
                         }
-                        catch { }
+                        catch (Exception debugEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Saving diagnostics failed: {debugEx.Message}");
+                        }
                     }
                 });
                 return false;
@@ -2468,8 +2544,14 @@ namespace Cloudict
                             }
                             else
                             {
-                                throw new Exception("نتوانستیم مرورگر را آماده کنیم");
+                                throw new Exception(Loc.Get("Main_St_BrowserPrepFailed"));
                             }
+                        }
+                        catch (BrowserProvisioner.ProvisionException ex)
+                        {
+                            // Chrome or the driver is missing: the message already tells the user
+                            // what to do, so show it on its own rather than burying it in a prefix.
+                            Dispatcher.Invoke(() => statusText.Text = ex.Message);
                         }
                         catch (Exception ex)
                         {
