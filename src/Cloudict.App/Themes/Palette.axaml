@@ -1,0 +1,49 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Cloudict's dark palette, carried over from the WPF theme so the application looks the same
+       on every platform rather than adopting each system's defaults. -->
+
+  <Color x:Key="BgWindowColor">#1A1A1A</Color>
+  <Color x:Key="BgCardColor">#242424</Color>
+  <Color x:Key="BgPanelColor">#2A2A2A</Color>
+  <Color x:Key="BorderSubtleColor">#404040</Color>
+  <Color x:Key="BorderStrongColor">#4A4A4A</Color>
+
+  <Color x:Key="TextPrimaryColor">#FFFFFF</Color>
+  <Color x:Key="TextSecondaryColor">#CCCCCC</Color>
+  <Color x:Key="TextMutedColor">#8A8A8A</Color>
+
+  <Color x:Key="AccentColor">#C2454E</Color>
+  <Color x:Key="AccentHoverColor">#D25A62</Color>
+  <Color x:Key="AccentPressedColor">#A53B43</Color>
+  <Color x:Key="AccentSoftColor">#3A2226</Color>
+
+  <Color x:Key="SuccessColor">#3E9080</Color>
+  <Color x:Key="SuccessHoverColor">#4AA08D</Color>
+  <Color x:Key="SuccessPressedColor">#347567</Color>
+
+  <Color x:Key="WarningColor">#D9A02B</Color>
+
+  <SolidColorBrush x:Key="BgWindowBrush" Color="{StaticResource BgWindowColor}"/>
+  <SolidColorBrush x:Key="BgCardBrush" Color="{StaticResource BgCardColor}"/>
+  <SolidColorBrush x:Key="BgPanelBrush" Color="{StaticResource BgPanelColor}"/>
+  <SolidColorBrush x:Key="BorderSubtleBrush" Color="{StaticResource BorderSubtleColor}"/>
+  <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource BorderStrongColor}"/>
+
+  <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}"/>
+  <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
+  <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}"/>
+
+  <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+  <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}"/>
+  <SolidColorBrush x:Key="AccentPressedBrush" Color="{StaticResource AccentPressedColor}"/>
+  <SolidColorBrush x:Key="AccentSoftBrush" Color="{StaticResource AccentSoftColor}"/>
+
+  <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+  <SolidColorBrush x:Key="SuccessHoverBrush" Color="{StaticResource SuccessHoverColor}"/>
+  <SolidColorBrush x:Key="SuccessPressedBrush" Color="{StaticResource SuccessPressedColor}"/>
+
+  <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+
+</ResourceDictionary>

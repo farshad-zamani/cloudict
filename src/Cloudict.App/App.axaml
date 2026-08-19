@@ -1,0 +1,25 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Cloudict.App.App"
+             RequestedThemeVariant="Dark">
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Cloudict/Themes/Palette.axaml"/>
+      </ResourceDictionary.MergedDictionaries>
+
+      <!-- Bundled so the interface looks identical everywhere, and because a Linux or macOS box
+           cannot be assumed to have a Persian-capable face installed at all. -->
+      <FontFamily x:Key="InterFont">avares://Cloudict/Assets/Fonts#Inter</FontFamily>
+      <FontFamily x:Key="VazirmatnFont">avares://Cloudict/Assets/Fonts#Vazirmatn</FontFamily>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme/>
+    <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+    <StyleInclude Source="avares://Cloudict/Themes/Controls.axaml"/>
+  </Application.Styles>
+
+</Application>

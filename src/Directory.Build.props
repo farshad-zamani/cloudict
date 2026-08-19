@@ -1,0 +1,14 @@
+<Project>
+
+  <!-- One place to set the product version. Before this it lived in AssemblyInfo.cs, the Inno
+       Setup script and the changelog, and had to be kept in step by hand across all three. -->
+  <PropertyGroup>
+    <VersionPrefix>3.0.0</VersionPrefix>
+    <Product>Cloudict</Product>
+    <Company>Cloudtart</Company>
+    <Authors>Farshad Zamani</Authors>
+    <Copyright>Copyright © 2026 Farshad Zamani — cloudtart.com</Copyright>
+    <Description>Cloudict │ Free, open-source voice-to-text that types your speech anywhere. Bilingual (English/Persian).</Description>
+  </PropertyGroup>
+
+</Project>

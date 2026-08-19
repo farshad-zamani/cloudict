@@ -1,0 +1,148 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:Cloudict.App.Localization"
+        x:Class="Cloudict.App.Views.MainWindow"
+        Title="{loc:Tr Main_WindowTitle}"
+        Width="520" Height="820"
+        MinWidth="470" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Icon="avares://Cloudict/Assets/app-icon.ico"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FlowDirection="{DynamicResource AppFlowDirection}"
+        Background="{DynamicResource BgWindowBrush}">
+
+  <Grid Margin="10" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
+
+    <!-- Header: settings button on the leading edge, logo and version centred -->
+    <Grid Grid.Row="0" Margin="0,4,0,0">
+      <Button x:Name="BtnSettings" Classes="subtle"
+              HorizontalAlignment="Left" VerticalAlignment="Top"
+              Height="36" Padding="12,0" Margin="10,6,0,0"
+              Click="OnSettingsClick"
+              ToolTip.Tip="{loc:Tr Common_Settings}">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <Path Width="18" Height="18" Stretch="Uniform"
+                Fill="{DynamicResource TextSecondaryBrush}"
+                Data="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11.03L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11.03C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
+          <TextBlock Text="{loc:Tr Common_Settings}" Margin="8,0,0,0" FontSize="13"
+                     VerticalAlignment="Center"
+                     Foreground="{DynamicResource TextSecondaryBrush}"/>
+        </StackPanel>
+      </Button>
+
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Image Source="avares://Cloudict/Assets/logo.png" Height="60" Width="60"
+               Stretch="Uniform" VerticalAlignment="Center" Margin="0,6,0,0"/>
+        <!-- Version reads left-to-right in both interface languages -->
+        <Border Classes="badge" Margin="8,10,0,0" VerticalAlignment="Center"
+                FlowDirection="LeftToRight">
+          <TextBlock x:Name="TxtVersion" FontSize="12"
+                     Foreground="{DynamicResource TextSecondaryBrush}"/>
+        </Border>
+      </StackPanel>
+    </Grid>
+
+    <!-- Controls -->
+    <StackPanel Grid.Row="1" Margin="0,3,0,15">
+      <Button x:Name="BtnHelperBrowser" Classes="accent"
+              HorizontalAlignment="Center" Padding="20,11" Margin="0,0,0,8"
+              Click="OnHelperBrowserClick">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <TextBlock x:Name="TxtBrowserIcon" Text="&#x1F310;" FontSize="18" VerticalAlignment="Center"/>
+          <TextBlock x:Name="TxtBrowserLabel" Text="{loc:Tr Main_OpenHelperBrowser}"
+                     FontSize="14" Margin="9,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+      </Button>
+
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,8" Spacing="20">
+        <Button x:Name="BtnStart" Classes="circle success" Click="OnStartClick"
+                ToolTip.Tip="{loc:Tr Main_MicControlsHint}">
+          <TextBlock Text="&#x25B6;" FontSize="16" FontWeight="Bold" Foreground="White"/>
+        </Button>
+        <Button x:Name="BtnStop" Classes="circle accent" Click="OnStopClick"
+                ToolTip.Tip="{loc:Tr Main_MicControlsHint}">
+          <Border Width="12" Height="12" CornerRadius="2" Background="White"/>
+        </Button>
+      </StackPanel>
+
+      <TextBlock Text="{loc:Tr Main_MicControlsHint}" FontSize="14"
+                 HorizontalAlignment="Center" Margin="0,8,0,0"
+                 Foreground="{DynamicResource TextSecondaryBrush}"/>
+    </StackPanel>
+
+    <!-- Recognized text -->
+    <Border Grid.Row="2" Classes="card" Margin="15,8,15,8">
+      <Grid Margin="12" RowDefinitions="Auto,*,Auto">
+        <TextBlock Grid.Row="0" Text="{loc:Tr Main_RecognizedLabel}" Classes="h2"
+                   HorizontalAlignment="Center" Margin="0,0,0,8"/>
+
+        <TextBox Grid.Row="1" x:Name="TxtRecognized"
+                 IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
+                 FontSize="12" MinHeight="60" MaxHeight="90"
+                 Watermark="{loc:Tr Main_WaitingForSpeech}"
+                 VerticalContentAlignment="Top"/>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center"
+                    Margin="0,8,0,0" Spacing="8">
+          <Button Classes="success" Content="{loc:Tr Main_CopyBtn}" Click="OnCopyRecognizedClick"/>
+          <Button Classes="accent" Content="{loc:Tr Main_ClearBtn}" Click="OnClearRecognizedClick"/>
+          <Button Classes="accent" Content="{loc:Tr Main_QuickTransfer}" Click="OnQuickTransferClick"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Final text -->
+    <Border Grid.Row="3" Classes="card" Margin="15,8,15,8">
+      <Grid Margin="12" RowDefinitions="Auto,*,Auto">
+        <TextBlock Grid.Row="0" Text="{loc:Tr Main_FinalLabel}" Classes="h2"
+                   HorizontalAlignment="Center" Margin="0,0,0,8"/>
+
+        <TextBox Grid.Row="1" x:Name="TxtFinal"
+                 TextWrapping="Wrap" AcceptsReturn="True"
+                 FontSize="13" MinHeight="80"
+                 Watermark="{loc:Tr Main_FinalPlaceholder}"
+                 VerticalContentAlignment="Top"/>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center"
+                    Margin="0,8,0,0" Spacing="8">
+          <ToggleButton x:Name="BtnLiveTransfer" Content="{loc:Tr Main_TransferToCursor}"
+                        Click="OnLiveTransferClick" Padding="14,8" CornerRadius="8"/>
+          <Button Classes="success" Content="{loc:Tr Main_CopyBtn}" Click="OnCopyFinalClick"/>
+          <Button Classes="accent" Content="{loc:Tr Common_Clear}" Click="OnClearFinalClick"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Footer links always read left-to-right -->
+    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center"
+                Margin="0,2,0,6" Spacing="8" FlowDirection="LeftToRight">
+      <Button Classes="subtle" Padding="12,7" Tag="https://github.com/farshad-zamani" Click="OnOpenUrlClick">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Path Width="16" Height="16" Stretch="Uniform" Fill="{DynamicResource TextPrimaryBrush}"
+                Data="M12 0.297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385 0.6 0.113 0.82-0.258 0.82-0.577 0-0.285-0.01-1.04-0.015-2.04-3.338 0.724-4.042-1.61-4.042-1.61-0.546-1.387-1.333-1.756-1.333-1.756-1.089-0.745 0.083-0.729 0.083-0.729 1.205 0.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492 0.997 0.107-0.775 0.418-1.305 0.762-1.604-2.665-0.305-5.467-1.334-5.467-5.931 0-1.311 0.469-2.381 1.236-3.221-0.124-0.303-0.535-1.524 0.117-3.176 0 0 1.008-0.322 3.301 1.23 0.957-0.266 1.983-0.399 3.003-0.404 1.02 0.005 2.047 0.138 3.006 0.404 2.291-1.552 3.297-1.23 3.297-1.23 0.653 1.653 0.242 2.874 0.118 3.176 0.77 0.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921 0.43 0.372 0.823 1.102 0.823 2.222 0 1.606-0.014 2.898-0.014 3.293 0 0.319 0.216 0.694 0.825 0.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          <TextBlock Text="{loc:Tr Main_GitHub}" VerticalAlignment="Center"/>
+        </StackPanel>
+      </Button>
+      <Button Classes="subtle" Padding="12,7" Tag="https://www.linkedin.com/in/farshad-zamani92/" Click="OnOpenUrlClick">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Path Width="16" Height="16" Stretch="Uniform" Fill="#0A66C2"
+                Data="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-0.966 0-1.75-0.79-1.75-1.764s0.784-1.764 1.75-1.764 1.75 0.79 1.75 1.764-0.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+          <TextBlock Text="LinkedIn" VerticalAlignment="Center"/>
+        </StackPanel>
+      </Button>
+      <Button Classes="subtle" Padding="12,7" Tag="https://cloudtart.com" Click="OnOpenUrlClick">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Path Width="16" Height="16" Stretch="Uniform" Fill="{DynamicResource AccentBrush}"
+                Data="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.92 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14a7.96 7.96 0 0 1 0-4h3.38a16.5 16.5 0 0 0 0 4H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.99 7.99 0 0 1 5.08 16zm2.95-8H5.08a7.99 7.99 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66a14.7 14.7 0 0 1 0-4h4.68a14.7 14.7 0 0 1 0 4zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14a16.5 16.5 0 0 0 0-4h3.38a7.96 7.96 0 0 1 0 4h-3.38z"/>
+          <TextBlock Text="{loc:Tr Main_Website}" VerticalAlignment="Center"/>
+        </StackPanel>
+      </Button>
+    </StackPanel>
+
+    <!-- Status. Wraps rather than clipping: driver and browser messages run long. -->
+    <Border Grid.Row="5" Background="{DynamicResource BgPanelBrush}" MinHeight="35" Padding="8,5">
+      <TextBlock x:Name="TxtStatus" Classes="status" VerticalAlignment="Center" MaxHeight="64"/>
+    </Border>
+
+  </Grid>
+</Window>

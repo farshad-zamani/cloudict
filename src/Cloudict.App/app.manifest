@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+
+  <!--
+    Deliberately minimal. The .NET SDK and Avalonia already merge in their own compatibility and
+    DPI-awareness sections; declaring either of those a second time here makes Windows reject the
+    whole manifest with a side-by-side configuration error and the app refuses to launch. The only
+    thing this file needs to state is the privilege level.
+  -->
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
+    <security>
+      <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
+        <!--
+          Runs with the user's own rights.
+
+          2.x asked for requireAdministrator, which meant a UAC prompt on every single launch. It
+          was only ever needed for one case: typing into a window that is itself running as
+          administrator, because Windows refuses synthetic input from a lower integrity level.
+          Everything people actually dictate into (browsers, editors, chat, Office) runs
+          unelevated, so the prompt was a daily cost for a rare capability.
+
+          It is also meaningless on the other two platforms: Linux and macOS gate this through
+          permissions rather than administrator rights, and requesting root there would be wrong.
+
+          Anyone who does need to dictate into an elevated window can start Cloudict as
+          administrator; the diagnose command reports whether the session is elevated.
+        -->
+        <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+
+</assembly>

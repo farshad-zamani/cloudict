@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!-- The cross-platform front end. One project builds the Windows, Linux and macOS applications;
        everything below it (Cloudict.Core, Cloudict.Platform) is already platform-neutral. -->
@@ -23,6 +23,7 @@
     <PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.2.3" />
     <PackageReference Include="Selenium.WebDriver" Version="4.31.0" />
   </ItemGroup>
 
@@ -42,3 +43,4 @@
   </ItemGroup>
 
 </Project>
+

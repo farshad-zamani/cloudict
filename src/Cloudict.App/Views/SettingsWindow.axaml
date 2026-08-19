@@ -1,0 +1,211 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:Cloudict.App.Localization"
+        xmlns:model="clr-namespace:Cloudict;assembly=Cloudict.Core"
+        x:Class="Cloudict.App.Views.SettingsWindow"
+        Title="{loc:Tr Settings_Title}"
+        Width="960" Height="700"
+        MinWidth="820" MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        Icon="avares://Cloudict/Assets/app-icon.ico"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FlowDirection="{DynamicResource AppFlowDirection}"
+        Background="{DynamicResource BgWindowBrush}">
+
+  <Grid Margin="24,20" RowDefinitions="Auto,*,Auto">
+
+    <!-- Header kept compact so the tab area still gets usable height on a laptop -->
+    <Border Grid.Row="0" Classes="card" Padding="18,13" Margin="0,0,0,12"
+            Background="{DynamicResource BgCardBrush}">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{loc:Tr Settings_Heading}" Classes="h1"/>
+            <Border Classes="badge" Margin="10,3,0,0" VerticalAlignment="Center"
+                    FlowDirection="LeftToRight"
+                    Background="{DynamicResource BgWindowBrush}">
+              <TextBlock x:Name="TxtVersion" FontSize="12"
+                         Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </Border>
+          </StackPanel>
+          <TextBlock Text="{loc:Tr Settings_Subheading}" Classes="hint" Margin="0,3,0,0"/>
+        </StackPanel>
+
+        <Image Grid.Column="1" Source="avares://Cloudict/Assets/logo.png"
+               Height="52" Stretch="Uniform" VerticalAlignment="Center" Margin="16,0,4,0"/>
+      </Grid>
+    </Border>
+
+    <TabControl Grid.Row="1" x:Name="Tabs">
+
+      <!-- Speech engine -->
+      <TabItem Header="{loc:Tr Settings_Tab_Engine}">
+        <ScrollViewer>
+          <StackPanel Margin="22,20" Spacing="16">
+            <Border Classes="card" Padding="18">
+              <StackPanel Spacing="10">
+                <TextBlock Text="{loc:Tr Settings_EngineGroup}" Classes="h2"/>
+                <TextBlock Text="{loc:Tr Settings_EngineHint}" Classes="hint"/>
+                <RadioButton x:Name="RbGoogleTranslate" GroupName="engine" IsChecked="True"
+                             Content="{loc:Tr Settings_Engine_GoogleTranslate}"/>
+                <RadioButton GroupName="engine" IsEnabled="False" Content="{loc:Tr Settings_Engine_GoogleApi}"/>
+                <RadioButton GroupName="engine" IsEnabled="False" Content="{loc:Tr Settings_Engine_Whisper}"/>
+                <RadioButton GroupName="engine" IsEnabled="False" Content="{loc:Tr Settings_Engine_WindowsSpeech}"/>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+              <StackPanel Spacing="10">
+                <TextBlock Text="{loc:Tr Settings_TypingLanguage}" Classes="h2"/>
+                <TextBlock Text="{loc:Tr Settings_TypingLanguageHint}" Classes="hint"/>
+                <ComboBox x:Name="CmbTypingLanguage" Width="280" HorizontalAlignment="Left"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- Delays -->
+      <TabItem Header="{loc:Tr Settings_Tab_Delays}">
+        <ScrollViewer>
+          <StackPanel Margin="22,20" Spacing="16">
+            <Border Classes="card" Padding="18">
+              <StackPanel Spacing="12">
+                <TextBlock Text="{loc:Tr Settings_TimingGroup}" Classes="h2"/>
+                <TextBlock Text="{loc:Tr Settings_TimingHint}" Classes="hint"/>
+
+                <Grid ColumnDefinitions="260,120,*" RowDefinitions="Auto,Auto,Auto,Auto" >
+                  <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Tr Settings_ProcessDelay}" VerticalAlignment="Center" Margin="0,6"/>
+                  <TextBox   Grid.Row="0" Grid.Column="1" x:Name="TxtProcessDelay" Classes="field" Margin="0,6"/>
+                  <TextBlock Grid.Row="0" Grid.Column="2" Text="{loc:Tr Settings_ProcessDelayHint}" Classes="hint" Margin="12,6"/>
+
+                  <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Tr Settings_WordDelay}" VerticalAlignment="Center" Margin="0,6"/>
+                  <TextBox   Grid.Row="1" Grid.Column="1" x:Name="TxtWordDelay" Classes="field" Margin="0,6"/>
+                  <TextBlock Grid.Row="1" Grid.Column="2" Text="{loc:Tr Settings_WordDelayHint}" Classes="hint" Margin="12,6"/>
+
+                  <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Tr Settings_StartDelay}" VerticalAlignment="Center" Margin="0,6"/>
+                  <TextBox   Grid.Row="2" Grid.Column="1" x:Name="TxtStartDelay" Classes="field" Margin="0,6"/>
+                  <TextBlock Grid.Row="2" Grid.Column="2" Text="{loc:Tr Settings_StartDelayHint}" Classes="hint" Margin="12,6"/>
+
+                  <TextBlock Grid.Row="3" Grid.Column="0" Text="{loc:Tr Settings_InactivityDelay}" VerticalAlignment="Center" Margin="0,6"/>
+                  <TextBox   Grid.Row="3" Grid.Column="1" x:Name="TxtInactivityDelay" Classes="field" Margin="0,6"/>
+                  <TextBlock Grid.Row="3" Grid.Column="2" Text="{loc:Tr Settings_InactivityDelayHint}" Classes="hint" Margin="12,6"/>
+                </Grid>
+
+                <TextBlock Text="{loc:Tr Settings_TimingFooter}" Classes="hint"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- Google Translate selectors -->
+      <TabItem Header="{loc:Tr Settings_Tab_GoogleTranslate}">
+        <ScrollViewer>
+          <StackPanel Margin="22,20" Spacing="16">
+            <Border Classes="card" Padding="18">
+              <StackPanel Spacing="10">
+                <TextBlock Text="{loc:Tr Settings_SelectorsGroup}" Classes="h2"/>
+                <TextBlock Text="{loc:Tr Settings_SelectorsHint}" Classes="hint"/>
+
+                <TextBlock Text="{loc:Tr Settings_MicXPath}" Margin="0,8,0,0"/>
+                <TextBox x:Name="TxtMicXPath" Classes="field"/>
+
+                <TextBlock Text="{loc:Tr Settings_AriaLabels}" Margin="0,8,0,0"/>
+                <TextBox x:Name="TxtAriaLabels" Classes="field" AcceptsReturn="True" Height="70"/>
+
+                <TextBlock Text="{loc:Tr Settings_ClassSelectors}" Margin="0,8,0,0"/>
+                <TextBox x:Name="TxtClassSelectors" Classes="field" AcceptsReturn="True" Height="70"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- General -->
+      <TabItem Header="{loc:Tr Settings_Tab_General}">
+        <ScrollViewer>
+          <StackPanel Margin="22,20" Spacing="16">
+            <Border Classes="card" Padding="18">
+              <StackPanel Spacing="10">
+                <TextBlock Text="{loc:Tr Settings_LanguageGroup}" Classes="h2"/>
+                <ComboBox x:Name="CmbUiLanguage" Width="280" HorizontalAlignment="Left"/>
+                <TextBlock Text="{loc:Tr Settings_LanguageRestartHint}" Classes="hint"/>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+              <StackPanel Spacing="10">
+                <TextBlock Text="{loc:Tr Settings_ShortcutGroup}" Classes="h2"/>
+                <CheckBox x:Name="ChkShortcutEnabled" Content="{loc:Tr Settings_ShortcutEnabled}"/>
+
+                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*" RowDefinitions="Auto,Auto" >
+                  <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Tr SW_CurrentStartStop}" VerticalAlignment="Center" Margin="0,6,12,6"/>
+                  <CheckBox  Grid.Row="0" Grid.Column="1" x:Name="ChkToggleCtrl" Content="Ctrl" Margin="0,6,8,6"/>
+                  <CheckBox  Grid.Row="0" Grid.Column="2" x:Name="ChkToggleAlt" Content="Alt" Margin="0,6,8,6"/>
+                  <TextBox   Grid.Row="0" Grid.Column="3" x:Name="TxtToggleKey" Classes="field" Width="60" Margin="0,6"/>
+
+                  <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Tr SW_CurrentStop}" VerticalAlignment="Center" Margin="0,6,12,6"/>
+                  <CheckBox  Grid.Row="1" Grid.Column="1" x:Name="ChkStopCtrl" Content="Ctrl" Margin="0,6,8,6"/>
+                  <CheckBox  Grid.Row="1" Grid.Column="2" x:Name="ChkStopAlt" Content="Alt" Margin="0,6,8,6"/>
+                  <TextBox   Grid.Row="1" Grid.Column="3" x:Name="TxtStopKey" Classes="field" Width="60" Margin="0,6"/>
+                </Grid>
+
+                <TextBlock x:Name="TxtShortcutLimitation" Classes="hint"
+                           Foreground="{DynamicResource WarningBrush}" IsVisible="False"/>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+              <StackPanel Spacing="10">
+                <TextBlock Text="{loc:Tr Settings_PlatformGroup}" Classes="h2"/>
+                <TextBlock x:Name="TxtPlatformSummary" Classes="hint"/>
+                <Button Classes="subtle" HorizontalAlignment="Left"
+                        Content="{loc:Tr Settings_CopyDiagnostics}" Click="OnCopyDiagnosticsClick"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- Voice commands -->
+      <TabItem Header="{loc:Tr Settings_Tab_VoiceCommands}">
+        <Grid Margin="22,20" RowDefinitions="Auto,*,Auto">
+          <TextBlock Grid.Row="0" Text="{loc:Tr Settings_VoiceCommandsHint}" Classes="hint" Margin="0,0,0,10"/>
+
+          <Border Grid.Row="1" Classes="card">
+            <!-- Compiled bindings need the row type named up front; it also makes a
+                 renamed property a build error rather than a blank column. -->
+            <DataGrid x:Name="GridCommands" AutoGenerateColumns="False"
+                      x:DataType="model:VoiceCommand"
+                      IsReadOnly="True" GridLinesVisibility="Horizontal"
+                      Background="Transparent">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="{loc:Tr SW_ColPhrase}" Binding="{Binding Phrase}" Width="2*"/>
+                <DataGridTextColumn Header="{loc:Tr SW_ColAction}" Binding="{Binding ActionType}" Width="*"/>
+                <DataGridTextColumn Header="{loc:Tr SW_ColValue}" Binding="{Binding ActionValue}" Width="2*"/>
+              </DataGrid.Columns>
+            </DataGrid>
+          </Border>
+
+          <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0" Spacing="8">
+            <Button Classes="success" Content="{loc:Tr SW_AddCommand}" Click="OnAddCommandClick"/>
+            <Button Classes="accent" Content="{loc:Tr SW_DeleteCommand}" Click="OnDeleteCommandClick"/>
+            <Button Classes="subtle" Content="{loc:Tr SW_RestoreDefaults}" Click="OnRestoreCommandsClick"/>
+          </StackPanel>
+        </Grid>
+      </TabItem>
+
+    </TabControl>
+
+    <!-- Actions -->
+    <Border Grid.Row="2" Classes="card" Margin="0,12,0,0" Padding="14">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+        <Button Grid.Column="0" Classes="warning" Content="{loc:Tr Settings_ResetDefaults}" Click="OnResetClick"/>
+        <Button Grid.Column="2" Classes="success" Content="{loc:Tr Common_Save}" Click="OnSaveClick" Margin="0,0,8,0"/>
+        <Button Grid.Column="3" Classes="subtle" Content="{loc:Tr Common_Cancel}" Click="OnCancelClick"/>
+      </Grid>
+    </Border>
+
+  </Grid>
+</Window>

@@ -18,6 +18,9 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- Selenium drives the helper browser. It is cross-platform and is application logic, not an
+         OS call, so it belongs here rather than behind a platform interface. -->
+    <PackageReference Include="Selenium.WebDriver" Version="4.31.0" />
   </ItemGroup>
 
 
