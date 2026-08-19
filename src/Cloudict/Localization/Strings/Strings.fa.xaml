@@ -226,6 +226,9 @@
     <s:String x:Key="Platform_Err_LinuxX11LibsMissing">کتابخانه‌های کلاینت X11 نصب نیستند. libx11-6 و libxtst6 را نصب کنید.</s:String>
     <s:String x:Key="Platform_Err_LinuxInjectionUnavailable">Cloudict نتوانست ورودی صفحه‌کلید را روی این سیستم آماده کند.</s:String>
     <s:String x:Key="Platform_Err_LinuxWaylandNeedsYdotool">روی Wayland برای تایپ در برنامه‌های دیگر به ydotool نیاز است. آن را نصب و سرویسش را فعال کنید: sudo apt install ydotool &amp;&amp; systemctl --user enable --now ydotool</s:String>
+    <s:String x:Key="Platform_Err_LinuxHotkeysWayland">میانبرهای سراسری روی Wayland در دسترس نیستند. در تنظیمات محیط دسکتاپ خود میانبری تعریف کنید که این را اجرا کند: cloudict --toggle</s:String>
+    <s:String x:Key="Platform_Warn_LinuxHotkeysWaylandPartial">اجرا روی Wayland: میانبرهای سراسری فقط زمانی کار می‌کنند که یک پنجرهٔ X11/XWayland فوکوس داشته باشد. برای میانبر واقعاً سراسری، در تنظیمات دسکتاپ میانبری برای اجرای cloudict --toggle تعریف کنید.</s:String>
+    <s:String x:Key="Platform_Err_LinuxHotkeysUnavailable">Cloudict نتوانست میانبرهای سراسری را روی این سیستم آماده کند.</s:String>
     <s:String x:Key="Platform_Err_LinuxYdotoolMissing">ydotool نصب نیست. روی Wayland برای تایپ در برنامه‌های دیگر لازم است.</s:String>
     <s:String x:Key="Platform_Err_LinuxYdotoolDaemonMissing">سرویس ydotool در حال اجرا نیست. با این دستور اجرایش کنید: systemctl --user enable --now ydotool</s:String>
     <s:String x:Key="Platform_Warn_LinuxWaylandPartial">اجرا روی Wayland بدون ydotool: Cloudict فقط می‌تواند در پنجره‌های X11/XWayland تایپ کند. برای تایپ در همهٔ برنامه‌ها ydotool را نصب کنید.</s:String>

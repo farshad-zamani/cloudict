@@ -49,10 +49,9 @@ namespace Cloudict.Platform
         }
 
         /// <summary>
-        /// Linux and macOS. Storage, browser discovery and driver handling are fully implemented, so
-        /// the speech pipeline resolves Chrome and its driver correctly on both. Key injection,
-        /// global shortcuts, layout switching and microphone detection are still stubs that report
-        /// themselves as unavailable — they arrive with the Linux and macOS milestones.
+        /// Linux and macOS. Storage, browser discovery and driver handling work on both. Linux also
+        /// has real key injection and global shortcuts; macOS still reports those as unavailable and
+        /// gets them with its own milestone. Layout switching and microphone detection remain stubs.
         /// </summary>
         private static IPlatformServices CreateUnix(bool isMacOS)
         {
@@ -62,9 +61,9 @@ namespace Cloudict.Platform
                 ? new NullTextInjector("Platform_Err_MacInjectionNotImplemented")
                 : new Cloudict.Platform.Linux.LinuxTextInjector();
 
-            var hotkeyReason = isMacOS
-                ? "Platform_Err_MacHotkeysNotImplemented"
-                : "Platform_Err_LinuxHotkeysNotImplemented";
+            IGlobalHotkeys hotkeys = isMacOS
+                ? new NullGlobalHotkeys("Platform_Err_MacHotkeysNotImplemented")
+                : new Cloudict.Platform.Linux.LinuxGlobalHotkeys();
 
             return new CompositePlatformServices
             {
@@ -72,7 +71,7 @@ namespace Cloudict.Platform
                 Info = info,
                 BrowserLocator = new UnixBrowserLocator(isMacOS, info),
                 TextInjector = injector,
-                GlobalHotkeys = new NullGlobalHotkeys(hotkeyReason),
+                GlobalHotkeys = hotkeys,
                 KeyboardLayout = new NullKeyboardLayout(),
                 MicrophoneMonitor = new NullMicrophoneMonitor()
             };

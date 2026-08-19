@@ -227,6 +227,9 @@
     <s:String x:Key="Platform_Err_LinuxX11LibsMissing">The X11 client libraries are missing. Install libx11-6 and libxtst6.</s:String>
     <s:String x:Key="Platform_Err_LinuxInjectionUnavailable">Cloudict could not set up keyboard input on this system.</s:String>
     <s:String x:Key="Platform_Err_LinuxWaylandNeedsYdotool">On Wayland, typing into other applications needs ydotool. Install it and enable its service: sudo apt install ydotool &amp;&amp; systemctl --user enable --now ydotool</s:String>
+    <s:String x:Key="Platform_Err_LinuxHotkeysWayland">Global shortcuts are not available on Wayland. Bind a shortcut in your desktop settings to run: cloudict --toggle</s:String>
+    <s:String x:Key="Platform_Warn_LinuxHotkeysWaylandPartial">Running on Wayland: global shortcuts only work while an X11/XWayland window has focus. For system-wide shortcuts, bind one in your desktop settings to run: cloudict --toggle</s:String>
+    <s:String x:Key="Platform_Err_LinuxHotkeysUnavailable">Cloudict could not set up global shortcuts on this system.</s:String>
     <s:String x:Key="Platform_Err_LinuxYdotoolMissing">ydotool is not installed. On Wayland it is required for typing into other applications.</s:String>
     <s:String x:Key="Platform_Err_LinuxYdotoolDaemonMissing">The ydotool service is not running. Start it with: systemctl --user enable --now ydotool</s:String>
     <s:String x:Key="Platform_Warn_LinuxWaylandPartial">Running on Wayland without ydotool: Cloudict can only type into X11/XWayland windows. Install ydotool to type into any application.</s:String>

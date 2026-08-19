@@ -40,6 +40,36 @@ namespace Cloudict.Platform.Linux
         [DllImport(LibXtst)]
         public static extern bool XTestQueryExtension(IntPtr display, out int eventBase, out int errorBase, out int majorVersion, out int minorVersion);
 
+        #region Global shortcuts
+
+        [DllImport(LibX11)] public static extern IntPtr XDefaultRootWindow(IntPtr display);
+        [DllImport(LibX11)] public static extern int XGrabKey(IntPtr display, int keycode, uint modifiers, IntPtr grabWindow, bool ownerEvents, int pointerMode, int keyboardMode);
+        [DllImport(LibX11)] public static extern int XUngrabKey(IntPtr display, int keycode, uint modifiers, IntPtr grabWindow);
+        [DllImport(LibX11)] public static extern int XSelectInput(IntPtr display, IntPtr window, long eventMask);
+        [DllImport(LibX11)] public static extern int XNextEvent(IntPtr display, byte[] eventReturn);
+        [DllImport(LibX11)] public static extern int XPending(IntPtr display);
+
+        public delegate int XErrorHandler(IntPtr display, IntPtr errorEvent);
+
+        [DllImport(LibX11)] public static extern IntPtr XSetErrorHandler(XErrorHandler handler);
+
+        public const int GrabModeSync = 0;
+        public const int GrabModeAsync = 1;
+        public const long KeyPressMask = 1L << 0;
+
+        public const uint ShiftMask = 1 << 0;
+        public const uint LockMask = 1 << 1;   // Caps Lock
+        public const uint ControlMask = 1 << 2;
+        public const uint Mod1Mask = 1 << 3;   // Alt
+        public const uint Mod2Mask = 1 << 4;   // Num Lock
+        public const uint Mod4Mask = 1 << 6;   // Super / Meta
+        public const uint Mod5Mask = 1 << 7;   // Scroll Lock on many layouts
+
+        /// <summary>All the lock bits together, for masking them out of a reported modifier state.</summary>
+        public const uint AllLockMask = LockMask | Mod2Mask | Mod5Mask;
+
+        #endregion
+
         #region Keysyms
 
         // Latin-1 characters are their own keysyms; anything above that uses the Unicode range.
