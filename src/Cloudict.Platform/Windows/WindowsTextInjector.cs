@@ -32,6 +32,8 @@ namespace Cloudict.Platform.Windows
         /// </summary>
         private const int PerCharacterDelayMs = 5;
 
+        public string BackendName => "sendinput";
+
         public bool IsAvailable => true;
 
         /// <summary>

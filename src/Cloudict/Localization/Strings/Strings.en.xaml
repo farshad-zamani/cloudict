@@ -220,6 +220,16 @@
 
     <!-- Platform capability limits (Cloudict.Platform) -->
     <s:String x:Key="Platform_Err_LinuxInjectionNotImplemented">Typing into other applications is not available yet on this Linux build.</s:String>
+    <s:String x:Key="Platform_Err_LinuxNoGraphicalSession">No graphical session was detected, so Cloudict cannot type into other applications.</s:String>
+    <s:String x:Key="Platform_Err_LinuxNoDisplay">Could not connect to the X display. Check that DISPLAY is set for this session.</s:String>
+    <s:String x:Key="Platform_Err_LinuxNoXTest">Your X server does not offer the XTEST extension, which Cloudict needs to type into other applications.</s:String>
+    <s:String x:Key="Platform_Err_LinuxNoSpareKeycode">Your keyboard layout leaves no free key slot for Cloudict to type through. Try a simpler layout.</s:String>
+    <s:String x:Key="Platform_Err_LinuxX11LibsMissing">The X11 client libraries are missing. Install libx11-6 and libxtst6.</s:String>
+    <s:String x:Key="Platform_Err_LinuxInjectionUnavailable">Cloudict could not set up keyboard input on this system.</s:String>
+    <s:String x:Key="Platform_Err_LinuxWaylandNeedsYdotool">On Wayland, typing into other applications needs ydotool. Install it and enable its service: sudo apt install ydotool &amp;&amp; systemctl --user enable --now ydotool</s:String>
+    <s:String x:Key="Platform_Err_LinuxYdotoolMissing">ydotool is not installed. On Wayland it is required for typing into other applications.</s:String>
+    <s:String x:Key="Platform_Err_LinuxYdotoolDaemonMissing">The ydotool service is not running. Start it with: systemctl --user enable --now ydotool</s:String>
+    <s:String x:Key="Platform_Warn_LinuxWaylandPartial">Running on Wayland without ydotool: Cloudict can only type into X11/XWayland windows. Install ydotool to type into any application.</s:String>
     <s:String x:Key="Platform_Err_LinuxHotkeysNotImplemented">Global shortcuts are not available yet on this Linux build. You can bind a shortcut in your desktop settings that runs: cloudict --toggle</s:String>
     <s:String x:Key="Platform_Err_MacInjectionNotImplemented">Typing into other applications is not available yet on this macOS build.</s:String>
     <s:String x:Key="Platform_Err_MacHotkeysNotImplemented">Global shortcuts are not available yet on this macOS build.</s:String>

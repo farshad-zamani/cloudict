@@ -219,6 +219,16 @@
 
     <!-- محدودیت‌های قابلیت هر پلتفرم (Cloudict.Platform) -->
     <s:String x:Key="Platform_Err_LinuxInjectionNotImplemented">تایپ در برنامه‌های دیگر هنوز در نسخهٔ لینوکس فعال نیست.</s:String>
+    <s:String x:Key="Platform_Err_LinuxNoGraphicalSession">هیچ نشست گرافیکی پیدا نشد؛ بنابراین Cloudict نمی‌تواند در برنامه‌های دیگر تایپ کند.</s:String>
+    <s:String x:Key="Platform_Err_LinuxNoDisplay">اتصال به نمایشگر X ممکن نشد. بررسی کنید که متغیر DISPLAY در این نشست تنظیم شده باشد.</s:String>
+    <s:String x:Key="Platform_Err_LinuxNoXTest">سرور X شما افزونهٔ XTEST را ندارد؛ Cloudict برای تایپ در برنامه‌های دیگر به آن نیاز دارد.</s:String>
+    <s:String x:Key="Platform_Err_LinuxNoSpareKeycode">چیدمان صفحه‌کلید شما هیچ جای خالی برای تایپ Cloudict باقی نگذاشته است. یک چیدمان ساده‌تر را امتحان کنید.</s:String>
+    <s:String x:Key="Platform_Err_LinuxX11LibsMissing">کتابخانه‌های کلاینت X11 نصب نیستند. libx11-6 و libxtst6 را نصب کنید.</s:String>
+    <s:String x:Key="Platform_Err_LinuxInjectionUnavailable">Cloudict نتوانست ورودی صفحه‌کلید را روی این سیستم آماده کند.</s:String>
+    <s:String x:Key="Platform_Err_LinuxWaylandNeedsYdotool">روی Wayland برای تایپ در برنامه‌های دیگر به ydotool نیاز است. آن را نصب و سرویسش را فعال کنید: sudo apt install ydotool &amp;&amp; systemctl --user enable --now ydotool</s:String>
+    <s:String x:Key="Platform_Err_LinuxYdotoolMissing">ydotool نصب نیست. روی Wayland برای تایپ در برنامه‌های دیگر لازم است.</s:String>
+    <s:String x:Key="Platform_Err_LinuxYdotoolDaemonMissing">سرویس ydotool در حال اجرا نیست. با این دستور اجرایش کنید: systemctl --user enable --now ydotool</s:String>
+    <s:String x:Key="Platform_Warn_LinuxWaylandPartial">اجرا روی Wayland بدون ydotool: Cloudict فقط می‌تواند در پنجره‌های X11/XWayland تایپ کند. برای تایپ در همهٔ برنامه‌ها ydotool را نصب کنید.</s:String>
     <s:String x:Key="Platform_Err_LinuxHotkeysNotImplemented">میانبرهای سراسری هنوز در نسخهٔ لینوکس فعال نیستند. می‌توانید در تنظیمات محیط دسکتاپ خود میانبری تعریف کنید که این دستور را اجرا کند: cloudict --toggle</s:String>
     <s:String x:Key="Platform_Err_MacInjectionNotImplemented">تایپ در برنامه‌های دیگر هنوز در نسخهٔ مک فعال نیست.</s:String>
     <s:String x:Key="Platform_Err_MacHotkeysNotImplemented">میانبرهای سراسری هنوز در نسخهٔ مک فعال نیستند.</s:String>

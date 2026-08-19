@@ -19,6 +19,8 @@ namespace Cloudict.Platform.Unsupported
     {
         public NullTextInjector(string reasonKey) => UnavailableReasonKey = reasonKey;
 
+        public string BackendName => "none";
+
         public bool IsAvailable => false;
         public string UnavailableReasonKey { get; }
 

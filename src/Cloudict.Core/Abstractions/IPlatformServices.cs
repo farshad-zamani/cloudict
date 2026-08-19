@@ -95,6 +95,9 @@ namespace Cloudict.Abstractions
     /// </summary>
     public sealed class PlatformCapabilities
     {
+        /// <summary>Which injection mechanism was selected (see <see cref="ITextInjector.BackendName"/>).</summary>
+        public string InjectionBackend { get; init; }
+
         public bool CanInjectText { get; init; }
         public bool CanRegisterGlobalHotkeys { get; init; }
         public bool CanSwitchKeyboardLayout { get; init; }

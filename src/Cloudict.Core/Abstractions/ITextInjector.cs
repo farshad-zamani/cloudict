@@ -29,6 +29,17 @@ namespace Cloudict.Abstractions
         string UnavailableReasonKey { get; }
 
         /// <summary>
+        /// Short, non-localized name of the mechanism actually in use — <c>sendinput</c>,
+        /// <c>xtest</c>, <c>ydotool</c>, <c>cgevent</c>, <c>none</c>.
+        ///
+        /// <para>On Linux the answer is not implied by the platform: the same build picks XTEST or
+        /// ydotool depending on the session, and may fall back to XWayland where only some windows
+        /// receive input. When a user reports that dictation types nothing, this is the first thing
+        /// worth knowing, so it is surfaced rather than buried in a debug log.</para>
+        /// </summary>
+        string BackendName { get; }
+
+        /// <summary>
         /// Types <paramref name="text"/> as literal characters, independent of the user's keyboard
         /// layout. Must handle non-Latin scripts — Persian and Arabic are primary use cases.
         /// </summary>

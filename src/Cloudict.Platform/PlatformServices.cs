@@ -58,9 +58,9 @@ namespace Cloudict.Platform
         {
             var info = new UnixPlatformInfo(isMacOS);
 
-            var injectorReason = isMacOS
-                ? "Platform_Err_MacInjectionNotImplemented"
-                : "Platform_Err_LinuxInjectionNotImplemented";
+            ITextInjector injector = isMacOS
+                ? new NullTextInjector("Platform_Err_MacInjectionNotImplemented")
+                : new Cloudict.Platform.Linux.LinuxTextInjector();
 
             var hotkeyReason = isMacOS
                 ? "Platform_Err_MacHotkeysNotImplemented"
@@ -71,7 +71,7 @@ namespace Cloudict.Platform
                 Paths = new UnixAppPaths(isMacOS),
                 Info = info,
                 BrowserLocator = new UnixBrowserLocator(isMacOS, info),
-                TextInjector = new NullTextInjector(injectorReason),
+                TextInjector = injector,
                 GlobalHotkeys = new NullGlobalHotkeys(hotkeyReason),
                 KeyboardLayout = new NullKeyboardLayout(),
                 MicrophoneMonitor = new NullMicrophoneMonitor()
@@ -92,14 +92,19 @@ namespace Cloudict.Platform
             {
                 var limitations = new List<string>();
 
-                if (!TextInjector.IsAvailable && TextInjector.UnavailableReasonKey != null)
+                // Report the reason whenever there is one, not only when the capability is missing
+                // entirely. A backend can work *partially* — XTEST under XWayland reaches X11 windows
+                // but silently misses native Wayland ones — and that is precisely the case a user
+                // needs told, because everything looks fine until it inexplicably does not.
+                if (TextInjector.UnavailableReasonKey != null)
                     limitations.Add(TextInjector.UnavailableReasonKey);
 
-                if (!GlobalHotkeys.IsSupported && GlobalHotkeys.UnsupportedReasonKey != null)
+                if (GlobalHotkeys.UnsupportedReasonKey != null)
                     limitations.Add(GlobalHotkeys.UnsupportedReasonKey);
 
                 return new PlatformCapabilities
                 {
+                    InjectionBackend = TextInjector.BackendName,
                     CanInjectText = TextInjector.IsAvailable,
                     CanRegisterGlobalHotkeys = GlobalHotkeys.IsSupported,
                     CanSwitchKeyboardLayout = KeyboardLayout.IsSupported,
