@@ -12,7 +12,9 @@ using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
+using Cloudict.Abstractions;
 using Cloudict.Services;
+using Cloudict.Speech;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -23,6 +25,8 @@ using Window = System.Windows.Window;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
 using MessageBoxImage = System.Windows.MessageBoxImage;
+using MenuItem = System.Windows.Controls.MenuItem;
+using ContextMenu = System.Windows.Controls.ContextMenu;
 
 namespace Cloudict
 {
@@ -209,7 +213,7 @@ namespace Cloudict
             txtAppVersion.Text = AppInfo.DisplayVersion;
 
             // Initialize settings
-            _settingsManager = new SettingsManager();
+            _settingsManager = AppServices.Settings;
             _settings = _settingsManager.LoadSettings() ?? new AppSettings();
 
             UpdateEngineUiState();
@@ -1647,8 +1651,11 @@ namespace Cloudict
             {
                 if (_browserProvision != null) return;
 
-                var provision = BrowserProvisioner.Resolve(
-                    message => Dispatcher.Invoke(() => statusText.Text = message));
+                var provision = AppServices.Browser.Resolve(
+                    status => Dispatcher.Invoke(() =>
+                        statusText.Text = status.Args.Length > 0
+                            ? Loc.Get(status.MessageKey, status.Args)
+                            : Loc.Get(status.MessageKey)));
 
                 System.Diagnostics.Debug.WriteLine(
                     $"[Cloudict] Chrome {provision.ChromeVersion} @ {provision.ChromePath} | " +
@@ -2968,7 +2975,7 @@ namespace Cloudict
                     _voiceCommandManager.RefreshCommands();
                     if (_voiceCommandProcessor != null)
                     {
-                        _voiceCommandProcessor = new VoiceCommandProcessor(_voiceCommandManager.ActiveCommands, _settings.CaseSensitiveCommands);
+                        _voiceCommandProcessor = new VoiceCommandProcessor(_voiceCommandManager.ActiveCommands, AppServices.Platform.TextInjector, AppServices.Platform.KeyboardLayout, _settings.CaseSensitiveCommands);
                         System.Diagnostics.Debug.WriteLine("سیستم دستورات صوتی با تنظیمات جدید به‌روزرسانی شد");
                     }
                 }
@@ -3288,7 +3295,7 @@ namespace Cloudict
             {
                 _voiceCommandManager = new VoiceCommandManager(_settings);
                 _systemCommandExecutor = new SystemCommandExecutor();
-                _voiceCommandProcessor = new VoiceCommandProcessor(_voiceCommandManager.ActiveCommands ?? new List<VoiceCommand>(), false);
+                _voiceCommandProcessor = new VoiceCommandProcessor(_voiceCommandManager.ActiveCommands ?? new List<VoiceCommand>(), AppServices.Platform.TextInjector, AppServices.Platform.KeyboardLayout, false);
                 
                 // Subscribe to commands changed event to refresh processor
                 _voiceCommandManager.CommandsChanged += OnVoiceCommandsChanged;
@@ -3309,7 +3316,7 @@ namespace Cloudict
             try
             {
                 // Refresh the voice command processor with updated commands
-                _voiceCommandProcessor = new VoiceCommandProcessor(_voiceCommandManager.ActiveCommands ?? new List<VoiceCommand>(), false);
+                _voiceCommandProcessor = new VoiceCommandProcessor(_voiceCommandManager.ActiveCommands ?? new List<VoiceCommand>(), AppServices.Platform.TextInjector, AppServices.Platform.KeyboardLayout, false);
                 statusText.Text = Loc.Get("Main_St_VoiceUpdated");
             }
             catch (Exception ex)

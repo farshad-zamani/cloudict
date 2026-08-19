@@ -9,7 +9,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.IO;
-using NAudio.CoreAudioApi;
 
 namespace Cloudict
 {
@@ -20,7 +19,11 @@ namespace Cloudict
     {
         private DispatcherTimer _microphoneCheckTimer;
         private bool _isVisible = false;
-        private bool _lastMicrophoneState = false;
+        /// <summary>
+        /// Last observed microphone state. Null until the first poll, so the very first check always
+        /// paints the light even when the microphone starts out idle.
+        /// </summary>
+        private bool? _lastMicrophoneState;
 
         // Windows API for getting system tray area
         [DllImport("user32.dll")]
@@ -38,26 +41,7 @@ namespace Cloudict
             public int Bottom;
         }
 
-        // NAudio handles COM initialization internally
-
-        private static string GetLogPath()
-        {
-            string logPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Cloudict", "mic_debug.log");
-            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(logPath));
-            return logPath;
-        }
-
-        private void LogToFile(string message)
-        {
-            try
-            {
-                File.AppendAllText(GetLogPath(), $"{DateTime.Now}: {message}\n");
-            }
-            catch
-            {
-                // Ignore logging errors
-            }
-        }
+        // Microphone detection is delegated to the platform layer (see IsMicrophoneActiveInSystem).
 
         public DesktopStatusIndicator()
         {
@@ -124,108 +108,40 @@ namespace Cloudict
             try
             {
                 bool isMicActive = IsMicrophoneActiveInSystem();
-                
-                // همیشه وضعیت چراغ را به‌روزرسانی کن، حتی اگر تغییری نکرده باشد
-                // چون ممکن است وضعیت سیستم تغییر کرده باشد
+
+                // Repaint only on a real transition. This poll runs every 500 ms and used to append
+                // a line to a log file on every single pass — roughly 173,000 lines a day, which had
+                // grown past 1.4 GB on a machine that had been running the app for months.
+                if (isMicActive == _lastMicrophoneState) return;
+
                 _lastMicrophoneState = isMicActive;
                 UpdateStatusLight(isMicActive);
-                
-                Debug.WriteLine($"وضعیت میکروفون سیستم: {(isMicActive ? "فعال" : "غیرفعال")}");
-                // نوشتن در فایل log برای debug
-                File.AppendAllText(GetLogPath(), $"{DateTime.Now}: وضعیت میکروفون سیستم: {(isMicActive ? "فعال" : "غیرفعال")}\n");
+
+                Debug.WriteLine($"[DesktopStatusIndicator] microphone {(isMicActive ? "active" : "idle")}");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"خطا در بررسی وضعیت میکروفون: {ex.Message}");
-                File.AppendAllText(GetLogPath(), $"{DateTime.Now}: خطا در بررسی وضعیت میکروفون: {ex.Message}\n");
+                Debug.WriteLine($"[DesktopStatusIndicator] microphone check failed: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// بررسی فعال بودن میکروفون در سیستم با استفاده از NAudio
+        /// Whether any application is currently capturing the microphone.
+        ///
+        /// <para>The WASAPI code this used to run inline now lives in the platform layer behind
+        /// <see cref="Cloudict.Abstractions.IMicrophoneMonitor"/>, so the status light works the same
+        /// way on every platform and simply reports nothing where detection is unavailable. It also
+        /// stops the old implementation's habit of appending to a log file on every poll.</para>
         /// </summary>
-        /// <returns>true اگر میکروفون فعال باشد</returns>
         public static bool IsMicrophoneActiveInSystem()
         {
             try
             {
-                using (var deviceEnumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator())
-                {
-                    // Get default capture device
-                    var captureDevice = deviceEnumerator.GetDefaultAudioEndpoint(NAudio.CoreAudioApi.DataFlow.Capture, NAudio.CoreAudioApi.Role.Console);
-                    
-                    if (captureDevice == null)
-                    {
-                        File.AppendAllText(GetLogPath(), $"{DateTime.Now}: دستگاه capture پیدا نشد\n");
-                        return false;
-                    }
-
-                    // Check if device is active
-                    if (captureDevice.State != NAudio.CoreAudioApi.DeviceState.Active)
-                    {
-                        File.AppendAllText(GetLogPath(), $"{DateTime.Now}: دستگاه فعال نیست: State={captureDevice.State}\n");
-                        return false;
-                    }
-
-                    // Check if muted
-                    bool isMuted = captureDevice.AudioEndpointVolume.Mute;
-                    File.AppendAllText(GetLogPath(), $"{DateTime.Now}: Muted: {isMuted}\n");
-
-                    if (isMuted)
-                    {
-                        return false;
-                    }
-
-                    // Get session manager
-                    var sessionManager = captureDevice.AudioSessionManager;
-                    var sessions = sessionManager.Sessions;
-                    
-                    File.AppendAllText(GetLogPath(), $"{DateTime.Now}: تعداد sessions: {sessions.Count}\n");
-
-                    bool hasActiveRecordingSession = false;
-
-                    // Check each session
-                    for (int i = 0; i < sessions.Count; i++)
-                    {
-                        try
-                        {
-                            var session = sessions[i];
-                            
-                            // Skip system sounds sessions
-                            if (session.IsSystemSoundsSession)
-                            {
-                                File.AppendAllText(GetLogPath(), $"{DateTime.Now}: Session {i}: System sounds session - نادیده گرفته شد\n");
-                                continue;
-                            }
-
-                            var processId = session.GetProcessID;
-                            var sessionState = session.State;
-                            
-                            File.AppendAllText(GetLogPath(), $"{DateTime.Now}: Session {i}: State={sessionState}, PID={processId}, IsSystemSounds={session.IsSystemSoundsSession}\n");
-
-                            // Only consider sessions that are active and have a valid process ID
-                            if (sessionState == NAudio.CoreAudioApi.Interfaces.AudioSessionState.AudioSessionStateActive && processId != 0)
-                            {
-                                hasActiveRecordingSession = true;
-                                File.AppendAllText(GetLogPath(), $"{DateTime.Now}: Session فعال پیدا شد: PID={processId}\n");
-                                break; // Found an active session, no need to check others
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            File.AppendAllText(GetLogPath(), $"{DateTime.Now}: خطا در بررسی session {i}: {ex.Message}\n");
-                        }
-                    }
-
-                    File.AppendAllText(GetLogPath(), $"{DateTime.Now}: نتیجه نهایی: ActiveRecordingSession={hasActiveRecordingSession}\n");
-                    return hasActiveRecordingSession;
-                }
+                return AppServices.Platform.MicrophoneMonitor.IsMicrophoneInUse();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"خطا در بررسی وضعیت میکروفون: {ex.Message}");
-                File.AppendAllText(GetLogPath(), $"{DateTime.Now}: خطای کلی: {ex.Message}\n");
-                // در صورت خطا، false برگردان تا چراغ قرمز باشد
+                System.Diagnostics.Debug.WriteLine($"[DesktopStatusIndicator] microphone probe failed: {ex.Message}");
                 return false;
             }
         }

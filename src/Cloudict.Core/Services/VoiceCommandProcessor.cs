@@ -3,8 +3,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Cloudict.Abstractions;
 
-namespace Cloudict
+namespace Cloudict.Services
 {
     /// <summary>
     /// نتیجه پردازش دستورات صوتی
@@ -29,7 +30,8 @@ namespace Cloudict
     public class VoiceCommandProcessor
     {
         private readonly List<VoiceCommand> _commands;
-        private readonly SystemCommandExecutor _systemExecutor;
+        private readonly ITextInjector _injector;
+        private readonly IKeyboardLayout _keyboardLayout;
         private readonly bool _caseSensitive;
         private readonly WordTracker _wordTracker;
 
@@ -54,11 +56,18 @@ namespace Cloudict
         /// سازنده پردازشگر دستورات صوتی
         /// </summary>
         /// <param name="commands">لیست دستورات فعال</param>
+        /// <param name="injector">Presses keys in the focused application; may be null in tests.</param>
+        /// <param name="keyboardLayout">Switches the system keyboard layout; may be null in tests.</param>
         /// <param name="caseSensitive">حساسیت به حروف بزرگ و کوچک</param>
-        public VoiceCommandProcessor(List<VoiceCommand> commands, bool caseSensitive = false)
+        public VoiceCommandProcessor(
+            List<VoiceCommand> commands,
+            ITextInjector injector = null,
+            IKeyboardLayout keyboardLayout = null,
+            bool caseSensitive = false)
         {
             _commands = commands?.Where(c => c.IsEnabled).ToList() ?? new List<VoiceCommand>();
-            _systemExecutor = new SystemCommandExecutor();
+            _injector = injector;
+            _keyboardLayout = keyboardLayout;
             _caseSensitive = caseSensitive;
             _wordTracker = new WordTracker();
         }
@@ -344,15 +353,19 @@ namespace Cloudict
                 switch (command.ActionType)
                 {
                     case CommandActionType.SendKeys:
-                        _systemExecutor.ExecuteKeyCommand(command.ActionValue);
+                        if (_injector != null && KeyCommandParser.TryParse(command.ActionValue, out var key))
+                        {
+                            if (key.Modifiers == KeyModifiers.None) _injector.SendKey(key.Key);
+                            else _injector.SendChord(key.Key, key.Modifiers);
+                        }
                         break;
-                        
+
                     case CommandActionType.ChangeToFarsi:
-                        _systemExecutor.ChangeLanguage("fa-IR");
+                        _keyboardLayout?.TrySwitchTo("fa");
                         break;
-                        
+
                     case CommandActionType.ChangeToEnglish:
-                        _systemExecutor.ChangeLanguage("en-US");
+                        _keyboardLayout?.TrySwitchTo("en");
                         break;
                 }
             }

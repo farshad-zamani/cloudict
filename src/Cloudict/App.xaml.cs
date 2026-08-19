@@ -5,6 +5,7 @@ using System.Runtime.Versioning;
 using System.Security.Principal;
 using System.Threading;
 using System.Windows;
+using Cloudict.Services;
 
 namespace Cloudict
 {
@@ -14,8 +15,11 @@ namespace Cloudict
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            // Apply the saved UI language first so even early startup dialogs are localized.
-            try { LocalizationManager.Apply(new SettingsManager().LoadSettings().UILanguage); }
+            // Build the OS services first: everything below, including loading settings, needs them.
+            AppServices.Initialize();
+
+            // Apply the saved UI language next so even early startup dialogs are localized.
+            try { LocalizationManager.Apply(AppServices.Settings.LoadSettings().UILanguage); }
             catch { LocalizationManager.Apply(LocalizationManager.DefaultLanguage); }
 
             // Require administrator rights: needed to register global hotkeys and to send

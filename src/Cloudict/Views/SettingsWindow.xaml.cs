@@ -7,6 +7,8 @@ using System.Windows.Controls;
 using System.Diagnostics;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
+using Cloudict.Abstractions;
+using Cloudict.Services;
 
 namespace Cloudict
 {
@@ -39,7 +41,7 @@ namespace Cloudict
 
             txtAppVersion.Text = AppInfo.DisplayVersion;
 
-            _settingsManager = new SettingsManager();
+            _settingsManager = AppServices.Settings;
             _voiceCommandManager = voiceCommandManager;
             LoadSettings();
             PopulateControls();

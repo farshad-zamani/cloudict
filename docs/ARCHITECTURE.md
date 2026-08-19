@@ -28,16 +28,41 @@ user-defined **voice commands**.
 4. Recognized words are matched against **voice commands**; a match runs an action
    (type punctuation, send a key, switch keyboard language, launch a program, …).
 
-## Folder layout
+## Project layout
 
-| Path | Purpose |
-|------|---------|
-| `src/Cloudict/Views/` | WPF windows: `MainWindow`, `SettingsWindow`, `AddCommandWindow`, `KeySelectionWindow`, `DesktopStatusIndicator` |
-| `src/Cloudict/Services/` | `BrowserProvisioner`, `VoiceCommandManager`, `VoiceCommandProcessor`, `SystemCommandExecutor`, `WordTracker`, `SettingsManager`, `GlobalShortcutManager`, `NotificationManager` |
-| `src/Cloudict/Models/` | `AppSettings`, `VoiceCommand` |
-| `src/Cloudict/Localization/` | `LocalizationManager` + `Strings/Strings.<lang>.xaml` dictionaries |
-| `src/Cloudict/Assets/` | Application icon and the Inter & Vazirmatn fonts |
-| `src/Cloudict/Drivers/` | The ChromeDriver bundled into the installer (see below) |
+Cloudict is being made cross-platform. The code is split so that the parts which can run anywhere
+are physically separated from the parts that cannot, rather than relying on discipline:
+
+| Project | Target | Contains |
+|---------|--------|----------|
+| `src/Cloudict.Core/` | `net10.0` | Application logic with **no UI framework and no OS calls**: `AppSettings`, `VoiceCommand`, `WordTracker`, `VoiceCommandProcessor`, `VoiceCommandManager`, `SettingsManager`, `KeyCommandParser`, `BrowserProvisioner`, and the `Abstractions/` interfaces |
+| `src/Cloudict.Platform/` | `net10.0` | **Every** operating-system call, behind those interfaces — `Windows/`, `Unix/`, and `Unsupported/` stand-ins, selected at runtime by `PlatformServices.Create()` |
+| `src/Cloudict/` | `net10.0-windows` | The Windows/WPF shell: `Views/`, `Themes/`, `Localization/`, `Assets/`, `Drivers/`, and `AppServices` (the composition root) |
+| `src/Cloudict.Core.Tests/` | `net10.0` | xunit tests for Core |
+
+Core compiling on its own — with no `UseWPF`, no runtime identifier and no reference to
+`System.Windows.*` — is what proves the separation holds. A Windows-ism cannot leak back in without
+failing the build.
+
+### The platform abstraction
+
+`Cloudict.Core/Abstractions` declares what the app needs from an operating system:
+
+| Interface | Purpose |
+|-----------|---------|
+| `ITextInjector` | Types text and presses keys in the focused application — the core capability |
+| `IGlobalHotkeys` | System-wide start/stop shortcuts |
+| `IKeyboardLayout` | Switches the system keyboard layout for the language voice commands |
+| `IMicrophoneMonitor` | Whether the microphone is live, for the desktop status light |
+| `IAppPaths` | Where settings, data and logs may be written |
+| `IPlatformInfo` / `IBrowserLocator` | Finding Chrome and picking the right ChromeDriver build |
+
+Each reports its own availability (`IsAvailable`, `IsSupported`) with a localization key explaining
+any limitation, because a missing capability is a normal condition on Linux and macOS — Wayland has
+no injection API, macOS withholds one until the user grants Accessibility — and the app is expected
+to keep running and explain itself rather than appear broken.
+
+`PlatformServices.Create()` is the only place in the codebase that asks which OS it is running on.
 
 ## Key components
 

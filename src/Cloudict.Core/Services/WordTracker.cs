@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Cloudict
+namespace Cloudict.Services
 {
     /// <summary>
     /// کلاس ردیابی کلمات جدید برای جلوگیری از تکرار پردازش دستورات

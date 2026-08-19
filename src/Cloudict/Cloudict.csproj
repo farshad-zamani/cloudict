@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net7.0-windows10.0.22621.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>Cloudict</RootNamespace>
@@ -16,7 +16,7 @@
     <DebugSymbols>false</DebugSymbols>
     <!-- Folder publish (not single-file): embedded WPF fonts fail to initialize inside a
          single-file bundle, so we ship a self-contained folder instead. The app already
-         needs the Chrome driver folder beside the executable anyway. -->
+         needs the driver folder beside the executable anyway. -->
     <PublishSingleFile>false</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -28,17 +28,20 @@
     <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
 
+  <!-- Application logic and OS integration now live in their own projects so the same code can be
+       driven by an Avalonia front-end on Linux and macOS. This project is the Windows/WPF shell. -->
   <ItemGroup>
-    <PackageReference Include="AngleSharp" Version="1.1.2" />
-    <PackageReference Include="H.InputSimulator" Version="1.5.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
-    <PackageReference Include="NAudio" Version="2.2.1" />
+    <ProjectReference Include="..\Cloudict.Core\Cloudict.Core.csproj" />
+    <ProjectReference Include="..\Cloudict.Platform\Cloudict.Platform.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Selenium drives the helper browser; Newtonsoft is used by settings and the driver index.
+         AngleSharp, Polly, SharpZipLib, Microsoft.Extensions.DependencyInjection and
+         System.Reactive.Windows.Forms were referenced but never used anywhere, and are gone. -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Polly" Version="7.2.3" />
     <PackageReference Include="Selenium.WebDriver" Version="4.31.0" />
-    <PackageReference Include="SharpZipLib" Version="1.4.2" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.3" />
-    <PackageReference Include="System.Reactive.Windows.Forms" Version="6.0.1" />
   </ItemGroup>
 
   <ItemGroup>

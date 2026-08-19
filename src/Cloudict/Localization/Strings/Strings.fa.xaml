@@ -216,6 +216,12 @@
     <s:String x:Key="Browser_St_VersionMismatch">استفاده از درایور {0} برای کروم {1}. اگر مرورگر درست کار نکرد، یک‌بار به اینترنت متصل شوید تا Cloudict درایور متناسب را دریافت کند.</s:String>
     <s:String x:Key="Browser_Err_ChromeNotInstalled">گوگل کروم پیدا نشد. Cloudict از کروم به‌عنوان مرورگر کمکی استفاده می‌کند — آن را از google.com/chrome نصب کنید و دوباره دکمه مرورگر را بزنید.</s:String>
     <s:String x:Key="Browser_Err_NoDriver">درایور سازگار مرورگر پیدا و دریافت نشد. یک‌بار به اینترنت متصل شوید و دوباره دکمه مرورگر را بزنید، یا Cloudict را دوباره نصب کنید.</s:String>
+
+    <!-- محدودیت‌های قابلیت هر پلتفرم (Cloudict.Platform) -->
+    <s:String x:Key="Platform_Err_LinuxInjectionNotImplemented">تایپ در برنامه‌های دیگر هنوز در نسخهٔ لینوکس فعال نیست.</s:String>
+    <s:String x:Key="Platform_Err_LinuxHotkeysNotImplemented">میانبرهای سراسری هنوز در نسخهٔ لینوکس فعال نیستند. می‌توانید در تنظیمات محیط دسکتاپ خود میانبری تعریف کنید که این دستور را اجرا کند: cloudict --toggle</s:String>
+    <s:String x:Key="Platform_Err_MacInjectionNotImplemented">تایپ در برنامه‌های دیگر هنوز در نسخهٔ مک فعال نیست.</s:String>
+    <s:String x:Key="Platform_Err_MacHotkeysNotImplemented">میانبرهای سراسری هنوز در نسخهٔ مک فعال نیستند.</s:String>
     <s:String x:Key="Main_St_ResetErrorPrefix">خطا در ریست کردن: </s:String>
     <s:String x:Key="Main_St_ReopeningBrowserSuffix"> - درحال بازگشایی مرورگر</s:String>
     <s:String x:Key="Main_St_ResettingGTPage">بازنشانی صفحه گوگل ترنسلیت...</s:String>

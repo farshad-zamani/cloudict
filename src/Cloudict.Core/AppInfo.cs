@@ -14,7 +14,11 @@ namespace Cloudict
         {
             get
             {
-                var v = Assembly.GetExecutingAssembly().GetName().Version;
+                // The *entry* assembly, not the executing one: this type now lives in
+                // Cloudict.Core.dll, and asking that library for its version reports the library's
+                // own (1.0.0) rather than the application's.
+                var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+                var v = assembly.GetName().Version;
                 return v == null ? "" : $"{v.Major}.{v.Minor}.{v.Build}";
             }
         }

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Every operating-system call in Cloudict lives here, behind the interfaces declared in
+       Cloudict.Core/Abstractions. One assembly holds all three implementations: P/Invoke bindings
+       resolve lazily, so a user32.dll declaration is inert on Linux as long as it is never called,
+       and PlatformServices.Create() guarantees only the matching implementation is instantiated.
+       That avoids per-platform assemblies and plugin loading for no practical benefit. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Cloudict.Platform</RootNamespace>
+    <AssemblyName>Cloudict.Platform</AssemblyName>
+    <NoWarn>CS8632</NoWarn>
+    <!-- Windows-only APIs are reached through [SupportedOSPlatform]-annotated classes; this tells
+         the analyzer the assembly itself makes no platform promise. -->
+    <EnableDefaultItems>true</EnableDefaultItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Cloudict.Core\Cloudict.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- WASAPI, used only by the Windows microphone monitor. -->
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
+  </ItemGroup>
+
+</Project>

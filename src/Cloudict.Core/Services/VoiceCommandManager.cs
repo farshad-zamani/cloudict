@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Cloudict
+namespace Cloudict.Services
 {
     /// <summary>
     /// مدیر دستورات صوتی که عملیات CRUD را بر روی دستورات انجام می‌دهد
