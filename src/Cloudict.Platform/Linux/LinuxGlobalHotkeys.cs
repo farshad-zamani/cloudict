@@ -46,12 +46,29 @@ namespace Cloudict.Platform.Linux
         /// <summary>Kept alive for the lifetime of the object: X holds a raw pointer to it.</summary>
         private static X11Interop.XErrorHandler _errorHandler;
 
+        /// <summary>
+        /// Opt-in stderr trace (<c>CLOUDICT_DEBUG=1</c>). Debug.WriteLine is compiled out of release
+        /// builds, which is precisely when a user needs to report why a shortcut is not firing.
+        /// </summary>
+        private static readonly bool Trace =
+            Environment.GetEnvironmentVariable("CLOUDICT_DEBUG") == "1";
+
+        private static void Log(string message)
+        {
+            Debug.WriteLine("[LinuxGlobalHotkeys] " + message);
+            if (Trace) Console.Error.WriteLine("[LinuxGlobalHotkeys] " + message);
+        }
+
         public bool IsSupported { get; private set; }
         public string UnsupportedReasonKey { get; private set; }
 
         private sealed class Registration
         {
             public byte Keycode;
+
+            /// <summary>Non-zero when this shortcut needed a keycode borrowed from the spare pool.</summary>
+            public byte BoundSpareKeycode;
+
             public nint KeysymToResolve;
             public uint Modifiers;
             public Action OnPressed;
@@ -178,9 +195,10 @@ namespace Cloudict.Platform.Linux
             try
             {
                 display = X11Interop.XOpenDisplay(null);
-                if (display == IntPtr.Zero) return;
+                if (display == IntPtr.Zero) { Log("listener: XOpenDisplay failed"); return; }
 
                 root = X11Interop.XDefaultRootWindow(display);
+                Log($"listener: display opened, root=0x{root.ToInt64():X}");
 
                 // A failed grab must not take the process down via Xlib's fatal default handler.
                 _errorHandler = SilentErrorHandler;
@@ -205,6 +223,7 @@ namespace Cloudict.Platform.Linux
                         uint state = BitConverter.ToUInt32(buffer, 80);
                         uint keycode = BitConverter.ToUInt32(buffer, 84);
 
+                        Log($"event: keycode {keycode}, state 0x{state:X}");
                         Dispatch(keycode, state);
                     }
 
@@ -240,7 +259,28 @@ namespace Cloudict.Platform.Linux
                     reg = _pending.Dequeue();
                 }
 
-                reg.Keycode = X11Interop.XKeysymToKeycode(display, reg.KeysymToResolve);
+                int shiftLevel = 0;
+
+                if (X11Keyboard.TryFindKeycode(display, reg.KeysymToResolve, out byte code, out shiftLevel))
+                {
+                    reg.Keycode = code;
+
+                    // A keysym that only exists in the shifted slot needs Shift in the grab, or the
+                    // combination the user actually presses will not match.
+                    if (shiftLevel == 1) reg.Modifiers |= X11Interop.ShiftMask;
+                }
+                else if (BindKeysymToSpareKey(display, reg.KeysymToResolve, out byte spare))
+                {
+                    // The layout has no key for this keysym at all. That is not exotic: a
+                    // Persian-only layout has no Latin 'a', so the default Ctrl+Alt+A would be
+                    // ungrabbable. Binding it to an unused keycode gives the shortcut somewhere to
+                    // live, and the binding is removed again when the grabs are released.
+                    reg.Keycode = spare;
+                    reg.BoundSpareKeycode = spare;
+                    Log($"grab: keysym 0x{reg.KeysymToResolve:X} absent from layout, bound to spare keycode {spare}");
+                }
+
+                Log($"grab: keysym 0x{reg.KeysymToResolve:X} -> keycode {reg.Keycode} (shift level {shiftLevel}), modifiers 0x{reg.Modifiers:X}");
 
                 if (reg.Keycode != 0)
                 {
@@ -252,6 +292,7 @@ namespace Cloudict.Platform.Linux
 
                     X11Interop.XSync(display, false);
                     reg.Success = true;
+                    Log($"grab: applied for keycode {reg.Keycode}");
 
                     lock (_gate) _registrations.Add(reg);
                 }
@@ -272,8 +313,12 @@ namespace Cloudict.Platform.Linux
             lock (_gate)
             {
                 foreach (var reg in _registrations)
+                {
                     foreach (var extra in IgnoredModifierMasks)
                         X11Interop.XUngrabKey(display, reg.Keycode, reg.Modifiers | extra, root);
+
+                    UnbindSpareKey(display, reg.BoundSpareKeycode);
+                }
 
                 _registrations.Clear();
             }
@@ -334,6 +379,41 @@ namespace Cloudict.Platform.Linux
                     }
 
             return masks.ToArray();
+        }
+
+        /// <summary>
+        /// Points an unused keycode at <paramref name="keysym"/> so it can be grabbed. Every slot
+        /// gets the same keysym, so the shortcut matches regardless of Shift state.
+        /// </summary>
+        private static bool BindKeysymToSpareKey(IntPtr display, nint keysym, out byte keycode)
+        {
+            keycode = 0;
+
+            if (!X11Keyboard.TryFindSpareKeycode(display, out byte spare, out int perKeycode) || perKeycode <= 0)
+                return false;
+
+            var keysyms = new nint[perKeycode];
+            for (int i = 0; i < keysyms.Length; i++) keysyms[i] = keysym;
+
+            X11Interop.XChangeKeyboardMapping(display, spare, perKeycode, keysyms, 1);
+            X11Interop.XSync(display, false);
+
+            keycode = spare;
+            return true;
+        }
+
+        /// <summary>Clears a keycode this class had borrowed, leaving the layout as it was found.</summary>
+        private static void UnbindSpareKey(IntPtr display, byte keycode)
+        {
+            if (keycode == 0) return;
+
+            X11Interop.XDisplayKeycodes(display, out int min, out int max);
+            IntPtr mapping = X11Interop.XGetKeyboardMapping(display, (byte)min, max - min + 1, out int perKeycode);
+            if (mapping != IntPtr.Zero) X11Interop.XFree(mapping);
+            if (perKeycode <= 0) return;
+
+            X11Interop.XChangeKeyboardMapping(display, keycode, perKeycode, new nint[perKeycode], 1);
+            X11Interop.XSync(display, false);
         }
 
         private static int SilentErrorHandler(IntPtr display, IntPtr errorEvent) => 0;

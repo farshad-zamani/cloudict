@@ -64,7 +64,7 @@ namespace Cloudict.Platform.Linux
                         return;
                     }
 
-                    if (!TryFindScratchKeycode(out _scratchKeycode, out _keysymsPerKeycode))
+                    if (!X11Keyboard.TryFindSpareKeycode(_display, out _scratchKeycode, out _keysymsPerKeycode))
                     {
                         Fail("Platform_Err_LinuxNoSpareKeycode");
                         return;
@@ -91,49 +91,6 @@ namespace Cloudict.Platform.Linux
             IsAvailable = false;
             UnavailableReasonKey = reasonKey;
             Close();
-        }
-
-        /// <summary>
-        /// Finds a keycode the current layout does not use, by scanning the keyboard mapping for one
-        /// whose keysyms are all zero. Layouts normally leave a good number of the 8..255 range free.
-        /// </summary>
-        private bool TryFindScratchKeycode(out byte scratch, out int keysymsPerKeycode)
-        {
-            scratch = 0;
-            keysymsPerKeycode = 0;
-
-            X11Interop.XDisplayKeycodes(_display, out int min, out int max);
-            int count = max - min + 1;
-            if (count <= 0) return false;
-
-            IntPtr mapping = X11Interop.XGetKeyboardMapping(_display, (byte)min, count, out keysymsPerKeycode);
-            if (mapping == IntPtr.Zero || keysymsPerKeycode <= 0) return false;
-
-            try
-            {
-                // Search downwards: high keycodes are the ones layouts are least likely to claim.
-                for (int i = count - 1; i >= 0; i--)
-                {
-                    bool free = true;
-                    for (int slot = 0; slot < keysymsPerKeycode; slot++)
-                    {
-                        var keysym = Marshal.ReadIntPtr(mapping, (i * keysymsPerKeycode + slot) * IntPtr.Size);
-                        if (keysym != IntPtr.Zero) { free = false; break; }
-                    }
-
-                    if (free)
-                    {
-                        scratch = (byte)(min + i);
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-            finally
-            {
-                X11Interop.XFree(mapping);
-            }
         }
 
         public void TypeText(string text)
@@ -184,7 +141,7 @@ namespace Cloudict.Platform.Linux
                 var held = new List<byte>();
                 void Hold(nint modifierKeysym)
                 {
-                    byte code = X11Interop.XKeysymToKeycode(_display, modifierKeysym);
+                    byte code = ResolveModifier(modifierKeysym);
                     if (code != 0) held.Add(code);
                 }
 
@@ -228,16 +185,32 @@ namespace Cloudict.Platform.Linux
         /// </summary>
         private void PressNamedKey(nint keysym)
         {
-            byte keycode = X11Interop.XKeysymToKeycode(_display, keysym);
-
-            if (keycode == 0)
+            if (X11Keyboard.TryFindKeycode(_display, keysym, out byte keycode, out int shiftLevel))
             {
-                if (!MapScratch(keysym)) return;
-                keycode = _scratchKeycode;
+                if (shiftLevel == 1)
+                {
+                    // The keysym only exists in the shifted slot, so Shift has to be held for it.
+                    byte shift = ResolveModifier(X11Interop.XK_Shift_L);
+                    if (shift != 0)
+                    {
+                        X11Interop.XTestFakeKeyEvent(_display, shift, true, 0);
+                        Tap(keycode);
+                        X11Interop.XTestFakeKeyEvent(_display, shift, false, 0);
+                        X11Interop.XSync(_display, false);
+                        return;
+                    }
+                }
+
+                Tap(keycode);
+                return;
             }
 
-            Tap(keycode);
+            if (MapScratch(keysym)) Tap(_scratchKeycode);
         }
+
+        /// <summary>Resolves a modifier keysym to its keycode, or 0 when the layout lacks it.</summary>
+        private byte ResolveModifier(nint keysym) =>
+            X11Keyboard.TryFindKeycode(_display, keysym, out byte code, out _) ? code : (byte)0;
 
         private void Tap(byte keycode)
         {

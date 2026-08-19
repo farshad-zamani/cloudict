@@ -234,6 +234,8 @@
     <s:String x:Key="Platform_Err_LinuxYdotoolDaemonMissing">The ydotool service is not running. Start it with: systemctl --user enable --now ydotool</s:String>
     <s:String x:Key="Platform_Warn_LinuxWaylandPartial">Running on Wayland without ydotool: Cloudict can only type into X11/XWayland windows. Install ydotool to type into any application.</s:String>
     <s:String x:Key="Platform_Err_LinuxHotkeysNotImplemented">Global shortcuts are not available yet on this Linux build. You can bind a shortcut in your desktop settings that runs: cloudict --toggle</s:String>
+    <s:String x:Key="Platform_Err_MacAccessibilityDenied">Cloudict needs Accessibility permission to type into other applications. Open System Settings &#8594; Privacy &amp; Security &#8594; Accessibility, enable Cloudict, then press the browser button again.</s:String>
+    <s:String x:Key="Platform_Err_MacInjectionUnavailable">Cloudict could not set up keyboard input on this Mac.</s:String>
     <s:String x:Key="Platform_Err_MacInjectionNotImplemented">Typing into other applications is not available yet on this macOS build.</s:String>
     <s:String x:Key="Platform_Err_MacHotkeysNotImplemented">Global shortcuts are not available yet on this macOS build.</s:String>
     <s:String x:Key="Main_St_ResetErrorPrefix">Error resetting: </s:String>

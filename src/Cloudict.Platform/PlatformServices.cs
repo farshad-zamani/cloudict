@@ -21,8 +21,8 @@ namespace Cloudict.Platform
         public static IPlatformServices Create()
         {
             if (OperatingSystem.IsWindows()) return CreateWindows();
-            if (OperatingSystem.IsMacOS()) return CreateUnix(isMacOS: true);
-            if (OperatingSystem.IsLinux()) return CreateUnix(isMacOS: false);
+            if (OperatingSystem.IsMacOS()) return CreateMacOS();
+            if (OperatingSystem.IsLinux()) return CreateLinux();
 
             throw new PlatformNotSupportedException(
                 $"Cloudict does not support {RuntimeInformationDescription()}.");
@@ -49,29 +49,43 @@ namespace Cloudict.Platform
         }
 
         /// <summary>
-        /// Linux and macOS. Storage, browser discovery and driver handling work on both. Linux also
-        /// has real key injection and global shortcuts; macOS still reports those as unavailable and
-        /// gets them with its own milestone. Layout switching and microphone detection remain stubs.
+        /// Linux: storage, browser discovery, driver handling, key injection (XTEST, or ydotool on
+        /// Wayland) and global shortcuts (XGrabKey). Keyboard-layout switching and microphone
+        /// detection remain stubs and report themselves as unavailable.
         /// </summary>
-        private static IPlatformServices CreateUnix(bool isMacOS)
+        [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+        private static IPlatformServices CreateLinux()
         {
-            var info = new UnixPlatformInfo(isMacOS);
-
-            ITextInjector injector = isMacOS
-                ? new NullTextInjector("Platform_Err_MacInjectionNotImplemented")
-                : new Cloudict.Platform.Linux.LinuxTextInjector();
-
-            IGlobalHotkeys hotkeys = isMacOS
-                ? new NullGlobalHotkeys("Platform_Err_MacHotkeysNotImplemented")
-                : new Cloudict.Platform.Linux.LinuxGlobalHotkeys();
+            var info = new UnixPlatformInfo(isMacOS: false);
 
             return new CompositePlatformServices
             {
-                Paths = new UnixAppPaths(isMacOS),
+                Paths = new UnixAppPaths(isMacOS: false),
                 Info = info,
-                BrowserLocator = new UnixBrowserLocator(isMacOS, info),
-                TextInjector = injector,
-                GlobalHotkeys = hotkeys,
+                BrowserLocator = new UnixBrowserLocator(isMacOS: false, info),
+                TextInjector = new Linux.LinuxTextInjector(),
+                GlobalHotkeys = new Linux.LinuxGlobalHotkeys(),
+                KeyboardLayout = new NullKeyboardLayout(),
+                MicrophoneMonitor = new NullMicrophoneMonitor()
+            };
+        }
+
+        /// <summary>
+        /// macOS: storage, browser discovery, driver handling, key injection (Quartz) and global
+        /// shortcuts (Carbon). Keyboard-layout switching and microphone detection remain stubs.
+        /// </summary>
+        [System.Runtime.Versioning.SupportedOSPlatform("macos")]
+        private static IPlatformServices CreateMacOS()
+        {
+            var info = new UnixPlatformInfo(isMacOS: true);
+
+            return new CompositePlatformServices
+            {
+                Paths = new UnixAppPaths(isMacOS: true),
+                Info = info,
+                BrowserLocator = new UnixBrowserLocator(isMacOS: true, info),
+                TextInjector = new MacOS.MacTextInjector(),
+                GlobalHotkeys = new MacOS.MacGlobalHotkeys(),
                 KeyboardLayout = new NullKeyboardLayout(),
                 MicrophoneMonitor = new NullMicrophoneMonitor()
             };

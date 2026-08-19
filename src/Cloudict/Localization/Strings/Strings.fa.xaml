@@ -233,6 +233,8 @@
     <s:String x:Key="Platform_Err_LinuxYdotoolDaemonMissing">سرویس ydotool در حال اجرا نیست. با این دستور اجرایش کنید: systemctl --user enable --now ydotool</s:String>
     <s:String x:Key="Platform_Warn_LinuxWaylandPartial">اجرا روی Wayland بدون ydotool: Cloudict فقط می‌تواند در پنجره‌های X11/XWayland تایپ کند. برای تایپ در همهٔ برنامه‌ها ydotool را نصب کنید.</s:String>
     <s:String x:Key="Platform_Err_LinuxHotkeysNotImplemented">میانبرهای سراسری هنوز در نسخهٔ لینوکس فعال نیستند. می‌توانید در تنظیمات محیط دسکتاپ خود میانبری تعریف کنید که این دستور را اجرا کند: cloudict --toggle</s:String>
+    <s:String x:Key="Platform_Err_MacAccessibilityDenied">برای تایپ در برنامه‌های دیگر، Cloudict به دسترسی Accessibility نیاز دارد. از مسیر System Settings &#8594; Privacy &amp; Security &#8594; Accessibility گزینهٔ Cloudict را فعال کنید و دوباره دکمهٔ مرورگر را بزنید.</s:String>
+    <s:String x:Key="Platform_Err_MacInjectionUnavailable">Cloudict نتوانست ورودی صفحه‌کلید را روی این مک آماده کند.</s:String>
     <s:String x:Key="Platform_Err_MacInjectionNotImplemented">تایپ در برنامه‌های دیگر هنوز در نسخهٔ مک فعال نیست.</s:String>
     <s:String x:Key="Platform_Err_MacHotkeysNotImplemented">میانبرهای سراسری هنوز در نسخهٔ مک فعال نیستند.</s:String>
     <s:String x:Key="Main_St_ResetErrorPrefix">خطا در ریست کردن: </s:String>
