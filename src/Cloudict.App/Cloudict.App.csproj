@@ -36,10 +36,37 @@
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
-  <!-- ChromeDriver ships beside the app so the first run never needs the network. The correct
-       build per platform is selected by scripts/fetch-chromedriver.ps1. -->
+  <!-- Selenium ships "Selenium Manager" binaries for all three operating systems (17 MB) to
+       download drivers on demand. Cloudict never lets it: BrowserProvisioner resolves the driver
+       itself and hands ChromeDriverService an explicit path, precisely so nothing reaches for the
+       network behind the user's back. Dropping them keeps that promise visible in the package. -->
+  <Target Name="RemoveSeleniumManager" AfterTargets="Publish">
+    <RemoveDir Directories="$(PublishDir)selenium-manager" />
+  </Target>
+
+  <!-- ChromeDriver ships beside the app so the first run never needs the network.
+
+       Only the build matching the target platform is copied. Drivers/ holds all four (win64,
+       linux64, mac-x64, mac-arm64) so the repository can produce any package from any machine,
+       but shipping all of them would add roughly 55 MB of binaries no installer can use.
+
+       The platform folder is flattened away on copy: BrowserProvisioner reads a driver's version
+       from its parent directory name, so the layout beside the app must stay
+       Drivers/<version>/chromedriver. -->
   <ItemGroup>
-    <Content Include="Drivers\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <_CloudictDriver Condition="'$(RuntimeIdentifier)' == 'win-x64'" Include="Drivers\win64\**\*" />
+    <_CloudictDriver Condition="'$(RuntimeIdentifier)' == 'linux-x64'" Include="Drivers\linux64\**\*" />
+    <_CloudictDriver Condition="'$(RuntimeIdentifier)' == 'osx-x64'" Include="Drivers\mac-x64\**\*" />
+    <_CloudictDriver Condition="'$(RuntimeIdentifier)' == 'osx-arm64'" Include="Drivers\mac-arm64\**\*" />
+
+    <!-- No runtime identifier (a plain "dotnet build" for development): fall back to the host. -->
+    <_CloudictDriver Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows'))" Include="Drivers\win64\**\*" />
+    <_CloudictDriver Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Linux'))" Include="Drivers\linux64\**\*" />
+    <_CloudictDriver Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('OSX'))" Include="Drivers\mac-arm64\**\*" />
+
+    <Content Include="@(_CloudictDriver)"
+             Link="Drivers\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

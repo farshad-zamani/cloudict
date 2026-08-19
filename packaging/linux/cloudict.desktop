@@ -1,0 +1,24 @@
+[Desktop Entry]
+Type=Application
+Name=Cloudict
+GenericName=Voice Typing
+Comment=Speak to type anywhere, powered by Google's speech recognition
+Exec=/opt/cloudict/Cloudict
+Icon=cloudict
+Terminal=false
+Categories=Utility;Accessibility;AudioVideo;
+Keywords=voice;speech;dictation;typing;transcription;persian;
+StartupNotify=true
+StartupWMClass=Cloudict
+
+# The desktop environment's own shortcut settings can be pointed at these. On Wayland that is the
+# only way to get a system-wide shortcut, because no application may grab a global key there.
+Actions=Toggle;Stop;
+
+[Desktop Action Toggle]
+Name=Start / stop dictation
+Exec=/opt/cloudict/Cloudict --toggle
+
+[Desktop Action Stop]
+Name=Stop dictation
+Exec=/opt/cloudict/Cloudict --stop

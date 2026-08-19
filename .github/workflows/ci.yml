@@ -1,0 +1,52 @@
+name: ci
+
+# Every push builds all three platforms and runs the tests. The point is to catch a change that
+# compiles on Windows but not on Linux or macOS - the exact failure this project is now exposed to.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macos-latest
+            rid: osx-arm64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Build
+        run: dotnet build src/Cloudict.sln -c Release
+
+      - name: Test
+        run: dotnet test src/Cloudict.Core.Tests/Cloudict.Core.Tests.csproj -c Release --no-build
+
+      - name: Publish (${{ matrix.rid }})
+        run: >
+          dotnet publish src/Cloudict.App/Cloudict.App.csproj
+          -c Release -r ${{ matrix.rid }} --self-contained true
+
+      # The app must at least start and report its platform on every target. This is what would have
+      # caught the manifest that made the Windows build refuse to launch.
+      - name: Smoke test
+        run: dotnet src/Cloudict.App/bin/Release/net10.0/${{ matrix.rid }}/publish/Cloudict.dll --diagnose

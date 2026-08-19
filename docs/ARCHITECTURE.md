@@ -1,131 +1,141 @@
 # Architecture
 
-Cloudict is a Windows desktop app (C# / .NET 7, WPF + Windows Forms
-interop) that performs speech-to-text by automating the **Google Translate** web page and
-types the recognized text into whichever application currently has focus. It also supports
-user-defined **voice commands**.
-
-## High-level flow
-
-```
-        ┌────────────┐   global hotkey / button
-        │  MainWindow │ ─────────────────────────┐
-        └─────┬──────┘                            │
-              │ drives (Selenium WebDriver)       │ types via InputSimulator
-              ▼                                    ▼
-    ┌───────────────────┐                 ┌────────────────────┐
-    │  Google Translate  │  recognized    │  Active foreground   │
-    │  page in Chrome    │ ───text──────▶ │  application         │
-    └───────────────────┘                 └────────────────────┘
-```
-
-1. `App.OnStartup` applies the saved UI language, ensures a single instance, requests
-   administrator rights, then opens `MainWindow`.
-2. `MainWindow` resolves Chrome + ChromeDriver through `BrowserProvisioner`, launches Chrome
-   via Selenium, opens Google Translate, and clicks the microphone button.
-3. As Google transcribes speech, the recognized text is read from the page and sent,
-   word by word, into the active application using `H.InputSimulator`.
-4. Recognized words are matched against **voice commands**; a match runs an action
-   (type punctuation, send a key, switch keyboard language, launch a program, …).
+Cloudict is a desktop voice-typing application for Windows, Linux and macOS. It has no speech model
+of its own: it drives the public Google Translate voice input in a helper Chrome window, reads what
+that page recognizes, and types the words into whatever application has focus.
 
 ## Project layout
 
-Cloudict is being made cross-platform. The code is split so that the parts which can run anywhere
-are physically separated from the parts that cannot, rather than relying on discipline:
+The code is split so that the parts which can run anywhere are *physically* separated from the
+parts that cannot, rather than relying on discipline:
 
 | Project | Target | Contains |
 |---------|--------|----------|
-| `src/Cloudict.Core/` | `net10.0` | Application logic with **no UI framework and no OS calls**: `AppSettings`, `VoiceCommand`, `WordTracker`, `VoiceCommandProcessor`, `VoiceCommandManager`, `SettingsManager`, `KeyCommandParser`, `BrowserProvisioner`, and the `Abstractions/` interfaces |
-| `src/Cloudict.Platform/` | `net10.0` | **Every** operating-system call, behind those interfaces — `Windows/`, `Unix/`, and `Unsupported/` stand-ins, selected at runtime by `PlatformServices.Create()` |
-| `src/Cloudict/` | `net10.0-windows` | The Windows/WPF shell: `Views/`, `Themes/`, `Localization/`, `Assets/`, `Drivers/`, and `AppServices` (the composition root) |
-| `src/Cloudict.Core.Tests/` | `net10.0` | xunit tests for Core |
+| `src/Cloudict.Core/` | `net10.0` | Application logic with **no UI framework and no OS calls**: settings, voice commands, the speech engine, the dictation session, localization, and the `Abstractions/` interfaces |
+| `src/Cloudict.Platform/` | `net10.0` | **Every** operating-system call, behind those interfaces — `Windows/`, `Linux/`, `MacOS/`, `Unix/`, and `Unsupported/` stand-ins, selected at runtime |
+| `src/Cloudict.App/` | `net10.0` | The Avalonia interface: views, themes, icons, the composition root |
+| `src/Cloudict.Core.Tests/` | `net10.0` | Tests for Core |
+| `packaging/` | — | `windows/` (Inno Setup), `linux/` (deb, rpm, AppImage), `macos/` (app bundle, dmg) |
 
-Core compiling on its own — with no `UseWPF`, no runtime identifier and no reference to
-`System.Windows.*` — is what proves the separation holds. A Windows-ism cannot leak back in without
-failing the build.
+Core compiling on its own — no UI framework, no runtime identifier, no reference to
+`System.Windows.*` — is what proves the separation holds. A platform-specific assumption cannot leak
+back in without failing the build.
 
-### The platform abstraction
+## The platform abstraction
 
-`Cloudict.Core/Abstractions` declares what the app needs from an operating system:
+`Cloudict.Core/Abstractions` declares what the application needs from an operating system:
 
-| Interface | Purpose |
-|-----------|---------|
-| `ITextInjector` | Types text and presses keys in the focused application — the core capability |
-| `IGlobalHotkeys` | System-wide start/stop shortcuts |
-| `IKeyboardLayout` | Switches the system keyboard layout for the language voice commands |
-| `IMicrophoneMonitor` | Whether the microphone is live, for the desktop status light |
-| `IAppPaths` | Where settings, data and logs may be written |
-| `IPlatformInfo` / `IBrowserLocator` | Finding Chrome and picking the right ChromeDriver build |
+| Interface | Windows | Linux | macOS |
+|-----------|---------|-------|-------|
+| `ITextInjector` | `SendInput` with `KEYEVENTF_UNICODE` | XTEST, or `ydotool` on Wayland | `CGEvent` with a Unicode payload |
+| `IGlobalHotkeys` | `RegisterHotKey` on a dedicated thread | `XGrabKey` on the root window | Carbon `RegisterEventHotKey` |
+| `IKeyboardLayout` | `LoadKeyboardLayout` | not implemented | not implemented |
+| `IMicrophoneMonitor` | WASAPI via NAudio | not implemented | not implemented |
+| `IAppPaths` | `%APPDATA%` / `%LOCALAPPDATA%` | XDG directories | `~/Library/Application Support` |
+| `IPlatformInfo`, `IBrowserLocator` | registry + Program Files | standard paths, flatpak, snap | `/Applications`, `Info.plist` |
 
-Each reports its own availability (`IsAvailable`, `IsSupported`) with a localization key explaining
-any limitation, because a missing capability is a normal condition on Linux and macOS — Wayland has
-no injection API, macOS withholds one until the user grants Accessibility — and the app is expected
-to keep running and explain itself rather than appear broken.
+Each reports its own availability with a localization key explaining any limitation, because a
+missing capability is a *normal* condition here — Wayland has no injection API, macOS withholds one
+until Accessibility is granted — and the application is expected to keep running and explain itself
+rather than appear broken. `PlatformServices.Create()` is the only place in the codebase that asks
+which operating system it is running on.
 
-`PlatformServices.Create()` is the only place in the codebase that asks which OS it is running on.
+`cloudict --diagnose` prints all of this, which is usually the fastest way to answer "why does
+dictation type nothing on my machine".
 
-## Key components
+## How dictation works
 
-- **LocalizationManager** — loads the selected language's `ResourceDictionary` (English
-  first as a fallback, then the chosen language on top) and exposes `Loc.Get("Key")` for
-  code-behind. Language is applied at startup; switching requires a restart. Flow
-  direction (RTL/LTR) is published as the `AppFlowDirection` dynamic resource that every
-  window binds to.
-- **SettingsManager** — JSON persistence (`settings.json`) with a backup copy and
-  validation. `AppSettings` holds all tunables (delays, Google Translate selectors,
-  shortcuts, voice commands, and the UI language).
-- **VoiceCommandProcessor / SystemCommandExecutor** — detect spoken command phrases and
-  execute the corresponding system action.
-- **GlobalShortcutManager** — registers system-wide hotkeys (default `Ctrl+Alt+A` to
-  start/stop and `Ctrl+Alt+S` to stop).
-- **BrowserProvisioner** — finds Chrome and a compatible ChromeDriver *without needing the
-  network*. See below; this is the component that makes startup reliable.
+```
+Google Translate page (helper Chrome window)
+        │  GoogleTranslateEngine: open, toggle the voice button, read the source box
+        ▼
+DictationSession: pace words, run voice commands, decide where they go
+        │
+        ├── live      → ITextInjector.TypeText  → the focused application
+        └── buffered  → IDictationOutput        → the "Final text" box, at the caret
+```
+
+**The timing is the difficult part**, and every delay exists for a reason found the hard way. Google
+Translate keeps *revising* words it has already shown while the user carries on speaking, so text
+cannot simply be forwarded as it appears. `DictationSession` waits before starting
+(`TransferStartDelayMs`), paces itself word by word (`WordByWordDelayMs`), and after a silence
+(`InactivityDelayMs`) flushes what is pending and restarts the microphone so the page's buffer never
+grows long enough to be rewritten wholesale.
+
+Two guards in there are worth knowing about, because both fixed real bugs:
+
+- A reset only fires when a word was actually transferred since the last one. Without that, an idle
+  pause triggered a reset that re-sent text already typed.
+- The leading-space decision is made at *send* time, reading the up-to-date destination. Deciding it
+  when the word was queued raced with the previous word's delayed send, and two words dispatched
+  close together arrived with no space between them.
+
+Buffered output goes through `IDictationOutput` rather than a private buffer, because words are
+inserted **at the caret** so the user can direct where they land — and that state belongs to the
+view, not to the session.
 
 ## Browser provisioning
 
-ChromeDriver must match the installed Chrome's major version, and Chrome updates itself, so
-"which driver do we run?" is a moving target. Cloudict used to delegate this to
-`WebDriverManager`, which downloaded the driver from Google on every startup. That made the app
-unusable wherever `storage.googleapis.com` is blocked — it answers **403 Forbidden**, or the TLS
-handshake is intercepted — and it broke working installs the moment Chrome auto-updated.
+ChromeDriver must match the installed Chrome's major version, and Chrome updates itself, so "which
+driver do we run?" is a moving target. Cloudict 2.x delegated this to `WebDriverManager`, which
+downloaded the driver from Google on every startup. That made the app unusable wherever
+`storage.googleapis.com` is blocked — it answers **403 Forbidden**, or the TLS handshake is
+intercepted — and broke working installs the moment Chrome auto-updated.
 
-`BrowserProvisioner.Resolve()` now runs disk-first:
+`BrowserProvisioner.Resolve()` runs disk-first:
 
 ```
-detect Chrome (App Paths registry + standard install folders)
+detect Chrome (per-platform locations)
         │
         ▼
-collect every chromedriver.exe on the machine
-  Drivers\ (bundled)  ·  %LOCALAPPDATA%\Cloudict\Drivers (our cache)
-  Chrome\ (legacy cache)  ·  %LOCALAPPDATA%\ChromeDriver
-  ~\.cache\selenium\chromedriver  ·  PATH
+collect every chromedriver on the machine
+  Drivers/ (bundled)  ·  the per-user download cache  ·  system driver locations
+  Selenium's cache    ·  PATH
         │
-        ├─ a driver with Chrome's major version?  ──▶ newest one wins. Done, offline.
+        ├─ one matching Chrome's major version?  ──▶ newest wins. Done, offline.
         │
-        ├─ otherwise download it once, into our per-user cache.
-        │     mirrors first (cdn/registry.npmmirror.com), Google's host last.
+        ├─ otherwise download it once, into the per-user cache.
+        │     mirrors first, Google's host last.
         │
-        └─ otherwise use the closest driver we have, with
-           ChromeDriverService.DisableBuildCheck = true.
+        └─ otherwise use the closest driver available, with the build check disabled.
 ```
 
-Two properties matter and are deliberate:
+Two properties are deliberate:
 
-- **A driver already on the machine is never overwritten or downgraded.** The bundled driver is
-  a floor, not a ceiling — if the user's Chrome is newer and they already have a matching
-  driver, theirs is used.
-- **Downloads never write into the install folder**, only `%LOCALAPPDATA%\Cloudict\Drivers`, so
-  provisioning needs no elevation and can't corrupt the shipped copy.
+- **A driver already on the machine is never overwritten or downgraded.** The bundled driver is a
+  floor, not a ceiling.
+- **Downloads never write into the install folder**, so provisioning needs no elevation and cannot
+  corrupt the shipped copy.
 
-The version bundled in `src/Cloudict/Drivers/` is committed so a fresh clone can build an
-offline-capable installer; refresh it with `scripts\fetch-chromedriver.ps1`.
+The drivers for all four platforms live in `src/Cloudict.App/Drivers/`; the build copies only the one
+matching the target. Refresh them with `scripts/fetch-chromedriver.ps1`.
+
+## Startup
+
+1. `Program.Main` handles the command-line verbs first, because they are how a *second* launch talks
+   to the instance already running. `SingleInstance` uses a lock file plus a Unix domain socket —
+   both behave identically on all three systems, unlike the Windows-only `Mutex` used in 2.x.
+   This is what makes `cloudict --toggle` work, which is the supported way to get a system-wide
+   shortcut on Wayland.
+2. `AppServices.Initialize()` builds the platform services and the settings store.
+3. `LocalizationManager` loads the interface language; English is always kept as the fallback.
+4. `MainWindow` constructs the engine, the session and the shortcut registrations.
+
+## Localization
+
+335+ strings live as JSON embedded in `Cloudict.Core`, so one dictionary serves the interface, Core
+and the platform layer. XAML resolves them through a `{loc:Tr Key}` markup extension that calls the
+same `Loc.Get` API as the code-behind, so there is one lookup path and one fallback rule.
+
+A test asserts the English and Persian sets contain exactly the same keys — a key present in one
+language and missing from the other shows up as a raw identifier in the interface, and this catches
+it at build time rather than in a screenshot.
+
+Adding a language means dropping in `Strings.<code>.json`, adding the code to
+`LocalizationManager.SupportedLanguages`, and adding it to `RightToLeftLanguages` if the script is
+right-to-left.
 
 ## Notable dependencies
-Selenium.WebDriver (browser automation), H.InputSimulator (keystroke injection), NAudio,
-Newtonsoft.Json, Polly, AngleSharp, SharpZipLib.
 
-## Caveats
-The recognition engine depends on the **public Google Translate web UI**. If Google
-changes that page, the selectors in *Settings → Google Translate Settings* may need to be
-updated. This approach is inherently fragile; migrating to a dedicated speech-to-text
-engine (e.g. Whisper or a cloud STT API) is on the roadmap.
+Avalonia (interface), Selenium.WebDriver (drives the helper browser), Newtonsoft.Json (settings),
+NAudio (Windows microphone detection only).

@@ -1,0 +1,155 @@
+name: release
+
+# Builds every package on the operating system that can actually produce it: the Windows installer
+# needs Inno Setup, the .deb/.rpm need dpkg/rpmbuild, and the .app bundle needs macOS tooling
+# (hdiutil, iconutil, codesign) that exists nowhere else.
+#
+# Tagging v* publishes a release with all five artifacts attached; the manual trigger builds them
+# without publishing, for checking a change before it is tagged.
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # Core has no UI and no OS calls, so its tests run anywhere. Keeping them on their own job
+      # means a logic regression fails fast instead of after three platform builds.
+      - name: Test
+        run: dotnet test src/Cloudict.Core.Tests/Cloudict.Core.Tests.csproj -c Release
+
+  windows:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish
+        run: >
+          dotnet publish src/Cloudict.App/Cloudict.App.csproj
+          -c Release -r win-x64 --self-contained true
+
+      - name: Build installer
+        run: |
+          & "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" packaging\windows\Cloudict.iss
+        shell: pwsh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*.exe
+
+  linux:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq rpm file desktop-file-utils
+          # appimagetool ships as an AppImage; extract it because the runner has no FUSE.
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          ./appimagetool-x86_64.AppImage --appimage-extract > /dev/null
+          echo "APPIMAGETOOL=$PWD/squashfs-root/AppRun" >> $GITHUB_ENV
+
+      - name: Publish
+        run: >
+          dotnet publish src/Cloudict.App/Cloudict.App.csproj
+          -c Release -r linux-x64 --self-contained true
+
+      - name: Build packages
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          [ "$VERSION" = "$GITHUB_REF_NAME" ] && VERSION=3.0.0
+          bash packaging/linux/build-linux-packages.sh \
+            src/Cloudict.App/bin/Release/net10.0/linux-x64/publish "$VERSION" "$PWD/dist"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/*.deb
+            dist/*.rpm
+            dist/*.AppImage
+
+  macos:
+    needs: test
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - rid: osx-arm64
+            arch: arm64
+          - rid: osx-x64
+            arch: x64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish
+        run: >
+          dotnet publish src/Cloudict.App/Cloudict.App.csproj
+          -c Release -r ${{ matrix.rid }} --self-contained true
+
+      - name: Build app bundle and dmg
+        # Signing and notarisation switch on by themselves once these secrets exist; until then the
+        # .dmg is unsigned and the install instructions cover the Gatekeeper step.
+        env:
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          [ "$VERSION" = "$GITHUB_REF_NAME" ] && VERSION=3.0.0
+          bash packaging/macos/build-macos-package.sh \
+            src/Cloudict.App/bin/Release/net10.0/${{ matrix.rid }}/publish \
+            "$VERSION" "${{ matrix.arch }}" "$PWD/dist"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: dist/*.dmg
+
+  publish:
+    needs: [ windows, linux, macos ]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: false
+          draft: true

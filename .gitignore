@@ -18,9 +18,9 @@ settings.backup.json
 license.dat
 *.log
 
-# ---- Legacy ChromeDriver download cache (superseded by src/Cloudict/Drivers/) ----
-# The driver Cloudict ships lives in src/Cloudict/Drivers/ and IS tracked, so the installer
-# can work offline. Only the old runtime-download cache is ignored.
+# ---- Legacy ChromeDriver download cache ----
+# The drivers Cloudict ships live in src/Cloudict.App/Drivers/ and ARE tracked, so the packages
+# work offline. Only the old runtime-download cache is ignored.
 **/Chrome/
 
 # ---- Internal localization tooling / temp test output ----
@@ -28,9 +28,11 @@ _loctools/
 _run/
 last-answer.md
 
-# ---- Installer build output ----
-installer/Output/
 
 # ---- OS noise ----
 Thumbs.db
 .DS_Store
+
+# ---- Packaging output ----
+dist/
+_avalonia/

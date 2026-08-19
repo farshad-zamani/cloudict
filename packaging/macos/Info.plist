@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key>            <string>Cloudict</string>
+  <key>CFBundleDisplayName</key>     <string>Cloudict</string>
+  <key>CFBundleIdentifier</key>      <string>com.cloudtart.cloudict</string>
+  <key>CFBundleVersion</key>         <string>@VERSION@</string>
+  <key>CFBundleShortVersionString</key> <string>@VERSION@</string>
+  <key>CFBundleExecutable</key>      <string>Cloudict</string>
+  <key>CFBundleIconFile</key>        <string>Cloudict.icns</string>
+  <key>CFBundlePackageType</key>     <string>APPL</string>
+  <key>LSMinimumSystemVersion</key>  <string>11.0</string>
+  <key>NSHighResolutionCapable</key> <true/>
+
+  <!--
+    Usage descriptions. macOS shows these verbatim in its permission prompts, and an app that asks
+    without explaining tends to be refused. Cloudict itself never opens the microphone (the helper
+    Chrome window does), but the bundle is what the system attributes the request to.
+  -->
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Cloudict uses the microphone to turn your speech into text.</string>
+
+  <key>NSAppleEventsUsageDescription</key>
+  <string>Cloudict needs this to type recognized text into the application you are working in.</string>
+
+  <!-- Dictation should keep working while the user is in another app, so no Dock icon is forced. -->
+  <key>LSApplicationCategoryType</key> <string>public.app-category.productivity</string>
+  <key>LSUIElement</key>               <false/>
+</dict>
+</plist>

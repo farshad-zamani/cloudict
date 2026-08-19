@@ -8,6 +8,69 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.0.0] – 2026-08-19
+
+Cloudict now runs on **Linux and macOS** as well as Windows, from one codebase and with one
+interface.
+
+### Added
+- **Linux support** — `.deb`, `.rpm` and an AppImage. Typing uses X11's XTEST where available and
+  `ydotool` on Wayland, which has no injection API of its own. Global shortcuts use `XGrabKey`.
+- **macOS support** — signed-ready `.dmg` for Apple Silicon and Intel. Typing uses Quartz events,
+  global shortcuts use Carbon hot keys. Builds are currently unsigned; the install notes cover the
+  Gatekeeper step and CI switches signing on as soon as credentials exist.
+- **`cloudict --diagnose`** prints what the current system supports and where Chrome and the driver
+  were found. On Linux "dictation types nothing" nearly always comes down to the session type or a
+  missing helper, none of which is visible from the interface.
+- **`cloudict --toggle` / `--start` / `--stop`** talk to the running instance. This is the supported
+  way to get a system-wide shortcut on Wayland, where no application may claim a global key: bind
+  one in the desktop's own settings and point it at `cloudict --toggle`.
+- **A cross-platform CI matrix** builds and smoke-tests all three systems on every push, so a change
+  that compiles only on Windows fails immediately.
+
+### Changed
+- **The interface moved from WPF to Avalonia.** WPF exists only on Windows; one Avalonia
+  application now serves all three systems rather than maintaining a second interface per platform.
+  The layout, palette and behaviour are unchanged.
+- **The code is split into three projects.** `Cloudict.Core` holds the application logic with no UI
+  framework and no operating-system calls, `Cloudict.Platform` holds every OS call behind
+  interfaces chosen at runtime, and `Cloudict.App` is the interface. Core compiling on its own is
+  what stops a platform-specific assumption leaking back in unnoticed.
+- **Windows no longer requires administrator rights.** That bought one rare capability — typing
+  into a window running as administrator — at the cost of a UAC prompt on every launch, and means
+  nothing on Linux or macOS, where permissions govern this instead. Start Cloudict as administrator
+  if you need it.
+- **Settings moved to the per-user configuration directory** on every platform. The old location
+  beside the executable only ever worked because the Windows build ran elevated; it is read-only
+  under a Linux prefix and inside a macOS bundle. Existing files are migrated on first run, and the
+  Windows installer rescues one from a pre-2.2.6 install before cleaning the folder.
+- **Icons are vector rather than emoji.** A Linux system with no emoji font rendered every one of
+  them as an empty box, and two were baked into the localized strings themselves.
+- **Interface strings moved from WPF resource dictionaries to JSON inside Core**, so the same
+  dictionary serves the interface, Core and the platform layer on every system. A test asserts the
+  English and Persian sets contain exactly the same keys.
+- Upgrading on Windows now clears the install folder first. 3.0 shares almost no file names with
+  2.x, so an upgrade previously left the entire WPF runtime behind — 321 MB where 3.0 needs 153.
+- Selenium Manager (17 MB of driver-downloading binaries for three platforms) is no longer shipped.
+  Cloudict resolves the driver itself and hands Selenium an explicit path, precisely so nothing
+  reaches for the network unasked.
+- Targets **.NET 10 LTS**, supported to November 2028.
+
+### Fixed
+- **The desktop status light wrote to a log file on every microphone poll** — twice a second, about
+  173,000 lines a day. On one machine that file had reached 1.4 GB. It now repaints only when the
+  state actually changes and writes no log.
+- Removed `AngleSharp`, `Polly`, `SharpZipLib`, `Microsoft.Extensions.DependencyInjection`,
+  `System.Reactive.Windows.Forms`, `WebDriverManager` and `H.InputSimulator` — all referenced, none
+  used.
+
+### Known limitations
+- **macOS is built and smoke-tested in CI but has not been run on real hardware.** Treat typing and
+  the Accessibility prompt as unverified until someone runs it on a Mac.
+- On Wayland without `ydotool`, Cloudict can only type into X11/XWayland windows. It says so rather
+  than failing silently.
+- macOS builds are unsigned until an Apple Developer Program membership exists.
+
 ## [2.3.1] – 2026-08-07
 
 ### Added
