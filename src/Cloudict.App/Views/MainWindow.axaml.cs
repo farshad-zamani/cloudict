@@ -277,7 +277,13 @@ namespace Cloudict.App.Views
         private void OnBrowserOpenChanged(object sender, bool open) =>
             Dispatcher.UIThread.Post(() =>
             {
-                TxtBrowserIcon.Text = open ? "❌" : "🌐";
+                // Swap the vector geometry rather than an emoji glyph: a Linux box without an
+                // emoji font renders those as empty squares.
+                var iconKey = open ? "IconClose" : "IconGlobe";
+                if (Avalonia.Application.Current?.Resources.TryGetResource(iconKey, null, out var geometry) == true
+                    && geometry is Avalonia.Media.Geometry shape)
+                    IconBrowser.Data = shape;
+
                 TxtBrowserLabel.Text = Loc.Get(open ? "Main_CloseHelperBrowser" : "Main_OpenHelperBrowser");
             });
 
