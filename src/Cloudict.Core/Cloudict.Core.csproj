@@ -20,4 +20,18 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
+
+  <!-- UI strings travel with Core so the same dictionary serves the UI, Core and the platform
+       layer. Logical names keep the "Cloudict.Localization.Strings.*" form the loader expects.
+
+       WithCulture=false is required, not cosmetic: the SDK's AssignCulture target reads the ".en."
+       and ".fa." in these filenames as culture designators and routes the files into satellite
+       assemblies, leaving the main assembly with no resources at all. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Localization\Strings\Strings.en.json"
+                      LogicalName="Cloudict.Localization.Strings.Strings.en.json" WithCulture="false" />
+    <EmbeddedResource Include="Localization\Strings\Strings.fa.json"
+                      LogicalName="Cloudict.Localization.Strings.Strings.fa.json" WithCulture="false" />
+  </ItemGroup>
+
 </Project>
