@@ -31,7 +31,7 @@ namespace Cloudict.Speech
     {
         private static readonly Regex Whitespace = new Regex(@"\s+", RegexOptions.Compiled);
 
-        private readonly GoogleTranslateEngine _engine;
+        private readonly ISpeechEngine _engine;
         private readonly ITextInjector _injector;
         private readonly Func<AppSettings> _settings;
         private readonly IDictationOutput _output;
@@ -61,12 +61,19 @@ namespace Cloudict.Speech
         /// <summary>Suspends reading while a reset is in progress, so nothing stale is re-read.</summary>
         private volatile bool _suspendRecognition;
 
+        /// <summary>
+        /// True between asking Google Translate to empty its source box and actually seeing it
+        /// empty. Until then the record of which words have already been typed is kept, because the
+        /// box may well still be showing them.
+        /// </summary>
+        private bool _awaitingEmptyPage;
+
         private string _lastSentText = string.Empty;
 
         private VoiceCommandProcessor _commands;
 
         public DictationSession(
-            GoogleTranslateEngine engine,
+            ISpeechEngine engine,
             ITextInjector injector,
             Func<AppSettings> settingsAccessor,
             IDictationOutput output)
@@ -86,8 +93,21 @@ namespace Cloudict.Speech
         /// <summary>A voice command matched and ran; carries the command's phrase.</summary>
         public event EventHandler<string> CommandExecuted;
 
+        /// <summary>
+        /// Raised when recognition has died and cannot be brought back — Google Translate's own
+        /// microphone has stopped and will not restart. The session cannot tear itself down from
+        /// inside its own loops, so the owner is asked to call <see cref="StopAsync"/>.
+        /// </summary>
+        public event EventHandler AutoStopped;
+
         /// <summary>True while dictation is running.</summary>
         public bool IsRunning { get; private set; }
+
+        /// <summary>
+        /// True while the microphone is being restarted. The microphone genuinely is off during this
+        /// second or so, which the status badge would otherwise report as the user having lost it.
+        /// </summary>
+        public bool IsResetting => _suspendRecognition;
 
         /// <summary>
         /// When true, words are typed straight into the focused application. When false they
@@ -168,6 +188,34 @@ namespace Cloudict.Speech
                 _initialDelayCompleted = false;
                 _wordTransferredSinceReset = false;
                 _lastSentText = string.Empty;
+                _awaitingEmptyPage = false;
+            }
+        }
+
+        /// <summary>
+        /// Re-arms the inactivity trigger without touching the record of which words have already
+        /// been typed.
+        ///
+        /// <para>This is what a reset does now, and it is the fix for Cloudict's worst bug. The old
+        /// code wiped the word bookkeeping the moment it <em>asked</em> Google Translate to empty its
+        /// source box. When the box did not actually empty — which is what happens once the page's
+        /// own speech recognition has errored, typically after a long idle spell — the leftover text
+        /// was read on the very next poll, matched nothing in the wiped list, and went out again. The
+        /// next silence repeated the whole cycle, so a finished sentence was retyped over and over
+        /// until the user stopped it by hand.</para>
+        ///
+        /// <para>Keeping the record means leftover text stays recognised as already handled, and the
+        /// bookkeeping is cleared later, when the box is actually <em>seen</em> empty.</para>
+        /// </summary>
+        private void ReArmWithoutForgetting()
+        {
+            lock (_gate)
+            {
+                _wordTransferredSinceReset = false;
+                _transferStarted = false;
+                _initialDelayCompleted = false;
+                _lastTextUpdateTime = DateTime.Now;
+                _awaitingEmptyPage = true;
             }
         }
 
@@ -191,15 +239,31 @@ namespace Cloudict.Speech
 
                     var text = await _engine.ReadRecognizedTextAsync();
 
-                    if (!string.IsNullOrWhiteSpace(text) && text != _lastRecognizedText)
+                    if (string.IsNullOrWhiteSpace(text))
                     {
-                        OnRecognizedText(text);
-                        RecognizedTextChanged?.Invoke(this, text);
+                        // An empty box is the proof that the last reset landed, and the only safe
+                        // moment to forget which words have already been typed.
+                        if (_awaitingEmptyPage) ResetRecognitionState();
+                        else if (_hasRecognizedText) await CheckForInactivityAsync();
+
+                        continue;
                     }
-                    else if (_hasRecognizedText)
+
+                    if (text == _lastRecognizedText)
                     {
-                        await CheckForInactivityAsync();
+                        if (_hasRecognizedText) await CheckForInactivityAsync();
+                        continue;
                     }
+
+                    // The box changed while it was still expected to empty. If it is the finished
+                    // phrase with more speech added, the word bookkeeping still holds and only the
+                    // new tail goes out; if it is an unrelated utterance, the box did empty at some
+                    // point between two polls and the slate really is clear.
+                    if (_awaitingEmptyPage && !ContinuesFrom(text, _lastRecognizedText))
+                        ResetRecognitionState();
+
+                    OnRecognizedText(text);
+                    RecognizedTextChanged?.Invoke(this, text);
                 }
                 catch (OperationCanceledException) { break; }
                 catch (Exception ex)
@@ -231,6 +295,31 @@ namespace Cloudict.Speech
         }
 
         /// <summary>
+        /// True when <paramref name="text"/> is <paramref name="previous"/> with nothing removed —
+        /// either exactly it, or it followed by more words.
+        ///
+        /// <para>This is how a phrase Google Translate hands back after being told to forget it is
+        /// told apart from a genuinely new utterance. It is a comparison of what is on the page
+        /// rather than a guess about timing, so a user who really does repeat themselves is not
+        /// silently ignored: by then the box will have been seen empty and the slate wiped.</para>
+        /// </summary>
+        internal static bool ContinuesFrom(string text, string previous)
+        {
+            if (string.IsNullOrWhiteSpace(previous) || string.IsNullOrWhiteSpace(text)) return false;
+
+            var a = text.Trim();
+            var b = previous.Trim();
+
+            if (string.Equals(a, b, StringComparison.Ordinal)) return true;
+
+            // The boundary check matters: "سلامت" starts with "سلام" but is a different word, and
+            // skipping it would swallow speech the user never got back.
+            return a.Length > b.Length
+                   && a.StartsWith(b, StringComparison.Ordinal)
+                   && char.IsWhiteSpace(a[b.Length]);
+        }
+
+        /// <summary>
         /// After a silence, sends anything still pending and restarts the microphone so Google's
         /// buffer stays short. Only fires when a word actually went out since the last reset.
         /// </summary>
@@ -255,10 +344,23 @@ namespace Cloudict.Speech
             {
                 Report("Main_St_QuickTransferReset");
                 await FlushPendingWordsAsync();
-                await _engine.ResetMicrophoneAsync();
 
-                ResetRecognitionState();
-                Report("Main_St_MicReset");
+                var reset = await _engine.ResetMicrophoneAsync();
+
+                // Whether or not the page claims to have emptied its box, what has already been
+                // typed stays on the record until an empty box is actually observed.
+                ReArmWithoutForgetting();
+
+                if (!reset.Listening)
+                {
+                    // Nothing more will ever be heard, so sitting here pretending to listen only
+                    // invites the page to hand back the same text again.
+                    Report("Main_St_MicLost");
+                    AutoStopped?.Invoke(this, EventArgs.Empty);
+                    return;
+                }
+
+                Report(reset.SourceCleared ? "Main_St_MicReset" : "Main_St_ResetIncomplete");
             }
             catch (Exception ex)
             {

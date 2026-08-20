@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -34,6 +35,10 @@ namespace Cloudict.App.Views
         private StatusIndicatorWindow _indicator;
         private TrayIcon _trayIcon;
 
+        private CancellationTokenSource _micWatch;
+        private bool _micReportedLive;
+        private bool _micLossAnnounced;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -61,6 +66,8 @@ namespace Cloudict.App.Views
             // feedback has to come from the desktop rather than from a window they cannot see.
             _session.CommandExecuted += OnCommandNotification;
 
+            _session.AutoStopped += OnSessionAutoStopped;
+
             Opened += OnOpened;
             Closing += OnClosing;
             PropertyChanged += OnWindowPropertyChanged;
@@ -77,7 +84,104 @@ namespace Cloudict.App.Views
             RegisterShortcuts();
             SetUpTray();
             ShowIndicator();
+            StartMicrophoneWatch();
             ReportPlatformLimitations();
+        }
+
+        /// <summary>
+        /// Keeps the corner badge honest by asking the operating system whether the microphone is
+        /// actually being captured, rather than only whether Cloudict last pressed start.
+        ///
+        /// <para>The two are not the same. Google Translate stops listening on its own — a network
+        /// hiccup, its own recognition error, or simply too long a silence — and Cloudict is not told.
+        /// The badge then sat there green while nothing was being heard, which is worse than no badge
+        /// at all: the user carries on speaking into a microphone that is off.</para>
+        ///
+        /// <para>Green means <em>both</em> that dictation is running and that the system reports the
+        /// microphone in use, so another application holding the microphone never turns it green on
+        /// its own. Where the platform cannot tell (Linux, macOS) it falls back to the session's own
+        /// state, which is what it did before.</para>
+        /// </summary>
+        private void StartMicrophoneWatch()
+        {
+            _micWatch = new CancellationTokenSource();
+            var token = _micWatch.Token;
+            var monitor = AppServices.Platform.MicrophoneMonitor;
+
+            // A background loop rather than a UI timer: the WASAPI query is a blocking COM call and
+            // has no business running on the thread that draws the window.
+            _ = Task.Run(async () =>
+            {
+                var missed = 0;
+
+                while (!token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(1), token);
+
+                        bool live;
+
+                        if (!_session.IsRunning)
+                        {
+                            missed = 0;
+                            live = false;
+                        }
+                        else if (!monitor.IsSupported || _session.IsResetting)
+                        {
+                            // A reset switches the microphone off for about a second by design;
+                            // reporting that would make the badge flicker on every pause.
+                            missed = 0;
+                            live = true;
+                        }
+                        else if (monitor.IsMicrophoneInUse())
+                        {
+                            missed = 0;
+                            live = true;
+                        }
+                        else
+                        {
+                            // Chrome releases the capture stream a moment after the page stops, so
+                            // one quiet sample proves nothing. Three in a row does.
+                            missed++;
+                            live = missed < 3;
+                        }
+
+                        Dispatcher.UIThread.Post(() => ApplyMicrophoneState(live));
+                    }
+                    catch (OperationCanceledException) { break; }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[MainWindow] microphone watch: {ex.Message}");
+                    }
+                }
+            }, token);
+        }
+
+        /// <summary>
+        /// Paints the badge and, the first time the microphone goes quiet under a running session,
+        /// says so — on the desktop, because by then the user is looking at another application.
+        /// </summary>
+        private void ApplyMicrophoneState(bool live)
+        {
+            _indicator?.SetActive(live);
+
+            if (live == _micReportedLive) return;
+            _micReportedLive = live;
+
+            if (!live && _session.IsRunning)
+            {
+                SetStatus(Loc.Get("Main_St_MicLost"));
+
+                // Google Translate drops the microphone between phrases often enough that
+                // announcing every one would be a stream of pop-ups. The badge follows each of
+                // them; the desktop is told once per session, which is what the user needs to know.
+                if (!_micLossAnnounced)
+                {
+                    _micLossAnnounced = true;
+                    Notify(Loc.Get("Notify_MicLost"));
+                }
+            }
         }
 
         /// <summary>
@@ -181,6 +285,8 @@ namespace Cloudict.App.Views
 
             try
             {
+                try { _micWatch?.Cancel(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
+
                 _shortcuts.Dispose();
                 await _session.StopAsync();
                 await _engine.CloseBrowserAsync();
@@ -193,6 +299,7 @@ namespace Cloudict.App.Views
             {
                 try { _indicator?.Close(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
                 try { _trayIcon?.Dispose(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
+                try { _micWatch?.Dispose(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
 
                 _session.Dispose();
                 _engine.Dispose();
@@ -254,6 +361,7 @@ namespace Cloudict.App.Views
         private async Task StartDictationAsync()
         {
             BtnStart.IsEnabled = false;
+            _micLossAnnounced = false;
 
             try
             {
@@ -264,7 +372,10 @@ namespace Cloudict.App.Views
                     if (reason != null) SetStatus(Loc.Get(reason));
                 }
 
-                await _session.StartAsync();
+                // Start and stop are usually driven by the shortcut while another application has
+                // focus, so this is exactly the moment the user cannot see Cloudict's own status
+                // line and the desktop has to say it instead.
+                if (await _session.StartAsync()) Notify(Loc.Get("Notify_Started"));
             }
             catch (Exception ex)
             {
@@ -277,11 +388,21 @@ namespace Cloudict.App.Views
             }
         }
 
-        private async Task StopDictationAsync()
+        /// <param name="notify">
+        /// False when the caller has its own, more specific thing to say — announcing a plain
+        /// "dictation stopped" alongside it would be two pop-ups for one event.
+        /// </param>
+        private async Task StopDictationAsync(bool notify = true)
         {
             BtnStop.IsEnabled = false;
 
-            try { await _session.StopAsync(); }
+            var wasRunning = _session.IsRunning;
+
+            try
+            {
+                await _session.StopAsync();
+                if (wasRunning && notify) Notify(Loc.Get("Notify_Stopped"));
+            }
             catch (Exception ex) { SetStatus(Loc.Get("Main_St_MicDisableErrorPrefix") + ex.Message); }
             finally { BtnStop.IsEnabled = true; ReflectRunningState(); }
         }
@@ -400,12 +521,18 @@ namespace Cloudict.App.Views
 
         private void SetStatus(string text) => TxtStatus.Text = text;
 
-        /// <summary>Keeps the corner badge and the tray tooltip in step with the dictation state.</summary>
+        /// <summary>
+        /// Keeps the corner badge and the tray tooltip in step with the dictation state.
+        ///
+        /// <para>This paints the badge straight away on a button press or shortcut, so the feedback
+        /// is immediate; the microphone watch then keeps it truthful from one second onwards.</para>
+        /// </summary>
         private void ReflectRunningState()
         {
             var running = _session.IsRunning;
 
             _indicator?.SetActive(running);
+            _micReportedLive = running;
 
             var tooltip = "Cloudict - " + Loc.Get(running ? "Indicator_Listening" : "Indicator_Idle");
             AppServices.Platform.TrayPresence?.SetTooltip(tooltip);
@@ -413,20 +540,46 @@ namespace Cloudict.App.Views
         }
 
         /// <summary>
-        /// Announces a voice command through the desktop's own notification system, which is the
-        /// only kind visible while the user is working in another application.
+        /// Shows a desktop notification, the only kind visible while the user is dictating into
+        /// another application. Never fatal: a system with notifications switched off must still
+        /// dictate.
         /// </summary>
-        private void OnCommandNotification(object sender, string phrase)
+        private void Notify(string message)
         {
             try
             {
-                AppServices.Platform.Notifier?.Show("Cloudict", Loc.Get("Main_St_CommandExecuted_Fmt", phrase));
+                AppServices.Platform.Notifier?.Show("Cloudict", message);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[MainWindow] notification failed: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Google Translate's microphone died and would not restart. The session cannot tear itself
+        /// down from inside its own loops, so it asks here.
+        /// </summary>
+        private void OnSessionAutoStopped(object sender, EventArgs e) =>
+            Dispatcher.UIThread.Post(async () =>
+            {
+                if (!_session.IsRunning) return;
+
+                var alreadyTold = _micLossAnnounced;
+                _micLossAnnounced = true;
+
+                await StopDictationAsync(notify: false);
+
+                SetStatus(Loc.Get("Main_St_MicLost"));
+                if (!alreadyTold) Notify(Loc.Get("Notify_MicLost"));
+            });
+
+        /// <summary>
+        /// Announces a voice command through the desktop's own notification system, which is the
+        /// only kind visible while the user is working in another application.
+        /// </summary>
+        private void OnCommandNotification(object sender, string phrase) =>
+            Notify(Loc.Get("Main_St_CommandExecuted_Fmt", phrase));
 
         #endregion
 

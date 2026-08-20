@@ -8,6 +8,40 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.0.2] – 2026-08-20
+
+### Fixed
+- **A finished sentence could be typed over and over.** After a long idle period, dictating one
+  phrase and then falling silent could set Cloudict typing that same phrase again and again until it
+  was stopped by hand. On a silence Cloudict flushes what it has, clears Google Translate's source
+  box and restarts the microphone — but the box does not always empty, most often once the page's
+  own speech recognition has errored. Cloudict threw away its record of which words had already gone
+  out the moment it *asked* for the box to be emptied, so the leftover text read back as brand-new
+  speech — and the next silence repeated the whole cycle. That record is now kept until an empty box
+  is actually *seen*. Leftover text stays recognised as already handled, and anything genuinely new
+  the user says on top of it still goes out, exactly once.
+- **Recognition that cannot be restarted now stops cleanly**, with a message, instead of leaving the
+  session listening to a microphone that is off.
+- **Pressing start during a slow browser launch no longer risks taking Chrome down with it.** The
+  helper browser reported itself open the moment Chrome launched, rather than when Google Translate
+  had finished loading, so a start arriving in that gap put two threads on one WebDriver session —
+  which WebDriver does not support and which can end the session, closing the window. A start now
+  waits for the launch to finish instead.
+- **The microphone badge follows the microphone, not just the shortcut.** It reported whatever
+  Cloudict last asked for, so when Google Translate stopped listening on its own the badge stayed
+  green while nothing was being heard. It now also asks the operating system whether the microphone
+  is actually being captured. Green means both — dictation running *and* the microphone live — so
+  another application holding the microphone never turns it green on its own.
+- **The microphone glyph sits in the middle of its disc.** A `Path` scales its geometry to the
+  top-left of its own box, and the box was square while the glyph is taller than it is wide, leaving
+  the icon a few pixels left of centre.
+
+### Added
+- **Desktop notifications when dictation starts and stops**, not only when a voice command runs —
+  and one warning per session if the microphone goes quiet underneath you. Start and stop are
+  usually driven by the shortcut while another application has focus, which is exactly when
+  Cloudict's own status line cannot be seen.
+
 ## [3.0.1] – 2026-08-20
 
 Four things that worked in 2.x and did not survive the move to Avalonia in 3.0.0.

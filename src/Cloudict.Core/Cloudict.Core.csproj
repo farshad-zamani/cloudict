@@ -17,6 +17,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Lets the tests reach helpers that are deliberately not part of the public surface. -->
+    <InternalsVisibleTo Include="Cloudict.Core.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <!-- Selenium drives the helper browser. It is cross-platform and is application logic, not an
          OS call, so it belongs here rather than behind a platform interface. -->

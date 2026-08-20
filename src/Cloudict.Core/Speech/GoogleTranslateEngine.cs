@@ -40,7 +40,7 @@ namespace Cloudict.Speech
     /// fallbacks. The user's own selectors from Settings are always tried first, so a future page
     /// change can be worked around without a new build.</para>
     /// </summary>
-    public sealed class GoogleTranslateEngine : IDisposable
+    public sealed class GoogleTranslateEngine : ISpeechEngine, IDisposable
     {
         /// <summary>
         /// The voice button's <c>jsname</c>. It is a single toggle, and carries the
@@ -64,6 +64,7 @@ namespace Cloudict.Speech
 
         private IWebDriver _driver;
         private BrowserProvisioner.Provision _provision;
+        private bool _ready;
         private bool _disposed;
 
         public GoogleTranslateEngine(BrowserProvisioner provisioner, Func<AppSettings> settingsAccessor)
@@ -78,8 +79,21 @@ namespace Cloudict.Speech
         /// <summary>Raised when the helper browser opens or closes.</summary>
         public event EventHandler<bool> BrowserOpenChanged;
 
-        /// <summary>True while the helper browser is open.</summary>
-        public bool IsBrowserOpen => _driver != null;
+        /// <summary>
+        /// True while the helper browser is open <em>and finished opening</em>.
+        ///
+        /// <para>The second half matters. This used to be a plain null check on the driver, which
+        /// goes non-null the moment Chrome launches — well before Google Translate has finished
+        /// building its page. A second caller arriving in that gap, which is exactly what pressing
+        /// the green button during a slow start does, was told the browser was ready and began
+        /// issuing commands on a session the first call was still setting up. Two threads driving
+        /// one WebDriver is not something WebDriver supports, and a session broken that way takes
+        /// Chrome down with it.</para>
+        ///
+        /// <para>Reporting "not open" until the setup finishes makes the second caller wait on the
+        /// same lock instead, and it then finds a browser that genuinely is ready.</para>
+        /// </summary>
+        public bool IsBrowserOpen => _driver != null && _ready;
 
         /// <summary>True between successful <see cref="StartListeningAsync"/> and stop.</summary>
         public bool IsListening { get; private set; }
@@ -127,6 +141,8 @@ namespace Cloudict.Speech
                         // then the page had caught up.
                         WaitForVoiceButton(TimeSpan.FromSeconds(20));
 
+                        _ready = true;
+
                         Report("Main_St_BrowserReadyPressGreen");
                         BrowserOpenChanged?.Invoke(this, true);
                         return true;
@@ -161,6 +177,7 @@ namespace Cloudict.Speech
         private void CloseInternal()
         {
             IsListening = false;
+            _ready = false;
 
             if (_driver == null) return;
 
@@ -314,13 +331,29 @@ namespace Cloudict.Speech
         /// <summary>
         /// Stops and restarts listening, and clears the source box. Google Translate keeps revising
         /// a long dictation, so periodically restarting keeps its buffer short and the text stable.
+        ///
+        /// <para>The result says what actually happened rather than assuming it worked. Both halves
+        /// can fail on a page that has been open for a long time — the box refuses to empty, or the
+        /// voice button will not come back on — and the caller has to know, because text left in the
+        /// box reads back as brand-new speech on the very next poll.</para>
         /// </summary>
-        public async Task ResetMicrophoneAsync()
+        public async Task<MicResetResult> ResetMicrophoneAsync()
         {
             await StopListeningAsync();
-            await ClearSourceTextAsync();
+
+            var remaining = await ClearSourceTextAsync();
             await Task.Delay(200);
-            await StartListeningAsync();
+
+            var listening = await StartListeningAsync();
+
+            var cleared = remaining != null && remaining.Length == 0;
+
+            if (!cleared)
+                Log($"source box not verified empty after the reset (remaining: {remaining?.Length.ToString() ?? "unknown"})");
+            if (!listening)
+                Log("the voice button did not come back on after the reset");
+
+            return new MicResetResult(cleared, remaining ?? string.Empty, listening);
         }
 
         /// <summary>The user's configured selector first, then the built-in structural fallbacks.</summary>
@@ -422,23 +455,69 @@ namespace Cloudict.Speech
             return ReadViaElements();
         });
 
-        /// <summary>Empties the source box and tells the page, so recognition starts from nothing.</summary>
-        public Task ClearSourceTextAsync() => Task.Run(() =>
+        /// <summary>
+        /// Empties the source box and tells the page, so recognition starts from nothing.
+        ///
+        /// <para>Returns whatever is <em>still</em> in the box — empty when the clear worked, and null
+        /// when the page could not be asked at all. It is checked rather than assumed because the
+        /// page does not always comply: after a long session, or once its own speech recognition has
+        /// errored, Google Translate puts the previous phrase straight back. Treating that as new
+        /// speech is what made Cloudict type the same sentence again and again until it was stopped
+        /// by hand.</para>
+        /// </summary>
+        public async Task<string> ClearSourceTextAsync()
         {
-            if (!IsBrowserOpen) return;
+            if (!IsBrowserOpen) return null;
 
-            // Dispatching 'input' matters: setting .value alone does not notify the page's own
-            // handlers, and the previous text reappears on the next revision.
-            TryScript(@"
-                var all = document.querySelectorAll('textarea');
-                for (var i = 0; i < all.length; i++) {
-                    if (all[i].offsetParent !== null) {
-                        all[i].value = '';
-                        all[i].dispatchEvent(new Event('input', { bubbles: true }));
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                await Task.Run(() =>
+                {
+                    // Dispatching 'input' matters: setting .value alone does not notify the page's own
+                    // handlers, and the previous text reappears on the next revision.
+                    TryScript(@"
+                        var all = document.querySelectorAll('textarea');
+                        for (var i = 0; i < all.length; i++) {
+                            if (all[i].offsetParent !== null) {
+                                all[i].value = '';
+                                all[i].dispatchEvent(new Event('input', { bubbles: true }));
+                            }
+                        }
+                        return true;");
+                });
+
+                // The page restores the value asynchronously when it is going to restore it at all,
+                // so a read taken in the same breath as the write always looks like success.
+                await Task.Delay(150);
+
+                var remaining = await Task.Run(ReadVisibleSourceText);
+                if (remaining != null && remaining.Length == 0) return string.Empty;
+
+                Log($"clear attempt {attempt + 1} left text behind");
+            }
+
+            return await Task.Run(ReadVisibleSourceText);
+        }
+
+        /// <summary>
+        /// The contents of the visible source box, with none of <see cref="ReadRecognizedTextAsync"/>'s
+        /// fallbacks — an empty answer here has to mean "the box is empty", not "nothing was found".
+        /// Null when the page could not be queried at all.
+        /// </summary>
+        private string ReadVisibleSourceText()
+        {
+            if (!IsBrowserOpen) return null;
+
+            return TryScriptValue(@"
+                try {
+                    var all = document.querySelectorAll('textarea');
+                    for (var i = 0; i < all.length; i++) {
+                        if (all[i].offsetParent !== null && all[i].value && all[i].value.trim())
+                            return all[i].value.trim();
                     }
-                }
-                return true;");
-        });
+                    return '';
+                } catch (e) { return ''; }");
+        }
 
         private IEnumerable<string> AriaLabels()
         {
@@ -562,5 +641,29 @@ namespace Cloudict.Speech
 
             lock (_gate) CloseInternal();
         }
+    }
+
+    /// <summary>
+    /// What a microphone reset actually achieved. Both halves are reported because a reset that
+    /// half-worked is worse than one that plainly failed: text left in the source box is read back
+    /// as new speech, and a microphone that never came on leaves the session listening to nothing.
+    /// </summary>
+    public sealed class MicResetResult
+    {
+        public MicResetResult(bool sourceCleared, string remainingText, bool listening)
+        {
+            SourceCleared = sourceCleared;
+            RemainingText = remainingText ?? string.Empty;
+            Listening = listening;
+        }
+
+        /// <summary>True only when the source box was <em>confirmed</em> empty afterwards.</summary>
+        public bool SourceCleared { get; }
+
+        /// <summary>What the box still holds. Empty when it was cleared or could not be read.</summary>
+        public string RemainingText { get; }
+
+        /// <summary>True when the voice button came back on.</summary>
+        public bool Listening { get; }
     }
 }

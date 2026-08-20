@@ -22,7 +22,8 @@ namespace Cloudict.App.Views
         private static readonly Color ActiveColor = Color.Parse("#3E9080");
         private static readonly Color IdleColor = Color.Parse("#C2454E");
 
-        private bool _isActive;
+        // Null until the first paint, so the opening call is never mistaken for "no change".
+        private bool? _isActive;
 
         public StatusIndicatorWindow()
         {
@@ -50,6 +51,10 @@ namespace Cloudict.App.Views
                 Dispatcher.UIThread.Post(() => SetActive(active));
                 return;
             }
+
+            // The state is polled roughly once a second; repainting only on a real change keeps
+            // that from becoming a stream of pointless work and log noise.
+            if (_isActive == active) return;
 
             _isActive = active;
 

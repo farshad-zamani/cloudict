@@ -50,9 +50,14 @@ if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
 
 function Publish-Rid([string] $rid) {
     Write-Host "`n=== publish $rid ===" -ForegroundColor Cyan
+
+    # Out-Host, not a bare call: a PowerShell function returns everything that reaches the pipeline,
+    # so any line dotnet prints — a NuGet advisory is enough — would be returned alongside the path
+    # and the caller would receive an array where it expected one string.
     dotnet publish (Join-Path $repoRoot 'src\Cloudict.App\Cloudict.App.csproj') `
-        -c Release -r $rid --self-contained true --nologo -v quiet
+        -c Release -r $rid --self-contained true --nologo -v quiet | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "Publish failed for $rid." }
+
     return Join-Path $repoRoot "src\Cloudict.App\bin\Release\net10.0\$rid\publish"
 }
 
