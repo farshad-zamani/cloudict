@@ -46,18 +46,7 @@ namespace Cloudict.Platform.Linux
         /// <summary>Kept alive for the lifetime of the object: X holds a raw pointer to it.</summary>
         private static X11Interop.XErrorHandler _errorHandler;
 
-        /// <summary>
-        /// Opt-in stderr trace (<c>CLOUDICT_DEBUG=1</c>). Debug.WriteLine is compiled out of release
-        /// builds, which is precisely when a user needs to report why a shortcut is not firing.
-        /// </summary>
-        private static readonly bool Trace =
-            Environment.GetEnvironmentVariable("CLOUDICT_DEBUG") == "1";
-
-        private static void Log(string message)
-        {
-            Debug.WriteLine("[LinuxGlobalHotkeys] " + message);
-            if (Trace) Console.Error.WriteLine("[LinuxGlobalHotkeys] " + message);
-        }
+        private static void Log(string message) => DiagnosticLog.Write("LinuxGlobalHotkeys", message);
 
         public bool IsSupported { get; private set; }
         public string UnsupportedReasonKey { get; private set; }

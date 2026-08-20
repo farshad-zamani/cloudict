@@ -124,6 +124,15 @@ namespace Cloudict.Abstractions
         IKeyboardLayout KeyboardLayout { get; }
         IMicrophoneMonitor MicrophoneMonitor { get; }
 
+        /// <summary>Shows desktop notifications. Never null; may report itself unsupported.</summary>
+        INotifier Notifier { get; }
+
+        /// <summary>
+        /// A tray presence owned by the platform, or null when the application should provide its
+        /// own. Only Windows needs this, because a balloon there requires a registered tray icon.
+        /// </summary>
+        ITrayPresence TrayPresence { get; }
+
         /// <summary>Recomputed from the services above; call after a permission may have changed.</summary>
         PlatformCapabilities GetCapabilities();
     }

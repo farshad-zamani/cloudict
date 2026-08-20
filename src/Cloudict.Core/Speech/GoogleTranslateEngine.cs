@@ -90,6 +90,8 @@ namespace Cloudict.Speech
         private void Report(string key, params object[] args) =>
             StatusChanged?.Invoke(this, new EngineStatusEventArgs(key, args));
 
+        private static void Log(string message) => DiagnosticLog.Write("GoogleTranslateEngine", message);
+
         #region Browser lifecycle
 
         /// <summary>
@@ -117,6 +119,13 @@ namespace Cloudict.Speech
                         Report("Main_St_WaitingPageLoad");
                         new WebDriverWait(_driver, TimeSpan.FromSeconds(30)).Until(
                             d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
+
+                        // readyState only says the document finished loading. Google Translate is a
+                        // single-page app that builds its controls afterwards, so the voice button
+                        // does not exist yet at that point. Reporting the browser ready here made
+                        // the first press of the shortcut fail and the second one work, because by
+                        // then the page had caught up.
+                        WaitForVoiceButton(TimeSpan.FromSeconds(20));
 
                         Report("Main_St_BrowserReadyPressGreen");
                         BrowserOpenChanged?.Invoke(this, true);
@@ -222,7 +231,10 @@ namespace Cloudict.Speech
             if (!IsBrowserOpen) return false;
 
             Report("Main_St_ActivatingMic");
-            WaitForPageInteractive();
+
+            // Covers the case where the page reloaded after the browser was opened; when it is
+            // already there this returns immediately.
+            WaitForVoiceButton(TimeSpan.FromSeconds(10));
 
             for (int attempt = 0; attempt < 3; attempt++)
             {
@@ -241,6 +253,7 @@ namespace Cloudict.Speech
                         return true;"))
                 {
                     IsListening = true;
+                    Log("microphone activated via jsname toggle");
                     Report("Main_St_MicActivated");
                     return true;
                 }
@@ -319,27 +332,43 @@ namespace Cloudict.Speech
             foreach (var xpath in BuiltInMicXPaths) yield return xpath;
         }
 
-        private void WaitForPageInteractive()
+        /// <summary>
+        /// Waits until the voice button actually exists in the page.
+        ///
+        /// <para>This is the difference between the shortcut working on the first press and needing
+        /// a second one. Every other readiness signal — <c>readyState</c>, "some buttons exist" —
+        /// goes true well before Google Translate has finished building its controls.</para>
+        /// </summary>
+        private bool WaitForVoiceButton(TimeSpan timeout)
         {
-            try
+            var deadline = DateTime.UtcNow + timeout;
+            var started = DateTime.UtcNow;
+            Log(FormattableString.Invariant($"waiting for the voice button (up to {timeout.TotalSeconds:N0}s)"));
+
+            while (DateTime.UtcNow < deadline)
             {
-                new WebDriverWait(_driver, TimeSpan.FromSeconds(1)).Until(d =>
+                if (TryScript($@"return document.querySelector('button[jsname=""{VoiceButtonJsName}""]') !== null;"))
+                {
+                    Log(FormattableString.Invariant($"voice button appeared after {(DateTime.UtcNow - started).TotalSeconds:N1}s"));
+                    return true;
+                }
+
+                // Fall back to the user's own selector, in case Google has changed the jsname and
+                // they have already corrected it in Settings.
+                foreach (var xpath in MicXPaths())
                 {
                     try
                     {
-                        return ((IJavaScriptExecutor)d).ExecuteScript(
-                            "return document.readyState === 'complete' && document.querySelectorAll('button').length > 0")
-                            .Equals(true);
+                        if (_driver.FindElements(By.XPath(xpath)).Count > 0) return true;
                     }
-                    catch { return false; }
-                });
+                    catch (Exception ex) { Debug.WriteLine($"[GoogleTranslateEngine] probe '{xpath}': {ex.Message}"); }
+                }
 
-                Thread.Sleep(300);
+                Thread.Sleep(200);
             }
-            catch (Exception)
-            {
-                Report("Main_St_PageNotReadyContinue");
-            }
+
+            Log(FormattableString.Invariant($"voice button did not appear within {timeout.TotalSeconds:N0}s"));
+            return false;
         }
 
         #endregion

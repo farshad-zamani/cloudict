@@ -41,6 +41,9 @@ namespace Cloudict.App
                 Platform = PlatformServices.Create();
                 Platform.Paths.EnsureCreated();
 
+                // Opt-in via CLOUDICT_DEBUG=1; writes nothing otherwise.
+                DiagnosticLog.Initialize(Platform.Paths.LogDirectory);
+
                 Settings = new SettingsManager(Platform.Paths);
                 Settings.UserMessage += (s, e) => UserMessage?.Invoke(s, e);
 

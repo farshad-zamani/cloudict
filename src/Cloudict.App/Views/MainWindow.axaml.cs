@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using Cloudict.Abstractions;
 using Cloudict.App.Services;
@@ -30,6 +31,9 @@ namespace Cloudict.App.Views
         private VoiceCommandManager _commandManager;
         private bool _closing;
 
+        private StatusIndicatorWindow _indicator;
+        private TrayIcon _trayIcon;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -53,8 +57,13 @@ namespace Cloudict.App.Views
             AppServices.UserMessage += OnUserMessage;
             SingleInstance.CommandReceived += OnInstanceCommand;
 
+            // A voice command fires while the user is working in another application, so the
+            // feedback has to come from the desktop rather than from a window they cannot see.
+            _session.CommandExecuted += OnCommandNotification;
+
             Opened += OnOpened;
             Closing += OnClosing;
+            PropertyChanged += OnWindowPropertyChanged;
 
             SetStatus(Loc.Get("Main_Ready"));
         }
@@ -66,8 +75,101 @@ namespace Cloudict.App.Views
         {
             ReloadCommands();
             RegisterShortcuts();
+            SetUpTray();
+            ShowIndicator();
             ReportPlatformLimitations();
         }
+
+        /// <summary>
+        /// Shows the corner badge that reports whether the microphone is live. Cloudict's own window
+        /// is normally covered by the helper browser and whatever the user is dictating into, so
+        /// without this there is no way to tell at a glance.
+        /// </summary>
+        private void ShowIndicator()
+        {
+            try
+            {
+                if (_settings?.ShowStatusIndicator == false)
+                {
+                    _indicator?.Hide();
+                    return;
+                }
+
+                _indicator ??= new StatusIndicatorWindow();
+                _indicator.Show();
+                _indicator.SetActive(_session.IsRunning);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MainWindow] status indicator unavailable: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets up the tray presence.
+        ///
+        /// <para>Windows supplies its own through the platform layer, because a balloon notification
+        /// there is only shown on behalf of a registered tray icon - so whatever notifies must also
+        /// own the icon, and creating a second one here is what produced the stray blue information
+        /// icon in 2.x. Elsewhere the platform returns null and Avalonia's own tray icon is used.</para>
+        /// </summary>
+        private void SetUpTray()
+        {
+            var native = AppServices.Platform.TrayPresence;
+            if (native != null)
+            {
+                native.Activated += (_, __) => Dispatcher.UIThread.Post(RestoreFromTray);
+                native.SetTooltip("Cloudict");
+                return;
+            }
+
+            try
+            {
+                var show = new NativeMenuItem(Loc.Get("Tray_Show"));
+                show.Click += (_, __) => Dispatcher.UIThread.Post(RestoreFromTray);
+
+                var quit = new NativeMenuItem(Loc.Get("Tray_Quit"));
+                quit.Click += (_, __) => Dispatcher.UIThread.Post(RequestExit);
+
+                _trayIcon = new TrayIcon
+                {
+                    ToolTipText = "Cloudict",
+                    IsVisible = true,
+                    Menu = new NativeMenu { Items = { show, quit } }
+                };
+
+                _trayIcon.Clicked += (_, __) => Dispatcher.UIThread.Post(RestoreFromTray);
+
+                using var stream = AssetLoader.Open(new Uri("avares://Cloudict/Assets/app-icon.ico"));
+                _trayIcon.Icon = new WindowIcon(stream);
+            }
+            catch (Exception ex)
+            {
+                // Optional: GNOME needs an extension to show one at all, and may simply not.
+                Debug.WriteLine($"[MainWindow] tray icon unavailable: {ex.Message}");
+            }
+        }
+
+        /// <summary>Sends the window to the tray rather than the taskbar, when the user asked for that.</summary>
+        private void OnWindowPropertyChanged(object sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property != WindowStateProperty) return;
+            if (WindowState != WindowState.Minimized) return;
+            if (_settings?.MinimizeToTray != true) return;
+
+            Hide();
+            ShowInTaskbar = false;
+        }
+
+        private void RestoreFromTray()
+        {
+            ShowInTaskbar = true;
+            Show();
+            WindowState = WindowState.Normal;
+            Activate();
+        }
+
+        private void RequestExit() => Close();
 
         private async void OnClosing(object sender, WindowClosingEventArgs e)
         {
@@ -89,6 +191,9 @@ namespace Cloudict.App.Views
             }
             finally
             {
+                try { _indicator?.Close(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
+                try { _trayIcon?.Dispose(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
+
                 _session.Dispose();
                 _engine.Dispose();
                 Close();
@@ -168,6 +273,7 @@ namespace Cloudict.App.Views
             finally
             {
                 BtnStart.IsEnabled = true;
+                ReflectRunningState();
             }
         }
 
@@ -177,7 +283,7 @@ namespace Cloudict.App.Views
 
             try { await _session.StopAsync(); }
             catch (Exception ex) { SetStatus(Loc.Get("Main_St_MicDisableErrorPrefix") + ex.Message); }
-            finally { BtnStop.IsEnabled = true; }
+            finally { BtnStop.IsEnabled = true; ReflectRunningState(); }
         }
 
         private async void OnQuickTransferClick(object sender, RoutedEventArgs e)
@@ -238,6 +344,7 @@ namespace Cloudict.App.Views
                     _settings = AppServices.Settings.LoadSettings();
                     ReloadCommands();
                     RegisterShortcuts();
+                    ShowIndicator();
                 }
             }
             catch (Exception ex)
@@ -292,6 +399,34 @@ namespace Cloudict.App.Views
                 e.Args.Length > 0 ? Loc.Get(e.MessageKey, e.Args) : Loc.Get(e.MessageKey)));
 
         private void SetStatus(string text) => TxtStatus.Text = text;
+
+        /// <summary>Keeps the corner badge and the tray tooltip in step with the dictation state.</summary>
+        private void ReflectRunningState()
+        {
+            var running = _session.IsRunning;
+
+            _indicator?.SetActive(running);
+
+            var tooltip = "Cloudict - " + Loc.Get(running ? "Indicator_Listening" : "Indicator_Idle");
+            AppServices.Platform.TrayPresence?.SetTooltip(tooltip);
+            if (_trayIcon != null) _trayIcon.ToolTipText = tooltip;
+        }
+
+        /// <summary>
+        /// Announces a voice command through the desktop's own notification system, which is the
+        /// only kind visible while the user is working in another application.
+        /// </summary>
+        private void OnCommandNotification(object sender, string phrase)
+        {
+            try
+            {
+                AppServices.Platform.Notifier?.Show("Cloudict", Loc.Get("Main_St_CommandExecuted_Fmt", phrase));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MainWindow] notification failed: {ex.Message}");
+            }
+        }
 
         #endregion
 

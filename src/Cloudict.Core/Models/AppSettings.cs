@@ -141,6 +141,13 @@ namespace Cloudict
         /// </summary>
         public bool MinimizeToTray { get; set; } = false;
 
+        /// <summary>
+        /// Whether the microphone badge appears in the corner of the screen. On by default: the
+        /// helper browser and the application being dictated into normally cover Cloudict's own
+        /// window, so this is the only indication that speaking will produce text.
+        /// </summary>
+        public bool ShowStatusIndicator { get; set; } = true;
+
         // Voice Commands Configuration - تنظیمات دستورات صوتی
         /// <summary>
         /// لیست دستورات صوتی تعریف شده توسط کاربر

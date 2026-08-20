@@ -36,8 +36,14 @@ namespace Cloudict.Platform
         {
             var info = new WindowsPlatformInfo();
 
+            // One object serves both roles on Windows: a balloon is only shown on behalf of a
+            // registered tray icon, so whatever notifies must also own the icon.
+            var notifier = new WindowsNotifier();
+
             return new CompositePlatformServices
             {
+                Notifier = notifier,
+                TrayPresence = notifier,
                 Paths = new WindowsAppPaths(),
                 Info = info,
                 BrowserLocator = new WindowsBrowserLocator(info),
@@ -66,7 +72,9 @@ namespace Cloudict.Platform
                 TextInjector = new Linux.LinuxTextInjector(),
                 GlobalHotkeys = new Linux.LinuxGlobalHotkeys(),
                 KeyboardLayout = new NullKeyboardLayout(),
-                MicrophoneMonitor = new NullMicrophoneMonitor()
+                MicrophoneMonitor = new NullMicrophoneMonitor(),
+                Notifier = new UnixNotifier(isMacOS: false),
+                TrayPresence = null
             };
         }
 
@@ -87,7 +95,9 @@ namespace Cloudict.Platform
                 TextInjector = new MacOS.MacTextInjector(),
                 GlobalHotkeys = new MacOS.MacGlobalHotkeys(),
                 KeyboardLayout = new NullKeyboardLayout(),
-                MicrophoneMonitor = new NullMicrophoneMonitor()
+                MicrophoneMonitor = new NullMicrophoneMonitor(),
+                Notifier = new UnixNotifier(isMacOS: true),
+                TrayPresence = null
             };
         }
 
@@ -100,6 +110,8 @@ namespace Cloudict.Platform
             public IGlobalHotkeys GlobalHotkeys { get; init; }
             public IKeyboardLayout KeyboardLayout { get; init; }
             public IMicrophoneMonitor MicrophoneMonitor { get; init; }
+            public INotifier Notifier { get; init; }
+            public ITrayPresence TrayPresence { get; init; }
 
             public PlatformCapabilities GetCapabilities()
             {
@@ -128,7 +140,7 @@ namespace Cloudict.Platform
 
             public void Dispose()
             {
-                foreach (var disposable in new IDisposable[] { TextInjector, GlobalHotkeys, MicrophoneMonitor })
+                foreach (var disposable in new IDisposable[] { TextInjector, GlobalHotkeys, MicrophoneMonitor, Notifier })
                 {
                     try { disposable?.Dispose(); }
                     catch (Exception ex) { Debug.WriteLine($"[PlatformServices] dispose: {ex.Message}"); }

@@ -76,6 +76,9 @@ namespace Cloudict.App.Views
             TxtAriaLabels.Text = string.Join(Environment.NewLine, _settings.TextBoxAriaLabels ?? new List<string>());
             TxtClassSelectors.Text = string.Join(Environment.NewLine, _settings.TextBoxClassSelectors ?? new List<string>());
 
+            ChkMinimizeToTray.IsChecked = _settings.MinimizeToTray;
+            ChkShowIndicator.IsChecked = _settings.ShowStatusIndicator;
+
             ChkShortcutEnabled.IsChecked = _settings.GlobalShortcutEnabled;
             ChkToggleCtrl.IsChecked = _settings.ShortcutCtrl;
             ChkToggleAlt.IsChecked = _settings.ShortcutAlt;
@@ -157,6 +160,9 @@ namespace Cloudict.App.Views
                 _settings.MicButtonXPath = TxtMicXPath.Text?.Trim();
                 _settings.TextBoxAriaLabels = SplitLines(TxtAriaLabels.Text);
                 _settings.TextBoxClassSelectors = SplitLines(TxtClassSelectors.Text);
+
+                _settings.MinimizeToTray = ChkMinimizeToTray.IsChecked == true;
+                _settings.ShowStatusIndicator = ChkShowIndicator.IsChecked == true;
 
                 _settings.GlobalShortcutEnabled = ChkShortcutEnabled.IsChecked == true;
                 _settings.ShortcutCtrl = ChkToggleCtrl.IsChecked == true;

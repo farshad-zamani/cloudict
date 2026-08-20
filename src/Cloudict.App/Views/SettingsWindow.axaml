@@ -158,6 +158,14 @@
 
             <Border Classes="card" Padding="18">
               <StackPanel Spacing="10">
+                <TextBlock Text="{loc:Tr Settings_NotificationsGroup}" Classes="h2"/>
+                <CheckBox x:Name="ChkMinimizeToTray" Content="{loc:Tr Settings_MinimizeToTray}"/>
+                <CheckBox x:Name="ChkShowIndicator" Content="{loc:Tr Settings_ShowIndicator}"/>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="18">
+              <StackPanel Spacing="10">
                 <TextBlock Text="{loc:Tr Settings_PlatformGroup}" Classes="h2"/>
                 <TextBlock x:Name="TxtPlatformSummary" Classes="hint"/>
                 <Button Classes="subtle" HorizontalAlignment="Left"

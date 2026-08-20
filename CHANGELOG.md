@@ -8,6 +8,34 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.0.1] – 2026-08-20
+
+Four things that worked in 2.x and did not survive the move to Avalonia in 3.0.0.
+
+### Fixed
+- **The start/stop shortcut needed pressing twice.** `Ctrl+Alt+A` opened the helper browser on the
+  first press and only started the microphone on the second. The browser was being reported ready
+  as soon as the document finished loading, but Google Translate is a single-page app that builds
+  its controls afterwards — the voice button did not exist yet, so activating it failed silently
+  and the second press worked only because the page had caught up. Cloudict now waits for the voice
+  button itself. One press takes about nine seconds on a cold start, and does the whole job.
+
+### Added
+- **The microphone badge is back, redrawn.** A small always-on-top disc in the corner of the screen,
+  teal with a microphone while listening and muted red with a slash through it when not. It carries
+  the state in both colour and shape rather than colour alone, and it exists because the helper
+  browser and whatever you are dictating into normally cover Cloudict's own window. It can be turned
+  off in *Settings → General*.
+- **Minimize to the system tray**, as a setting again, with the tray icon that goes with it.
+  Clicking the icon brings the window back.
+- **Desktop notifications when a voice command runs**, using each system's own mechanism: a tray
+  balloon on Windows, `notify-send` on Linux, User Notifications on macOS. These have to come from
+  the desktop rather than from Cloudict's window, because a voice command fires precisely while you
+  are working in another application.
+- **`CLOUDICT_DEBUG=1` writes a trace file** next to the logs. `Debug.WriteLine` is compiled out of
+  release builds and a windowed application has no console on Windows, so until now there was no way
+  to find out why the browser would not come up on someone else's machine.
+
 ## [3.0.0] – 2026-08-19
 
 Cloudict now runs on **Linux and macOS** as well as Windows, from one codebase and with one

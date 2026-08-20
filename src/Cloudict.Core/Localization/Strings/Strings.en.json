@@ -43,6 +43,8 @@
   "Common_TypeText": "Type text",
   "Common_Warning_Title": "Warning",
   "Common_Yes": "yes",
+  "Indicator_Idle": "Not listening",
+  "Indicator_Listening": "Listening",
   "KeySel_Help": "Notes:\n• To combine keys, press them at the same time\n• For separate keys, press each key by itself\n• To clear, press the 'Clear' button",
   "KeySel_Prompt": "Press the keys you want:",
   "KeySel_SelectAtLeastOne": "Please select at least one key.",
@@ -295,10 +297,11 @@
   "Settings_MicXPath": "Microphone button XPath",
   "Settings_MicXPath_Hint": "XPath of the microphone button. Prefer a stable, language-independent attribute (e.g. //button[@jsname='...']) so it keeps working in every language.",
   "Settings_Milliseconds": "ms",
-  "Settings_MinimizeToTray": "Minimize to the system tray when closing",
+  "Settings_MinimizeToTray": "Minimize to the system tray instead of the taskbar",
   "Settings_MinimizeToTrayHint": "When enabled, closing the window sends the app to the tray so shortcuts stay active.",
   "Settings_Modifiers": "Modifier keys",
   "Settings_NoteText": "After adding or editing a command, close and reopen the app once so the changes take effect immediately.",
+  "Settings_NotificationsGroup": "Tray and notifications",
   "Settings_ParameterLabel": "Parameter:",
   "Settings_PlatformGroup": "This system",
   "Settings_PlatformSummary_Fmt": "Typing backend: {0}  ·  type into other apps: {1}  ·  global shortcuts: {2}  ·  switch keyboard layout: {3}",
@@ -323,6 +326,7 @@
   "Settings_ShortcutEnabled": "Enable global shortcuts",
   "Settings_ShortcutGroup": "Global shortcuts",
   "Settings_ShortcutsFooter": "Shortcuts work in every Windows app. By default Ctrl+Alt+A toggles the microphone and Ctrl+Alt+S stops it.",
+  "Settings_ShowIndicator": "Show the microphone badge in the corner of the screen",
   "Settings_StartDelay": "Transfer start delay",
   "Settings_StartDelayHint": "Wait after the first words before auto-typing begins. Suggested 1500–3000 ms — higher on slow internet.",
   "Settings_StartDelay_Tip": "Why this exists: after you start speaking, Cloudict waits this long before it begins typing into your target app, giving Google Translate time to settle the first few words (which it revises the most) so they transfer correctly and properly spaced. On slow internet, give it more time. Too short means the first words may be wrong or run together; too long means typing starts late. Suggested 1500–3000 ms.",
@@ -356,5 +360,7 @@
   "Settings_WarningText": "Voice commands work best with at most two words; pause briefly after announcing each command.",
   "Settings_WordDelay": "Word-by-word delay",
   "Settings_WordDelayHint": "Wait before typing each word so Google can finalize it. Suggested 500–1000 ms — increase on slow/weak internet so words aren't typed before Google corrects them.",
-  "Settings_WordDelay_Tip": "Why this exists: while you keep speaking, Google Translate often REVISES a word it just showed once it hears the next one (it corrects its first guess). So Cloudict waits this long before typing each word, to type the corrected/final word instead of the wrong first guess. On slow or weak internet Google needs more time, so increase this. Too short means wrong or partial words; too long means typing lags behind. Suggested 500–1000 ms."
+  "Settings_WordDelay_Tip": "Why this exists: while you keep speaking, Google Translate often REVISES a word it just showed once it hears the next one (it corrects its first guess). So Cloudict waits this long before typing each word, to type the corrected/final word instead of the wrong first guess. On slow or weak internet Google needs more time, so increase this. Too short means wrong or partial words; too long means typing lags behind. Suggested 500–1000 ms.",
+  "Tray_Quit": "Quit",
+  "Tray_Show": "Show Cloudict"
 }
