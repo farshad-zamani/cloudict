@@ -150,16 +150,68 @@
     <Setter Property="TextWrapping" Value="Wrap"/>
   </Style>
 
-  <!-- Tabs -->
+  <!--
+    Tabs, as pills rather than an underline.
+
+    Fluent marks the selected tab with a short bar underneath it (PART_SelectedPipe). At this font
+    size it sat loose under the label, its width unrelated to the text above it, and with the header
+    row it looked like a stray line rather than a selection. A filled rounded chip is unambiguous,
+    matches the rounded cards everywhere else in the app, and mirrors correctly in Persian without
+    any extra work — which a hand-placed underline does not.
+  -->
   <Style Selector="TabItem">
     <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    <Setter Property="Background" Value="Transparent"/>
     <Setter Property="FontSize" Value="14"/>
-    <Setter Property="Padding" Value="16,8"/>
+    <Setter Property="Padding" Value="17,9"/>
+    <Setter Property="Margin" Value="2,0"/>
     <Setter Property="MinHeight" Value="0"/>
+
+    <!-- The whole template, not just its colours. Hiding Fluent's PART_SelectedPipe left the bar
+         still occupying its row, and the chip then sat above a gap; owning the template means the
+         underline does not exist in the first place. -->
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Name="Chip"
+                Background="{TemplateBinding Background}"
+                CornerRadius="9"
+                Padding="{TemplateBinding Padding}">
+          <Border.Transitions>
+            <Transitions>
+              <BrushTransition Property="Background" Duration="0:0:0.15"/>
+            </Transitions>
+          </Border.Transitions>
+
+          <ContentPresenter Name="PART_ContentPresenter"
+                            Content="{TemplateBinding Header}"
+                            ContentTemplate="{TemplateBinding HeaderTemplate}"
+                            Foreground="{TemplateBinding Foreground}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"/>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="TabItem:pointerover">
+    <Setter Property="Background" Value="{DynamicResource BgPanelBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
   </Style>
 
   <Style Selector="TabItem:selected">
-    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+    <Setter Property="Foreground" Value="#FFFFFF"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+
+  <Style Selector="TabItem:selected:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
+    <Setter Property="Foreground" Value="#FFFFFF"/>
+  </Style>
+
+  <!-- Keeps the strip clear of the panel below it. -->
+  <Style Selector="TabControl">
+    <Setter Property="Padding" Value="0,10,0,0"/>
   </Style>
 
   <Style Selector="ComboBox">

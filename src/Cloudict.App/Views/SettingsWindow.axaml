@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:Cloudict.App.Localization"
         xmlns:model="clr-namespace:Cloudict;assembly=Cloudict.Core"
+        xmlns:conv="clr-namespace:Cloudict.App.Converters"
         x:Class="Cloudict.App.Views.SettingsWindow"
         Title="{loc:Tr Settings_Title}"
         Width="960" Height="700"
@@ -11,6 +12,10 @@
         FontFamily="{DynamicResource AppFontFamily}"
         FlowDirection="{DynamicResource AppFlowDirection}"
         Background="{DynamicResource BgWindowBrush}">
+
+  <Window.Resources>
+    <conv:ActionNameConverter x:Key="ActionName"/>
+  </Window.Resources>
 
   <Grid Margin="24,20" RowDefinitions="Auto,*,Auto">
 
@@ -31,8 +36,10 @@
           <TextBlock Text="{loc:Tr Settings_Subheading}" Classes="hint" Margin="0,3,0,0"/>
         </StackPanel>
 
-        <Image Grid.Column="1" Source="avares://Cloudict/Assets/logo.png"
-               Height="52" Stretch="Uniform" VerticalAlignment="Center" Margin="16,0,4,0"/>
+        <!-- The mark only: the window already says Cloudict in its title, and the wordmark baked
+             into the full logo bitmap could not stay legible at this size. -->
+        <Image Grid.Column="1" Source="avares://Cloudict/Assets/logo-mark.png"
+               Height="44" Width="44" Stretch="Uniform" VerticalAlignment="Center" Margin="16,0,4,0"/>
       </Grid>
     </Border>
 
@@ -58,7 +65,8 @@
               <StackPanel Spacing="10">
                 <TextBlock Text="{loc:Tr Settings_TypingLanguage}" Classes="h2"/>
                 <TextBlock Text="{loc:Tr Settings_TypingLanguageHint}" Classes="hint"/>
-                <ComboBox x:Name="CmbTypingLanguage" Width="280" HorizontalAlignment="Left"/>
+                <ComboBox x:Name="CmbTypingLanguage" Width="280" HorizontalAlignment="Left"
+                          SelectionChanged="OnTypingLanguageChanged"/>
               </StackPanel>
             </Border>
           </StackPanel>
@@ -187,18 +195,23 @@
             <DataGrid x:Name="GridCommands" AutoGenerateColumns="False"
                       x:DataType="model:VoiceCommand"
                       IsReadOnly="True" GridLinesVisibility="Horizontal"
-                      Background="Transparent">
+                      Background="Transparent"
+                      DoubleTapped="OnCommandDoubleTapped">
               <DataGrid.Columns>
                 <DataGridTextColumn Header="{loc:Tr SW_ColPhrase}" Binding="{Binding Phrase}" Width="2*"/>
-                <DataGridTextColumn Header="{loc:Tr SW_ColAction}" Binding="{Binding ActionType}" Width="*"/>
+                <!-- Through the converter: the model's own Action property is hard-coded Persian,
+                     and the bare enum shows "TypeText" to everyone. -->
+                <DataGridTextColumn Header="{loc:Tr SW_ColAction}" Width="*"
+                                    Binding="{Binding ActionType, Converter={StaticResource ActionName}}"/>
                 <DataGridTextColumn Header="{loc:Tr SW_ColValue}" Binding="{Binding ActionValue}" Width="2*"/>
               </DataGrid.Columns>
             </DataGrid>
           </Border>
 
           <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0" Spacing="8">
-            <Button Classes="success" Content="{loc:Tr SW_AddCommand}" Click="OnAddCommandClick"/>
-            <Button Classes="accent" Content="{loc:Tr SW_DeleteCommand}" Click="OnDeleteCommandClick"/>
+            <Button x:Name="BtnAddCommand" Classes="success" Content="{loc:Tr SW_AddCommand}" Click="OnAddCommandClick"/>
+            <Button x:Name="BtnEditCommand" Classes="subtle" Content="{loc:Tr Settings_EditCommand}" Click="OnEditCommandClick"/>
+            <Button x:Name="BtnDeleteCommand" Classes="accent" Content="{loc:Tr SW_DeleteCommand}" Click="OnDeleteCommandClick"/>
             <Button Classes="subtle" Content="{loc:Tr SW_RestoreDefaults}" Click="OnRestoreCommandsClick"/>
           </StackPanel>
         </Grid>
@@ -210,8 +223,8 @@
     <Border Grid.Row="2" Classes="card" Margin="0,12,0,0" Padding="14">
       <Grid ColumnDefinitions="Auto,*,Auto,Auto">
         <Button Grid.Column="0" Classes="warning" Content="{loc:Tr Settings_ResetDefaults}" Click="OnResetClick"/>
-        <Button Grid.Column="2" Classes="success" Content="{loc:Tr Common_Save}" Click="OnSaveClick" Margin="0,0,8,0"/>
-        <Button Grid.Column="3" Classes="subtle" Content="{loc:Tr Common_Cancel}" Click="OnCancelClick"/>
+        <Button Grid.Column="2" x:Name="BtnSave" Classes="success" Content="{loc:Tr Common_Save}" Click="OnSaveClick" Margin="0,0,8,0"/>
+        <Button Grid.Column="3" x:Name="BtnCancel" Classes="subtle" Content="{loc:Tr Common_Cancel}" Click="OnCancelClick"/>
       </Grid>
     </Border>
 

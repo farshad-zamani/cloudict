@@ -30,12 +30,28 @@
         </StackPanel>
       </Button>
 
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-        <Image Source="avares://Cloudict/Assets/logo.png" Height="60" Width="60"
-               Stretch="Uniform" VerticalAlignment="Center" Margin="0,6,0,0"/>
-        <!-- Version reads left-to-right in both interface languages -->
-        <Border Classes="badge" Margin="8,10,0,0" VerticalAlignment="Center"
-                FlowDirection="LeftToRight">
+      <!--
+        The name is set as text rather than baked into the logo bitmap. The full logo carries the
+        wordmark as artwork, and squeezing that into sixty pixels turned the letters into a smear —
+        a bitmap cannot stay sharp at a tenth of its size, or at a display scale it was not drawn
+        for. Only the cloud-and-microphone mark is a picture now; "Cloudict" is real type, in the
+        two weights the logo uses, and stays crisp at any size and any DPI.
+
+        The whole lockup reads left-to-right even in Persian, because the name is Latin.
+      -->
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                  FlowDirection="LeftToRight" Spacing="11" Margin="0,4,0,0">
+        <Image Source="avares://Cloudict/Assets/logo-mark.png" Height="46" Width="46"
+               Stretch="Uniform" VerticalAlignment="Center"/>
+
+        <TextBlock VerticalAlignment="Center" FontSize="27"
+                   FontFamily="{DynamicResource InterFont}">
+          <Run Text="Cloud" FontWeight="SemiBold"
+               Foreground="{DynamicResource TextPrimaryBrush}"/><Run Text="ict" FontWeight="Normal"
+               Foreground="{DynamicResource TextSecondaryBrush}"/>
+        </TextBlock>
+
+        <Border Classes="badge" VerticalAlignment="Center" Margin="0,4,0,0">
           <TextBlock x:Name="TxtVersion" FontSize="12"
                      Foreground="{DynamicResource TextSecondaryBrush}"/>
         </Border>

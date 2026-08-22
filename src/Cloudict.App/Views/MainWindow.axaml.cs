@@ -113,6 +113,7 @@ namespace Cloudict.App.Views
             _ = Task.Run(async () =>
             {
                 var missed = 0;
+                var seenLive = false;
 
                 while (!token.IsCancellationRequested)
                 {
@@ -125,6 +126,7 @@ namespace Cloudict.App.Views
                         if (!_session.IsRunning)
                         {
                             missed = 0;
+                            seenLive = false;
                             live = false;
                         }
                         else if (!monitor.IsSupported || _session.IsResetting)
@@ -137,14 +139,17 @@ namespace Cloudict.App.Views
                         else if (monitor.IsMicrophoneInUse())
                         {
                             missed = 0;
+                            seenLive = true;
                             live = true;
                         }
                         else
                         {
                             // Chrome releases the capture stream a moment after the page stops, so
-                            // one quiet sample proves nothing. Three in a row does.
+                            // one quiet sample proves nothing. Three in a row does — and before the
+                            // microphone has ever come on, allow longer, because a cold start can
+                            // take a few seconds to open the capture stream.
                             missed++;
-                            live = missed < 3;
+                            live = missed < (seenLive ? 3 : 8);
                         }
 
                         Dispatcher.UIThread.Post(() => ApplyMicrophoneState(live));
@@ -159,28 +164,40 @@ namespace Cloudict.App.Views
         }
 
         /// <summary>
-        /// Paints the badge and, the first time the microphone goes quiet under a running session,
-        /// says so — on the desktop, because by then the user is looking at another application.
+        /// Paints the badge and, when the microphone has genuinely gone under a running session,
+        /// winds that session down.
+        ///
+        /// <para>Stopping matters as much as the badge. A session left "running" over a microphone
+        /// the page has switched off is a lie the rest of the app then acts on — most visibly, the
+        /// start shortcut reads it as "stop" and the user has to press twice.</para>
         /// </summary>
-        private void ApplyMicrophoneState(bool live)
+        private async void ApplyMicrophoneState(bool live)
         {
             _indicator?.SetActive(live);
 
             if (live == _micReportedLive) return;
             _micReportedLive = live;
 
-            if (!live && _session.IsRunning)
-            {
-                SetStatus(Loc.Get("Main_St_MicLost"));
+            if (live || !_session.IsRunning) return;
 
-                // Google Translate drops the microphone between phrases often enough that
-                // announcing every one would be a stream of pop-ups. The badge follows each of
-                // them; the desktop is told once per session, which is what the user needs to know.
-                if (!_micLossAnnounced)
-                {
-                    _micLossAnnounced = true;
-                    Notify(Loc.Get("Notify_MicLost"));
-                }
+            SetStatus(Loc.Get("Main_St_MicLost"));
+
+            // Google Translate drops the microphone between phrases often enough that announcing
+            // every one would be a stream of pop-ups, so this is said once per session.
+            if (!_micLossAnnounced)
+            {
+                _micLossAnnounced = true;
+                Notify(Loc.Get("Notify_MicLost"));
+            }
+
+            try
+            {
+                await StopDictationAsync(notify: false);
+                SetStatus(Loc.Get("Main_St_MicLost"));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MainWindow] could not wind down a dead session: {ex.Message}");
             }
         }
 
@@ -593,10 +610,29 @@ namespace Cloudict.App.Views
                 onStop: () => Dispatcher.UIThread.Post(async () => await StopDictationAsync()));
         }
 
+        /// <summary>
+        /// The start shortcut. It toggles, but only against a session that is genuinely listening.
+        ///
+        /// <para>Google Translate switches its own microphone off — after a long silence, or when its
+        /// recognition errors — without telling anyone. The session went on believing it was running,
+        /// so the next press of the start shortcut was read as "stop": it announced that dictation had
+        /// stopped, did not switch the microphone on, and only the second press worked. A session
+        /// whose microphone the page has already killed is not running in any sense the user cares
+        /// about, so start means start.</para>
+        /// </summary>
         private async Task ToggleDictationAsync()
         {
-            if (_session.IsRunning) await StopDictationAsync();
-            else await StartDictationAsync();
+            if (_session.IsRunning && _micReportedLive)
+            {
+                await StopDictationAsync();
+                return;
+            }
+
+            // Wind a dead session down first: StartAsync would otherwise see IsRunning and return
+            // "already started" without touching the microphone.
+            if (_session.IsRunning) await StopDictationAsync(notify: false);
+
+            await StartDictationAsync();
         }
 
         private void ReloadCommands()

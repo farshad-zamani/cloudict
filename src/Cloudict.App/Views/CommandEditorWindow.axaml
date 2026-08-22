@@ -1,0 +1,88 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:Cloudict.App.Localization"
+        x:Class="Cloudict.App.Views.CommandEditorWindow"
+        Width="720" Height="620"
+        MinWidth="600" MinHeight="460"
+        WindowStartupLocation="CenterOwner"
+        Icon="avares://Cloudict/Assets/app-icon.ico"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FlowDirection="{DynamicResource AppFlowDirection}"
+        Background="{DynamicResource BgWindowBrush}">
+
+  <!--
+    Creating and editing a voice command. Its absence is why the voice-commands tab could list
+    commands and delete them but never actually define one: "Add" produced a row called "new
+    command" that nothing could fill in, because the grid is read-only.
+
+    The key is captured by pressing it rather than typed as a code. The old help text told people to
+    write "^c" and "%{F4}", a SendKeys dialect the cross-platform key parser does not read at all, so
+    anything written that way silently did nothing.
+  -->
+  <Grid Margin="22,18" RowDefinitions="Auto,Auto,*,Auto,Auto">
+
+    <Border Grid.Row="0" Classes="card" Padding="16,12" Margin="0,0,0,12">
+      <TextBlock x:Name="TxtHeader" Classes="h1"/>
+    </Border>
+
+    <Border Grid.Row="1" Classes="card" Padding="18,16">
+      <StackPanel Spacing="12">
+
+        <StackPanel Spacing="5">
+          <TextBlock Text="{loc:Tr AddCmd_PhraseLabel}"/>
+          <TextBox x:Name="TxtPhrase" Classes="field"
+                   ToolTip.Tip="{loc:Tr AddCmd_PhraseTooltip}"/>
+        </StackPanel>
+
+        <StackPanel Spacing="5">
+          <TextBlock Text="{loc:Tr AddCmd_ActionTypeLabel}"/>
+          <ComboBox x:Name="CmbActionType" HorizontalAlignment="Stretch"
+                    SelectionChanged="OnActionTypeChanged"/>
+        </StackPanel>
+
+        <!-- Typed text: whatever is entered here is sent verbatim. -->
+        <StackPanel x:Name="PanelText" Spacing="5">
+          <TextBlock Text="{loc:Tr AddCmd_ActionValueLabel}"/>
+          <TextBox x:Name="TxtValue" Classes="field"/>
+        </StackPanel>
+
+        <!-- A key press, captured rather than spelled out. -->
+        <StackPanel x:Name="PanelKey" Spacing="5" IsVisible="False">
+          <TextBlock Text="{loc:Tr AddCmd_ActionValueLabel}"/>
+          <Grid ColumnDefinitions="*,Auto">
+            <Border Grid.Column="0" Classes="card" Padding="12,10" MinHeight="42"
+                    Background="{DynamicResource BgWindowBrush}">
+              <TextBlock x:Name="TxtKeyValue" VerticalAlignment="Center"
+                         FontFamily="{DynamicResource InterFont}"
+                         FlowDirection="LeftToRight"/>
+            </Border>
+            <Button Grid.Column="1" x:Name="BtnCaptureKey" Classes="accent"
+                    Margin="8,0,0,0" Padding="16,10"
+                    Content="{loc:Tr AddCmd_ChooseKey}" Click="OnCaptureKeyClick"/>
+          </Grid>
+          <TextBlock Text="{loc:Tr AddCmd_KeyHint}" Classes="hint"/>
+        </StackPanel>
+
+        <TextBlock x:Name="TxtError" Classes="hint" IsVisible="False"
+                   Foreground="{DynamicResource AccentHoverBrush}"/>
+
+      </StackPanel>
+    </Border>
+
+    <Border Grid.Row="2" Classes="card" Padding="18,14" Margin="0,12,0,0">
+      <ScrollViewer>
+        <TextBlock Text="{loc:Tr AddCmd_HelpText}" Classes="hint"/>
+      </ScrollViewer>
+    </Border>
+
+    <Border Grid.Row="4" Classes="card" Margin="0,12,0,0" Padding="14">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <Button Grid.Column="1" x:Name="BtnSaveCommand" Classes="success" Content="{loc:Tr Common_Save}"
+                Click="OnSaveClick" Margin="0,0,8,0"/>
+        <Button Grid.Column="2" x:Name="BtnCancelCommand" Classes="subtle" Content="{loc:Tr Common_Cancel}"
+                Click="OnCancelClick"/>
+      </Grid>
+    </Border>
+
+  </Grid>
+</Window>

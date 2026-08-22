@@ -268,15 +268,33 @@ namespace Cloudict
             lang = string.IsNullOrWhiteSpace(lang) ? "fa" : lang.ToLowerInvariant();
             if (VoiceCommandSets == null) VoiceCommandSets = new Dictionary<string, List<VoiceCommand>>();
 
-            if (!VoiceCommandSets.TryGetValue(lang, out var list) || list == null)
+            VoiceCommandSets.TryGetValue(lang, out var list);
+
+            var hasLegacy = lang == "fa" && VoiceCommands != null && VoiceCommands.Count > 0;
+
+            // An empty set counts as "never configured" while the pre-3.x flat list still holds
+            // something. Previously the migration ran only when the key was *missing*, so a single
+            // save with an empty grid — which the settings window produced whenever the typing
+            // language was switched — wrote an empty set and put the user's commands permanently
+            // out of reach, even though they were still sitting in the settings file.
+            if (list == null || (list.Count == 0 && hasLegacy))
             {
-                // Migrate any legacy flat list into Persian on first run; otherwise seed defaults.
-                if (lang == "fa" && VoiceCommands != null && VoiceCommands.Count > 0)
+                if (hasLegacy)
+                {
                     list = new List<VoiceCommand>(VoiceCommands);
+
+                    // Adopted once and then dropped: left in place, the legacy list would resurrect
+                    // these commands every time the user deliberately deleted them.
+                    VoiceCommands = new List<VoiceCommand>();
+                }
                 else
+                {
                     list = GetDefaultCommandsForLanguage(lang);
+                }
+
                 VoiceCommandSets[lang] = list;
             }
+
             return list;
         }
 

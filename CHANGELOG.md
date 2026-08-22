@@ -8,6 +8,46 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.0.3] – 2026-08-22
+
+### Fixed
+- **The start shortcut needed pressing twice after the microphone stopped on its own.** Google
+  Translate switches its own microphone off — after a long silence, or when its recognition errors —
+  without telling anyone, and the session went on believing it was running. `Ctrl+Alt+A` was then read
+  as "stop": it announced that dictation had stopped, did not switch the microphone on, and only the
+  second press worked. A session whose microphone the page has already killed is now wound down as
+  soon as that is detected, and the start shortcut means start.
+- **Voice commands could disappear from the settings window.** They are stored per dictation
+  language, but the grid was never reloaded when that language changed, so saving wrote the previous
+  language's list — or an empty one — under the newly chosen language. Once an empty Persian set
+  existed, the migration that carries pre-3.x commands forward stopped running, and a full set of
+  commands became unreachable while still sitting in the settings file. Both halves are fixed, and an
+  empty set no longer strands the older list.
+- **Text already typed could be sent a second time on the next start.** Whatever Google Translate
+  still had in its box when a session ended — most often because it had switched its own microphone
+  off mid-dictation — was read on the first poll of the next session and typed again. The box is now
+  cleared when dictation starts, and anything that will not clear is recorded as already handled.
+- **The logo is legible again.** The full logo carries the app name as artwork, and squeezing that
+  into sixty pixels turned the letters into a smear. Only the cloud-and-microphone mark is a picture
+  now; "Cloudict" is set as real type, in the two weights the logo uses, so it stays sharp at any size
+  and any display scale.
+
+### Added
+- **The voice-command editor.** Creating a command has not worked since 3.0.0: the WPF dialog did not
+  survive the move to Avalonia, so "Add command" put a row named "new command" into a read-only grid
+  with no way to fill it in. There is now a proper editor — phrase, action, and value — reachable from
+  "Add command", from "Edit command", and by double-clicking a row.
+- **Keys are chosen by pressing them.** A "send key" command took a SendKeys-style code such as `^c`
+  or `%{F4}`, which the cross-platform key parser does not read at all, so a command written that way
+  was accepted and then silently did nothing. Press the key — with Ctrl, Alt or Shift held if you want
+  a combination — and the command records it. The help text has been rewritten to match.
+
+### Changed
+- **The selected settings tab is a filled chip** rather than a loose underline that sat unaligned
+  under the label.
+- **The action column in the commands list is translated.** It showed `TypeText` and `SendKeys` to
+  everyone, from a model property that had those names hard-coded in Persian.
+
 ## [3.0.2] – 2026-08-20
 
 ### Fixed

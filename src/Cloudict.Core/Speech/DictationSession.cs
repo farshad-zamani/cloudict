@@ -132,9 +132,20 @@ namespace Cloudict.Speech
             if (IsRunning) return true;
 
             if (!await _engine.OpenBrowserAsync()) return false;
+
+            // Whatever is on the page belongs to the session before this one — most often because
+            // Google Translate switched its own microphone off mid-dictation and left the phrase
+            // sitting there. Starting on top of it read it as brand-new speech on the first poll and
+            // typed the whole thing again: the rare "it suddenly sent text I had already had".
+            var leftover = await _engine.ClearSourceTextAsync();
+
             if (!await _engine.StartListeningAsync()) return false;
 
             ResetRecognitionState();
+
+            // If it would not clear, the text is still there to be read. Record it as already
+            // handled rather than hoping it goes away.
+            if (!string.IsNullOrWhiteSpace(leftover)) MarkAlreadyHandled(leftover);
 
             _cancellation = new CancellationTokenSource();
             var token = _cancellation.Token;
@@ -189,6 +200,31 @@ namespace Cloudict.Speech
                 _wordTransferredSinceReset = false;
                 _lastSentText = string.Empty;
                 _awaitingEmptyPage = false;
+            }
+        }
+
+        /// <summary>
+        /// Takes text that is already on the page as read and typed, so it is never sent again.
+        /// Used at the start of a session for anything the previous one left behind.
+        /// </summary>
+        private void MarkAlreadyHandled(string text)
+        {
+            lock (_gate)
+            {
+                _lastRecognizedText = text;
+
+                _allWords.Clear();
+                _allWords.AddRange(Whitespace.Split(text.Trim()).Where(w => w.Length > 0));
+                _lastProcessedWordIndex = _allWords.Count - 1;
+
+                _hasRecognizedText = true;
+                _firstTextDetectedTime = DateTime.Now;
+                _lastTextUpdateTime = DateTime.Now;
+
+                // Not "transferred since the last reset" — nothing was sent, so an idle pause must
+                // not treat this as a phrase worth flushing and resetting around.
+                _wordTransferredSinceReset = false;
+                _awaitingEmptyPage = true;
             }
         }
 

@@ -30,6 +30,12 @@ namespace Cloudict.Speech
         Task<string> ReadRecognizedTextAsync();
 
         /// <summary>
+        /// Empties the source box, returning whatever is still in it — empty when the clear worked,
+        /// null when the page could not be asked at all.
+        /// </summary>
+        Task<string> ClearSourceTextAsync();
+
+        /// <summary>
         /// Restarts listening from an empty box, reporting what actually happened rather than
         /// assuming it worked.
         /// </summary>

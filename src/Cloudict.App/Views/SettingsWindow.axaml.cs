@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Cloudict.App.Services;
 using Cloudict.Services;
@@ -17,6 +18,9 @@ namespace Cloudict.App.Views
         private readonly ObservableCollection<VoiceCommand> _commands = new ObservableCollection<VoiceCommand>();
 
         private AppSettings _settings;
+
+        /// <summary>Which dictation language the grid's contents belong to.</summary>
+        private string _commandLanguage;
 
         /// <summary>True when the user saved; the caller reloads settings only then.</summary>
         public bool Saved { get; private set; }
@@ -110,9 +114,29 @@ namespace Cloudict.App.Views
         {
             _commands.Clear();
 
-            var language = SelectedCode(CmbTypingLanguage, "en");
-            foreach (var command in _settings.GetVoiceCommandsFor(language))
+            _commandLanguage = SelectedCode(CmbTypingLanguage, "en");
+            foreach (var command in _settings.GetVoiceCommandsFor(_commandLanguage))
                 _commands.Add(command);
+        }
+
+        /// <summary>
+        /// Voice commands are stored per dictation language, so switching that language has to swap
+        /// the grid over — banking what is on screen under the language it was loaded for first.
+        ///
+        /// <para>Without this the grid kept showing the previous language's commands, and saving
+        /// wrote them under the newly chosen one. Switching to a language with no commands of its
+        /// own therefore saved an <em>empty</em> set over a full one, which is how a set of voice
+        /// commands could disappear from a window the user never touched.</para>
+        /// </summary>
+        private void OnTypingLanguageChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_commandLanguage == null) return;     // still populating the window
+
+            var chosen = SelectedCode(CmbTypingLanguage, "en");
+            if (chosen == _commandLanguage) return;
+
+            _settings.SetVoiceCommandsFor(_commandLanguage, _commands.ToList());
+            ReloadCommands();
         }
 
         /// <summary>
@@ -172,7 +196,7 @@ namespace Cloudict.App.Views
                 _settings.StopShortcutAlt = ChkStopAlt.IsChecked == true;
                 _settings.StopShortcutKey = string.IsNullOrWhiteSpace(TxtStopKey.Text) ? "S" : TxtStopKey.Text.Trim();
 
-                _settings.SetVoiceCommandsFor(_settings.TypingLanguage, _commands.ToList());
+                _settings.SetVoiceCommandsFor(_commandLanguage ?? _settings.TypingLanguage, _commands.ToList());
 
                 if (AppServices.Settings.SaveSettings(_settings))
                 {
@@ -211,10 +235,66 @@ namespace Cloudict.App.Views
             PopulateFromSettings();
         }
 
-        private void OnAddCommandClick(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// Opens the command editor. Until it existed, "Add" put a row called "new command" into a
+        /// read-only grid, which is to say it did nothing a user could finish.
+        /// </summary>
+        private async void OnAddCommandClick(object sender, RoutedEventArgs e)
         {
-            var nextId = _commands.Count == 0 ? 1 : _commands.Max(c => c.Id) + 1;
-            _commands.Add(new VoiceCommand(nextId, Loc.Get("SW_NewCommandPhrase"), CommandActionType.TypeText, ""));
+            try
+            {
+                var editor = new CommandEditorWindow();
+                await editor.ShowDialog(this);
+
+                if (editor.Result == null) return;
+
+                editor.Result.Id = _commands.Count == 0 ? 1 : _commands.Max(c => c.Id) + 1;
+                _commands.Add(editor.Result);
+                GridCommands.SelectedItem = editor.Result;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[SettingsWindow] add command failed: {ex.Message}");
+            }
+        }
+
+        private void OnEditCommandClick(object sender, RoutedEventArgs e) => EditSelectedCommand();
+
+        private void OnCommandDoubleTapped(object sender, TappedEventArgs e) => EditSelectedCommand();
+
+        private async void EditSelectedCommand()
+        {
+            if (GridCommands.SelectedItem is not VoiceCommand selected) return;
+
+            try
+            {
+                // The editor works on a copy: cancelling has to leave the original untouched, and the
+                // grid is bound straight to these objects.
+                var draft = new VoiceCommand(selected.Id, selected.Phrase, selected.ActionType, selected.ActionValue);
+
+                var editor = new CommandEditorWindow(draft);
+                await editor.ShowDialog(this);
+
+                if (editor.Result == null) return;
+
+                selected.Phrase = editor.Result.Phrase;
+                selected.ActionType = editor.Result.ActionType;
+                selected.ActionValue = editor.Result.ActionValue;
+                selected.UpdatedAt = DateTime.Now;
+
+                // The row shows a converted value, which no property change on the model announces.
+                var index = _commands.IndexOf(selected);
+                if (index >= 0)
+                {
+                    _commands.RemoveAt(index);
+                    _commands.Insert(index, selected);
+                    GridCommands.SelectedItem = selected;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[SettingsWindow] edit command failed: {ex.Message}");
+            }
         }
 
         private void OnDeleteCommandClick(object sender, RoutedEventArgs e)

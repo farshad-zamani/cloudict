@@ -26,10 +26,12 @@ namespace Cloudict.Core.Tests
         {
             // The page keeps showing the same phrase no matter how often it is cleared, which is
             // what it does once its own speech recognition has errored.
-            var engine = new StubEngine("سلام دنیا") { ClearSucceeds = false };
+            var engine = new StubEngine { ClearSucceeds = false };
             var output = new CapturingOutput();
 
             await using var run = await Run.Start(engine, output);
+
+            engine.Speak("سلام دنیا");
             await run.WaitForSilenceCycles(3);
 
             Assert.Equal("سلام دنیا", output.Typed);
@@ -39,10 +41,12 @@ namespace Cloudict.Core.Tests
         public async Task A_phrase_the_page_restores_after_a_successful_clear_is_not_typed_again()
         {
             // The box reports itself empty, and then the phrase reappears anyway.
-            var engine = new StubEngine("سلام دنیا") { ClearSucceeds = true };
+            var engine = new StubEngine { ClearSucceeds = true };
             var output = new CapturingOutput();
 
             await using var run = await Run.Start(engine, output);
+
+            engine.Speak("سلام دنیا");
             await run.WaitForSilenceCycles(3);
 
             Assert.Equal("سلام دنیا", output.Typed);
@@ -52,13 +56,15 @@ namespace Cloudict.Core.Tests
         public async Task New_speech_after_a_reset_is_still_transferred()
         {
             // The guard must not be so eager that it swallows what the user actually says next.
-            var engine = new StubEngine("سلام دنیا") { ClearSucceeds = true };
+            var engine = new StubEngine { ClearSucceeds = true };
             var output = new CapturingOutput();
 
             await using var run = await Run.Start(engine, output);
+
+            engine.Speak("سلام دنیا");
             await run.WaitForSilenceCycles(1);
 
-            engine.PageText = "خداحافظ";
+            engine.Speak("خداحافظ");
             await run.WaitForSilenceCycles(2);
 
             Assert.Equal("سلام دنیا خداحافظ", output.Typed);
@@ -69,27 +75,64 @@ namespace Cloudict.Core.Tests
         {
             // The page keeps the finished phrase and appends what is said next, which is exactly
             // what a box that refuses to clear looks like once the user carries on talking.
-            var engine = new StubEngine("سلام دنیا") { ClearSucceeds = false };
+            var engine = new StubEngine { ClearSucceeds = false };
             var output = new CapturingOutput();
 
             await using var run = await Run.Start(engine, output);
+
+            engine.Speak("سلام دنیا");
             await run.WaitForSilenceCycles(1);
 
-            engine.PageText = "سلام دنیا حال شما";
+            engine.Speak("سلام دنیا حال شما");
             await run.WaitForSilenceCycles(2);
 
             Assert.Equal("سلام دنیا حال شما", output.Typed);
         }
 
         [Fact]
-        public async Task A_microphone_that_will_not_restart_stops_the_session_instead_of_looping()
+        public async Task Text_left_on_the_page_by_the_previous_session_is_never_typed()
         {
-            var engine = new StubEngine("سلام دنیا") { ClearSucceeds = false, CanRestart = false };
+            // What the user sees: Google Translate switched its own microphone off, leaving the last
+            // phrase in the box. Pressing start again typed that whole phrase a second time.
+            var engine = new StubEngine { ClearSucceeds = false };
+            engine.Speak("سلام دنیا");   // already on the page before this session begins
+
+            var output = new CapturingOutput();
+
+            await using var run = await Run.Start(engine, output);
+            await run.WaitForSilenceCycles(2);
+
+            Assert.Equal(string.Empty, output.Typed);
+        }
+
+        [Fact]
+        public async Task Speech_after_a_start_over_leftover_text_is_transferred_once()
+        {
+            // And the leftover must not swallow what is said next.
+            var engine = new StubEngine { ClearSucceeds = false };
+            engine.Speak("سلام دنیا");
+
             var output = new CapturingOutput();
 
             await using var run = await Run.Start(engine, output);
 
-            Assert.True(await run.WaitForAutoStop(TimeSpan.FromSeconds(5)),
+            engine.Speak("سلام دنیا حال شما");
+            await run.WaitForSilenceCycles(2);
+
+            Assert.Equal("حال شما", output.Typed);
+        }
+
+        [Fact]
+        public async Task A_microphone_that_will_not_restart_stops_the_session_instead_of_looping()
+        {
+            var engine = new StubEngine { ClearSucceeds = false, CanRestart = false };
+            var output = new CapturingOutput();
+
+            await using var run = await Run.Start(engine, output);
+
+            engine.Speak("سلام دنیا");
+
+            Assert.True(await run.WaitForAutoStop(TimeSpan.FromSeconds(10)),
                 "the session should have asked to be stopped once the microphone could not be restarted");
         }
 
@@ -121,8 +164,6 @@ namespace Cloudict.Core.Tests
 
                 var session = new DictationSession(engine, new NullInjector(), () => settings, output);
                 var run = new Run(session, engine);
-
-                run._session.AutoStopped += (_, __) => run._autoStopped.Set();
 
                 Assert.True(await session.StartAsync());
                 return run;
@@ -163,9 +204,7 @@ namespace Cloudict.Core.Tests
         private sealed class StubEngine : ISpeechEngine
         {
             private readonly object _gate = new object();
-            private string _pageText;
-
-            public StubEngine(string pageText) => _pageText = pageText;
+            private string _pageText = string.Empty;
 
             /// <summary>False for a page that refuses to empty its source box.</summary>
             public bool ClearSucceeds { get; set; } = true;
@@ -175,16 +214,25 @@ namespace Cloudict.Core.Tests
 
             public int ResetCount { get; private set; }
 
-            public string PageText
+            /// <summary>Puts a phrase on the page, as speaking into the microphone would.</summary>
+            public void Speak(string text)
             {
-                get { lock (_gate) return _pageText; }
-                set { lock (_gate) _pageText = value; }
+                lock (_gate) _pageText = text;
             }
 
             public Task<bool> OpenBrowserAsync(CancellationToken ct = default) => Task.FromResult(true);
             public Task<bool> StartListeningAsync() => Task.FromResult(true);
             public Task<bool> StopListeningAsync() => Task.FromResult(true);
-            public Task<string> ReadRecognizedTextAsync() => Task.FromResult(PageText);
+
+            public Task<string> ReadRecognizedTextAsync()
+            {
+                lock (_gate) return Task.FromResult(_pageText);
+            }
+
+            public Task<string> ClearSourceTextAsync()
+            {
+                lock (_gate) return Task.FromResult(ClearSucceeds ? string.Empty : _pageText);
+            }
 
             public Task<MicResetResult> ResetMicrophoneAsync()
             {
@@ -192,8 +240,8 @@ namespace Cloudict.Core.Tests
                 {
                     ResetCount++;
 
-                    // Either way the phrase is still there on the next read: that is the whole point.
-                    // ClearSucceeds only decides whether the page *admits* it.
+                    // Either way the phrase is still on the page for the next read: that is the whole
+                    // point. ClearSucceeds only decides whether the page *admits* it is still there.
                     var remaining = ClearSucceeds ? string.Empty : _pageText;
                     return Task.FromResult(new MicResetResult(ClearSucceeds, remaining, CanRestart));
                 }
