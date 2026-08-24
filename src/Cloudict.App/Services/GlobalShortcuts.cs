@@ -21,8 +21,16 @@ namespace Cloudict.App.Services
         /// <summary>True when this platform cannot register global shortcuts at all.</summary>
         public bool IsSupported => _hotkeys.IsSupported;
 
-        /// <summary>Re-registers both shortcuts from current settings. Safe to call repeatedly.</summary>
-        public void Apply(AppSettings settings, Action onToggle, Action onStop)
+        /// <summary>
+        /// Re-registers both shortcuts from current settings. Safe to call repeatedly.
+        ///
+        /// <para>The two do one thing each: the first starts, the second stops. The first used to
+        /// toggle, which meant its meaning depended on state the user could not see — and when the
+        /// page had quietly switched the microphone off, "start" was read as "stop" and it took two
+        /// presses to get listening again. There is a dedicated stop shortcut; start can just
+        /// start.</para>
+        /// </summary>
+        public void Apply(AppSettings settings, Action onStart, Action onStop)
         {
             if (settings == null || !_hotkeys.IsSupported) return;
 
@@ -31,7 +39,7 @@ namespace Cloudict.App.Services
             if (!settings.GlobalShortcutEnabled) return;
 
             Register(settings.ShortcutKey ?? "A",
-                     settings.ShortcutCtrl, settings.ShortcutShift, settings.ShortcutAlt, onToggle);
+                     settings.ShortcutCtrl, settings.ShortcutShift, settings.ShortcutAlt, onStart);
 
             Register(settings.StopShortcutKey ?? "S",
                      settings.StopShortcutCtrl, settings.StopShortcutShift, settings.StopShortcutAlt, onStop);

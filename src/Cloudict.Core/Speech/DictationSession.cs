@@ -142,6 +142,7 @@ namespace Cloudict.Speech
             if (!await _engine.StartListeningAsync()) return false;
 
             ResetRecognitionState();
+            ForgetCommandHistory();
 
             // If it would not clear, the text is still there to be read. Record it as already
             // handled rather than hoping it goes away.
@@ -201,6 +202,19 @@ namespace Cloudict.Speech
                 _lastSentText = string.Empty;
                 _awaitingEmptyPage = false;
             }
+        }
+
+        /// <summary>
+        /// Clears the voice-command matcher's memory of recent words, so a phrase spoken before a
+        /// pause cannot match again after it.
+        /// </summary>
+        private void ForgetCommandHistory()
+        {
+            VoiceCommandProcessor commands;
+            lock (_gate) commands = _commands;
+
+            try { commands?.ResetWordHistory(); }
+            catch (Exception ex) { Debug.WriteLine($"[DictationSession] command history: {ex.Message}"); }
         }
 
         /// <summary>
@@ -379,9 +393,17 @@ namespace Cloudict.Speech
             try
             {
                 Report("Main_St_QuickTransferReset");
+
+                // Let the word-by-word loop finish whatever it is mid-way through before the
+                // remainder goes out in one piece, so the two cannot interleave.
+                await Task.Delay(400);
                 await FlushPendingWordsAsync();
 
                 var reset = await _engine.ResetMicrophoneAsync();
+
+                // The command matcher keeps a short history of recent words. Carrying it across a
+                // reset let the last phrase spoken before the pause match again on the other side.
+                ForgetCommandHistory();
 
                 // Whether or not the page claims to have emptied its box, what has already been
                 // typed stays on the record until an empty box is actually observed.

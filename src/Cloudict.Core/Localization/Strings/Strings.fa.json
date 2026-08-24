@@ -76,6 +76,7 @@
   "Main_St_ActivatingMic2": "در حال فعال‌سازی میکروفون...",
   "Main_St_AllTransferred": "همه متن با موفقیت منتقل شد",
   "Main_St_AllTransferredSent": "همه متن با موفقیت منتقل شد و به برنامه خارجی ارسال شد",
+  "Main_St_AlreadyListening": "همین حالا در حال شنیدن است — برای پایان، میان‌بر توقف را بزنید.",
   "Main_St_AutoTransferErrorPrefix": "خطا در انتقال خودکار: ",
   "Main_St_BrowserNotActive": "مرورگر فعال نیست",
   "Main_St_BrowserPrepErrorPrefix": "خطا در آماده سازی مرورگر: ",

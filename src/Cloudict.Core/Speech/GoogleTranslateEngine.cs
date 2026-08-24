@@ -50,6 +50,9 @@ namespace Cloudict.Speech
         private const string VoiceButtonJsName = "Sz6qce";
         private const string ListeningClass = "XiUwde";
 
+        /// <summary>The page's own "clear source text" button — the X beside the box.</summary>
+        private const string ClearButtonJsName = "r4nke";
+
         /// <summary>Structural fallbacks for the voice button, tried after the user's own selector.</summary>
         private static readonly string[] BuiltInMicXPaths =
         {
@@ -341,8 +344,15 @@ namespace Cloudict.Speech
         {
             await StopListeningAsync();
 
+            // Give the page time to actually stop before touching its box. Clearing while its own
+            // recognition is still winding down is how the phrase came back: it finishes, writes
+            // what it heard, and overwrites the empty box a moment after it was emptied. The stable
+            // 2.x build waited about this long here, and the shorter wait that replaced it is why
+            // the repeat became more frequent rather than less.
+            await Task.Delay(700);
+
             var remaining = await ClearSourceTextAsync();
-            await Task.Delay(200);
+            await Task.Delay(300);
 
             var listening = await StartListeningAsync();
 
@@ -469,26 +479,55 @@ namespace Cloudict.Speech
         {
             if (!IsBrowserOpen) return null;
 
+            var labels = string.Join(",", AriaLabels().Select(l => "\"" + l.Replace("\"", "\\\"") + "\""));
+
             for (int attempt = 0; attempt < 3; attempt++)
             {
-                await Task.Run(() =>
-                {
-                    // Dispatching 'input' matters: setting .value alone does not notify the page's own
-                    // handlers, and the previous text reappears on the next revision.
-                    TryScript(@"
-                        var all = document.querySelectorAll('textarea');
-                        for (var i = 0; i < all.length; i++) {
-                            if (all[i].offsetParent !== null) {
-                                all[i].value = '';
-                                all[i].dispatchEvent(new Event('input', { bubbles: true }));
-                            }
-                        }
-                        return true;");
-                });
+                await Task.Run(() => TryScript($@"
+                    try {{
+                        // Google's own clear button first. Emptying .value only changes the DOM; the
+                        // page keeps its own idea of the phrase and can put it straight back, which
+                        // is exactly how a finished sentence ended up being typed a second time.
+                        // Pressing the button the user would press resets that state properly.
+                        var clearBtn = document.querySelector(
+                            'button[jsname=""{ClearButtonJsName}""], button[aria-label=""Clear source text""], button[aria-label=""پاک کردن متن منبع""]');
+                        if (clearBtn && clearBtn.offsetParent !== null) {{
+                            try {{ clearBtn.click(); }} catch (e) {{ }}
+                        }}
+
+                        // Then the box itself, addressed by the labels the user configured before any
+                        // guesswork. Both events are dispatched: some of the page's handlers listen
+                        // for 'change' rather than 'input', and one without the other leaves half of
+                        // its state stale.
+                        var cleared = false;
+                        var labels = [{labels}];
+                        for (var i = 0; i < labels.length; i++) {{
+                            var el = document.querySelector('textarea[aria-label=""' + labels[i] + '""]');
+                            if (el) {{
+                                el.value = '';
+                                el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                                el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                                cleared = true;
+                            }}
+                        }}
+
+                        if (!cleared) {{
+                            var all = document.querySelectorAll('textarea');
+                            for (var j = 0; j < all.length; j++) {{
+                                if (all[j].offsetParent !== null) {{
+                                    all[j].value = '';
+                                    all[j].dispatchEvent(new Event('input', {{ bubbles: true }}));
+                                    all[j].dispatchEvent(new Event('change', {{ bubbles: true }}));
+                                }}
+                            }}
+                        }}
+
+                        return true;
+                    }} catch (e) {{ return false; }}"));
 
                 // The page restores the value asynchronously when it is going to restore it at all,
                 // so a read taken in the same breath as the write always looks like success.
-                await Task.Delay(150);
+                await Task.Delay(250);
 
                 var remaining = await Task.Run(ReadVisibleSourceText);
                 if (remaining != null && remaining.Length == 0) return string.Empty;
@@ -531,6 +570,8 @@ namespace Cloudict.Speech
             yield return "متن منبع";
             yield return "متن برای ترجمه";
             yield return "Text to translate";
+            yield return "نوشتار مبدأ";
+            yield return "نوشتن متن";
         }
 
         private IEnumerable<string> ClassSelectors()

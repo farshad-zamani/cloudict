@@ -76,6 +76,7 @@
   "Main_St_ActivatingMic2": "Activating the microphone...",
   "Main_St_AllTransferred": "All text transferred successfully",
   "Main_St_AllTransferredSent": "All text transferred and sent to the external app",
+  "Main_St_AlreadyListening": "Already listening — press the stop shortcut to finish.",
   "Main_St_AutoTransferErrorPrefix": "Error during auto-transfer: ",
   "Main_St_BrowserNotActive": "The browser isn't running",
   "Main_St_BrowserPrepErrorPrefix": "Error preparing the browser: ",

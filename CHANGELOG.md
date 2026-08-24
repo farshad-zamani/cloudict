@@ -8,6 +8,38 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.0.4] – 2026-08-24
+
+Four fixes found by comparing this build against the 2.x one that had been stable in daily use for
+months. Three of them are things that release did better and that did not survive the port.
+
+### Changed
+- **The start and stop shortcuts now do one thing each.** `Ctrl+Alt+A` starts and only starts —
+  pressing it again while listening does nothing rather than stopping. `Ctrl+Alt+S` stops. The start
+  shortcut used to toggle, so its meaning depended on state the user could not see: once Google
+  Translate had quietly switched the microphone off, a press was read as "stop", and it took a
+  second press to get listening again. There is a dedicated stop shortcut, so start can just start.
+
+### Fixed
+- **The source box is now cleared the way the page expects.** Cloudict emptied the textarea by
+  setting its value from script, which changes the DOM but leaves Google Translate's own idea of the
+  phrase intact — so it could put the whole thing straight back, and the restored text read as new
+  speech. The clear now presses the page's own "clear source text" button first, addresses the box
+  by the aria-labels the user configured before falling back to guesswork, and raises `change` as
+  well as `input`, because some of the page's handlers listen for one and not the other. This is
+  what the 2.x build did.
+- **The reset no longer rushes the page.** After stopping the microphone, Cloudict waited 200 ms
+  before clearing. Google Translate's recognition is often still finishing in that window: it writes
+  what it heard a moment later and overwrites the box that was just emptied. The wait is back to the
+  ~700 ms the stable build used, which is why the repeat became *more* frequent in 3.x rather than
+  less.
+- **The voice-command matcher's word history is cleared on every reset and every start.** It keeps a
+  short list of recent words so two-word phrases can match; carrying that across a pause let a
+  phrase spoken before the pause match again after it. The method to do this was ported in 3.0.0 but
+  never called.
+- **A silence no longer lets the paced transfer and the flush overlap.** The flush now waits for any
+  word already in flight to land before sending the remainder, so the two cannot interleave.
+
 ## [3.0.3] – 2026-08-22
 
 ### Fixed

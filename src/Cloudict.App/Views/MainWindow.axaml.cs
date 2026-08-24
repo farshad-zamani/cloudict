@@ -375,8 +375,26 @@ namespace Cloudict.App.Views
 
         private async void OnStopClick(object sender, RoutedEventArgs e) => await StopDictationAsync();
 
+        /// <summary>
+        /// Starts listening. Only ever starts — pressing it twice does not stop anything.
+        ///
+        /// <para>When the session still believes it is running but the microphone is not actually
+        /// live, this winds the dead session down first. Without that, <c>StartAsync</c> sees
+        /// <c>IsRunning</c>, returns "already started", and the microphone stays off — which is what
+        /// made the shortcut need a second press after Google Translate had switched itself off.</para>
+        /// </summary>
         private async Task StartDictationAsync()
         {
+            if (_session.IsRunning && !_micReportedLive)
+                await StopDictationAsync(notify: false);
+
+            if (_session.IsRunning)
+            {
+                // Genuinely already listening: say so rather than doing nothing silently.
+                SetStatus(Loc.Get("Main_St_AlreadyListening"));
+                return;
+            }
+
             BtnStart.IsEnabled = false;
             _micLossAnnounced = false;
 
@@ -606,19 +624,14 @@ namespace Cloudict.App.Views
         {
             _shortcuts.Apply(
                 _settings,
-                onToggle: () => Dispatcher.UIThread.Post(async () => await ToggleDictationAsync()),
+                onStart: () => Dispatcher.UIThread.Post(async () => await StartDictationAsync()),
                 onStop: () => Dispatcher.UIThread.Post(async () => await StopDictationAsync()));
         }
 
         /// <summary>
-        /// The start shortcut. It toggles, but only against a session that is genuinely listening.
-        ///
-        /// <para>Google Translate switches its own microphone off — after a long silence, or when its
-        /// recognition errors — without telling anyone. The session went on believing it was running,
-        /// so the next press of the start shortcut was read as "stop": it announced that dictation had
-        /// stopped, did not switch the microphone on, and only the second press worked. A session
-        /// whose microphone the page has already killed is not running in any sense the user cares
-        /// about, so start means start.</para>
+        /// The <c>--toggle</c> command-line verb, which exists for desktop environments that can
+        /// bind a shortcut to a command but cannot hand Cloudict a global hotkey — Wayland, mainly.
+        /// The keyboard shortcuts themselves do not toggle: start starts and stop stops.
         /// </summary>
         private async Task ToggleDictationAsync()
         {
@@ -627,10 +640,6 @@ namespace Cloudict.App.Views
                 await StopDictationAsync();
                 return;
             }
-
-            // Wind a dead session down first: StartAsync would otherwise see IsRunning and return
-            // "already started" without touching the microphone.
-            if (_session.IsRunning) await StopDictationAsync(notify: false);
 
             await StartDictationAsync();
         }
