@@ -314,6 +314,8 @@
   "Settings_Modifiers": "Modifier keys",
   "Settings_NoteText": "After adding or editing a command, close and reopen the app once so the changes take effect immediately.",
   "Settings_NotificationsGroup": "Tray and notifications",
+  "Settings_OpenBrowserOnStartup": "Open the helper browser when Cloudict starts",
+  "Settings_OpenBrowserOnStartupHint": "Nothing can be dictated until it is open, so it opens by itself. Turn this off if Chrome should not launch unasked.",
   "Settings_ParameterLabel": "Parameter:",
   "Settings_PlatformGroup": "This system",
   "Settings_PlatformSummary_Fmt": "Typing backend: {0}  ·  type into other apps: {1}  ·  global shortcuts: {2}  ·  switch keyboard layout: {3}",

@@ -148,6 +148,26 @@ namespace Cloudict
         /// </summary>
         public bool ShowStatusIndicator { get; set; } = true;
 
+        /// <summary>
+        /// Whether words are typed straight into the focused application rather than collected in
+        /// Cloudict's own box.
+        ///
+        /// <para>Remembered between runs. It is the one control on the main window that decides
+        /// where dictation actually goes, and someone who works this way works this way every time —
+        /// having it come back off meant the first sentence of every session went into the wrong
+        /// place.</para>
+        /// </summary>
+        public bool LiveTransferEnabled { get; set; } = false;
+
+        /// <summary>
+        /// Whether the helper browser opens by itself when Cloudict starts.
+        ///
+        /// <para>On by default: nothing can be dictated until it is open, so making the user press a
+        /// button first is a step with only one sensible answer. It can be switched off for a
+        /// machine where Chrome should not launch unasked.</para>
+        /// </summary>
+        public bool OpenBrowserOnStartup { get; set; } = true;
+
         // Voice Commands Configuration - تنظیمات دستورات صوتی
         /// <summary>
         /// لیست دستورات صوتی تعریف شده توسط کاربر

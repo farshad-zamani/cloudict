@@ -82,6 +82,7 @@ namespace Cloudict.App.Views
 
             ChkMinimizeToTray.IsChecked = _settings.MinimizeToTray;
             ChkShowIndicator.IsChecked = _settings.ShowStatusIndicator;
+            ChkOpenBrowserOnStartup.IsChecked = _settings.OpenBrowserOnStartup;
 
             ChkShortcutEnabled.IsChecked = _settings.GlobalShortcutEnabled;
             ChkToggleCtrl.IsChecked = _settings.ShortcutCtrl;
@@ -187,6 +188,12 @@ namespace Cloudict.App.Views
 
                 _settings.MinimizeToTray = ChkMinimizeToTray.IsChecked == true;
                 _settings.ShowStatusIndicator = ChkShowIndicator.IsChecked == true;
+                _settings.OpenBrowserOnStartup = ChkOpenBrowserOnStartup.IsChecked == true;
+
+                // Live transfer belongs to the main window, which saves it the moment it is
+                // toggled. Re-read it so a toggle made while this dialog was open is not
+                // overwritten by the value that was loaded when the dialog opened.
+                _settings.LiveTransferEnabled = AppServices.Settings.LoadSettings().LiveTransferEnabled;
 
                 _settings.GlobalShortcutEnabled = ChkShortcutEnabled.IsChecked == true;
                 _settings.ShortcutCtrl = ChkToggleCtrl.IsChecked == true;

@@ -169,6 +169,8 @@
                 <TextBlock Text="{loc:Tr Settings_NotificationsGroup}" Classes="h2"/>
                 <CheckBox x:Name="ChkMinimizeToTray" Content="{loc:Tr Settings_MinimizeToTray}"/>
                 <CheckBox x:Name="ChkShowIndicator" Content="{loc:Tr Settings_ShowIndicator}"/>
+                <CheckBox x:Name="ChkOpenBrowserOnStartup" Content="{loc:Tr Settings_OpenBrowserOnStartup}"/>
+                <TextBlock Text="{loc:Tr Settings_OpenBrowserOnStartupHint}" Classes="hint"/>
               </StackPanel>
             </Border>
 

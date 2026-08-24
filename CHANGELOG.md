@@ -8,6 +8,17 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.0.5] – 2026-08-24
+
+### Added
+- **The live-transfer choice is remembered between runs.** It is the one control that decides where
+  dictation actually goes, and someone who works that way works that way every time — having it come
+  back off meant the first sentence of every session went into the wrong place. It is saved the
+  moment it is switched, not when Settings is next opened.
+- **The helper browser opens by itself when Cloudict starts.** Nothing can be dictated until it is
+  open, so making the user press a button first was a step with only one sensible answer. There is a
+  checkbox in *Settings → General* for machines where Chrome should not launch unasked.
+
 ## [3.0.4] – 2026-08-24
 
 Four fixes found by comparing this build against the 2.x one that had been stable in daily use for

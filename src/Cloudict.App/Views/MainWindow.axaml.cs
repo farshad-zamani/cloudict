@@ -86,6 +86,46 @@ namespace Cloudict.App.Views
             ShowIndicator();
             StartMicrophoneWatch();
             ReportPlatformLimitations();
+            RestoreLiveTransfer();
+            OpenBrowserOnStartup();
+        }
+
+        /// <summary>Brings back the live-transfer choice from the last run.</summary>
+        private void RestoreLiveTransfer()
+        {
+            _session.IsLiveTransfer = _settings?.LiveTransferEnabled == true;
+            BtnLiveTransfer.IsChecked = _session.IsLiveTransfer;
+        }
+
+        /// <summary>
+        /// Opens the helper browser as the window comes up, unless the user has turned that off.
+        ///
+        /// <para>Deliberately not awaited: the browser takes several seconds to start and the window
+        /// has to be usable in the meantime. The button is disabled while it happens, and the same
+        /// lock that serialises a manual open covers this one, so pressing start during the launch
+        /// waits for it rather than racing it.</para>
+        /// </summary>
+        private void OpenBrowserOnStartup()
+        {
+            if (_settings?.OpenBrowserOnStartup != true) return;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() => BtnHelperBrowser.IsEnabled = false);
+                    await _engine.OpenBrowserAsync();
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                        SetStatus(Loc.Get("Main_St_OpenBrowserErrorPrefix") + ex.Message));
+                }
+                finally
+                {
+                    Dispatcher.UIThread.Post(() => BtnHelperBrowser.IsEnabled = true);
+                }
+            });
         }
 
         /// <summary>
@@ -452,6 +492,20 @@ namespace Cloudict.App.Views
         {
             _session.IsLiveTransfer = BtnLiveTransfer.IsChecked == true;
             SetStatus(Loc.Get(_session.IsLiveTransfer ? "Main_St_LiveOn" : "Main_St_LiveOff"));
+
+            // Saved as soon as it is flipped, not when Settings is next opened: this is a main-window
+            // control and the user has no reason to expect a separate save step for it.
+            if (_settings == null) return;
+
+            try
+            {
+                _settings.LiveTransferEnabled = _session.IsLiveTransfer;
+                AppServices.Settings.SaveSettings(_settings);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MainWindow] could not remember the live-transfer choice: {ex.Message}");
+            }
         }
 
         private async void OnCopyRecognizedClick(object sender, RoutedEventArgs e) =>
@@ -501,6 +555,7 @@ namespace Cloudict.App.Views
                     ReloadCommands();
                     RegisterShortcuts();
                     ShowIndicator();
+                    RestoreLiveTransfer();
                 }
             }
             catch (Exception ex)

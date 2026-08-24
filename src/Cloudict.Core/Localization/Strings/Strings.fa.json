@@ -314,6 +314,8 @@
   "Settings_Modifiers": "کلیدهای تغییردهنده",
   "Settings_NoteText": "پس از افزودن یا ویرایش دستور جدید، یک‌بار برنامه را بسته و مجدداً اجرا کنید تا تغییرات از همان لحظه قابل اجرا باشد.",
   "Settings_NotificationsGroup": "سیستم تری و اعلان‌ها",
+  "Settings_OpenBrowserOnStartup": "باز کردن مرورگر کمکی هنگام اجرای Cloudict",
+  "Settings_OpenBrowserOnStartupHint": "تا این مرورگر باز نشود دیکته ممکن نیست، پس خودش باز می‌شود. اگر نمی‌خواهید کروم بدون درخواست اجرا شود، این را خاموش کنید.",
   "Settings_ParameterLabel": "پارامتر:",
   "Settings_PlatformGroup": "این سیستم",
   "Settings_PlatformSummary_Fmt": "روش تایپ: {0}  ·  تایپ در برنامه‌های دیگر: {1}  ·  میانبر سراسری: {2}  ·  تغییر چیدمان صفحه‌کلید: {3}",

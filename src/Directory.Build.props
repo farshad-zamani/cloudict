@@ -3,7 +3,7 @@
   <!-- One place to set the product version. Before this it lived in AssemblyInfo.cs, the Inno
        Setup script and the changelog, and had to be kept in step by hand across all three. -->
   <PropertyGroup>
-    <VersionPrefix>3.0.4</VersionPrefix>
+    <VersionPrefix>3.0.5</VersionPrefix>
     <Product>Cloudict</Product>
     <Company>Cloudtart</Company>
     <Authors>Farshad Zamani</Authors>
