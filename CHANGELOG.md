@@ -8,6 +8,18 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.1.13] – 2026-08-26
+
+### Changed
+- **The two mode switches sit in one row** under the final text rather than stacked, which is both
+  tidier and shorter.
+
+### Fixed
+- **Hovering a text box no longer lights up a dark rectangle behind it.** Fluent paints its own panel
+  behind a text box and swaps it on hover and focus; the two big boxes sit on a card that already
+  provides that surface, so the box now has none of its own in any state. The settings fields, which
+  do want a surface, keep theirs and gain a quiet accent outline when focused.
+
 ## [3.1.12] – 2026-08-26
 
 ### Fixed

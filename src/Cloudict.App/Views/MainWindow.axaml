@@ -158,7 +158,8 @@
 
         <!-- The two modes, as switches rather than buttons: they are states that stay on, and a
              button press reads as an action that happens once. -->
-        <StackPanel Grid.Row="2" HorizontalAlignment="Center" Margin="0,12,0,2" Spacing="9">
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center"
+                    Margin="0,12,0,2" Spacing="22">
           <ToggleSwitch x:Name="BtnLiveTransfer" Classes="mode"
                         OnContent="{loc:Tr Main_TransferToCursor}"
                         OffContent="{loc:Tr Main_TransferToCursor}"
