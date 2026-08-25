@@ -72,6 +72,7 @@ namespace Cloudict.Platform.Unsupported
     {
         public bool IsSupported => false;
         public bool IsActive => false;
+        public float CurrentLevel => -1f;
 
         public AudioRoutingStatus Probe() => new AudioRoutingStatus
         {

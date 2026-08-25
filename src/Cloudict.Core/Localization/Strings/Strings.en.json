@@ -106,6 +106,7 @@
   "Main_St_LiveOff": "Live transfer mode disabled",
   "Main_St_LiveOn": "Live transfer mode enabled — text is sent in real time",
   "Main_St_LiveToggleErrorPrefix": "Error toggling live transfer mode: ",
+  "Main_St_LongRunReset": "Long stretch with no pause — resetting so the page keeps up...",
   "Main_St_MicActivateErrorPrefix": "Error activating the microphone: ",
   "Main_St_MicActivated": "Microphone activated!",
   "Main_St_MicActivatedXPath": "Microphone activated via XPath: ...{0}",

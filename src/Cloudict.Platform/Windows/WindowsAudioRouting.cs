@@ -78,6 +78,27 @@ namespace Cloudict.Platform.Windows
         public bool IsSupported => true;
         public bool IsActive { get; private set; }
 
+        /// <summary>
+        /// The loudest sample seen recently, decaying over about a second so a brief gap between
+        /// words does not read as silence but a real pause does. -1 when nothing is being bridged,
+        /// which is the case for a device that carries the system's output on its own.
+        /// </summary>
+        public float CurrentLevel
+        {
+            get
+            {
+                if (_capture == null) return -1f;
+
+                var age = (DateTime.UtcNow - _peakAt).TotalMilliseconds;
+                if (age > 1000) return 0f;
+
+                return (float)(_peak * (1.0 - age / 1000.0));
+            }
+        }
+
+        private volatile float _peak;
+        private DateTime _peakAt = DateTime.UtcNow;
+
         private static void Log(string message) => DiagnosticLog.Write("WindowsAudioRouting", message);
 
         #region Probe
@@ -323,7 +344,11 @@ namespace Cloudict.Platform.Windows
                 DiscardOnBufferOverflow = true
             };
 
-            _capture.DataAvailable += (_, e) => _buffer.AddSamples(e.Buffer, 0, e.BytesRecorded);
+            _capture.DataAvailable += (_, e) =>
+            {
+                _buffer.AddSamples(e.Buffer, 0, e.BytesRecorded);
+                TrackLevel(e.Buffer, e.BytesRecorded);
+            };
             _capture.RecordingStopped += (_, e) =>
             {
                 if (e.Exception != null) Log($"loopback capture stopped: {e.Exception.Message}");
@@ -338,6 +363,36 @@ namespace Cloudict.Platform.Windows
             Log($"bridging speakers '{speakers.FriendlyName}' into '{sink.FriendlyName}'");
         }
 
+        /// <summary>
+        /// Notes how loud this block of audio was. Sampled rather than examined in full: this runs on
+        /// the audio callback, where the only job that matters is handing the samples on.
+        /// </summary>
+        private void TrackLevel(byte[] buffer, int count)
+        {
+            try
+            {
+                // The loopback mix format is 32-bit float; anything else is left alone.
+                if (_capture?.WaveFormat?.BitsPerSample != 32) return;
+
+                float peak = 0;
+                for (int i = 0; i + 3 < count; i += 64)          // every sixteenth sample is plenty
+                {
+                    var v = Math.Abs(BitConverter.ToSingle(buffer, i));
+                    if (v > peak) peak = v;
+                }
+
+                if (peak > _peak || (DateTime.UtcNow - _peakAt).TotalMilliseconds > 250)
+                {
+                    _peak = peak;
+                    _peakAt = DateTime.UtcNow;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[WindowsAudioRouting] level: {ex.Message}");
+            }
+        }
+
         private void StopBridge()
         {
             try { _bridge?.Stop(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
@@ -349,6 +404,7 @@ namespace Cloudict.Platform.Windows
             _bridge = null;
             _capture = null;
             _buffer = null;
+            _peak = 0;
         }
 
         #endregion

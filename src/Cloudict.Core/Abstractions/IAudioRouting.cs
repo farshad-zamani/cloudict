@@ -59,6 +59,13 @@ namespace Cloudict.Abstractions
         /// <summary>True while the machine's output is what the speech engine hears.</summary>
         bool IsActive { get; }
 
+        /// <summary>
+        /// Recent peak level of the audio being routed, from 0 to 1, or -1 where this platform
+        /// cannot tell. Used to find a gap in the audio to reset in, rather than cutting a word in
+        /// half.
+        /// </summary>
+        float CurrentLevel { get; }
+
         /// <summary>What is available right now, without changing anything.</summary>
         AudioRoutingStatus Probe();
 

@@ -8,6 +8,30 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.1.14] – 2026-08-26
+
+### Fixed
+- **A recording played straight through is no longer left to garble.** Every reset in Cloudict was
+  triggered by the recognised text going *still* — which is what a person does constantly, pausing
+  to breathe or to think. Each of those pauses flushes what is pending, empties Google Translate's
+  box and restarts it, so the page never has to hold a long phrase. A voice note never goes still,
+  so that trigger never fired: Google was left revising one ever-growing phrase, which is fine for
+  slow, well-spaced speech and increasingly messy for anything faster.
+
+  System audio now gets the pauses it does not have. A run is cut after 24 seconds at the latest,
+  and much sooner if the audio itself falls quiet — so the reset lands in a gap between sentences
+  rather than through the middle of one.
+
+  **Dictating by microphone runs exactly the code it ran before.** Both values are left off for it,
+  and a test pins that down.
+
+### Notes
+Measurements taken on the audio path while looking into this, for the record: WASAPI loopback
+capture is *pre-volume* (a file peaking at 0.970 arrived at 0.971 with the speakers at 64%), the
+bridge's buffer stays level over a run rather than drifting, and the cable delivers the audio at
+full scale with no dropouts. The plumbing was never the problem, which is why the fix is in the
+session's pacing rather than in the audio.
+
 ## [3.1.13] – 2026-08-26
 
 ### Changed

@@ -106,6 +106,7 @@
   "Main_St_LiveOff": "حالت انتقال لایو غیرفعال شد",
   "Main_St_LiveOn": "حالت انتقال لایو فعال شد - متن به صورت زنده ارسال می‌شود",
   "Main_St_LiveToggleErrorPrefix": "خطا در تغییر حالت انتقال لایو: ",
+  "Main_St_LongRunReset": "مدت طولانی بدون مکث — ریست می‌شود تا صفحه عقب نماند...",
   "Main_St_MicActivateErrorPrefix": "خطا در فعال‌سازی میکروفون: ",
   "Main_St_MicActivated": "میکروفون فعال شد!",
   "Main_St_MicActivatedXPath": "میکروفون با XPath فعال شد: ...{0}",

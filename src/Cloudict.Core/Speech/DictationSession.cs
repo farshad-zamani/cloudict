@@ -68,6 +68,9 @@ namespace Cloudict.Speech
         /// </summary>
         private bool _awaitingEmptyPage;
 
+        /// <summary>When the current uninterrupted run of recognition began.</summary>
+        private DateTime _runStartedAt = DateTime.Now;
+
         private string _lastSentText = string.Empty;
 
         private VoiceCommandProcessor _commands;
@@ -99,6 +102,29 @@ namespace Cloudict.Speech
         /// inside its own loops, so the owner is asked to call <see cref="StopAsync"/>.
         /// </summary>
         public event EventHandler AutoStopped;
+
+        /// <summary>
+        /// A cap on how long recognition may run without a reset, in milliseconds. Zero — the
+        /// default — leaves the behaviour exactly as it was.
+        ///
+        /// <para>This exists for audio that never pauses. Every reset until now was triggered by the
+        /// recognised text going still, which is what happens when a person stops to breathe: the
+        /// pause flushes what is pending, empties Google Translate's box and starts again, so the
+        /// page never has to hold a long phrase. A recording played straight through never goes
+        /// still, so that never fired, and Google was left revising one ever-growing phrase until it
+        /// started rewriting earlier words wholesale. A person dictating with normal pauses will
+        /// never reach this cap; a voice note will.</para>
+        /// </summary>
+        public int MaxContinuousMs { get; set; }
+
+        /// <summary>
+        /// Optional: reports whether the audio being listened to is currently silent.
+        ///
+        /// <para>Given one, the cap can be honoured at a gap in the audio rather than in the middle
+        /// of a word. A reset costs a second or so during which nothing is heard — harmless in a
+        /// pause, and the loss of a word or two if it lands mid-sentence.</para>
+        /// </summary>
+        public Func<bool> SourceIsQuiet { get; set; }
 
         /// <summary>True while dictation is running.</summary>
         public bool IsRunning { get; private set; }
@@ -201,6 +227,7 @@ namespace Cloudict.Speech
                 _wordTransferredSinceReset = false;
                 _lastSentText = string.Empty;
                 _awaitingEmptyPage = false;
+                _runStartedAt = DateTime.Now;
             }
         }
 
@@ -266,6 +293,7 @@ namespace Cloudict.Speech
                 _initialDelayCompleted = false;
                 _lastTextUpdateTime = DateTime.Now;
                 _awaitingEmptyPage = true;
+                _runStartedAt = DateTime.Now;
             }
         }
 
@@ -314,6 +342,10 @@ namespace Cloudict.Speech
 
                     OnRecognizedText(text);
                     RecognizedTextChanged?.Invoke(this, text);
+
+                    // Text that keeps changing never reaches the inactivity check above, which is
+                    // exactly the case this guards.
+                    await CheckContinuousRunAsync();
                 }
                 catch (OperationCanceledException) { break; }
                 catch (Exception ex)
@@ -386,6 +418,53 @@ namespace Cloudict.Speech
 
             if (!shouldReset) return;
 
+            await PerformResetAsync();
+        }
+
+        /// <summary>
+        /// Honours <see cref="MaxContinuousMs"/> for audio that never goes quiet long enough to
+        /// reach the inactivity check.
+        ///
+        /// <para>Where the source's level is known, a gap in the audio is preferred: the cap is met
+        /// early if the audio happens to be silent, so the reset lands between sentences instead of
+        /// through the middle of one. Google Translate's own recognition takes the same view of a
+        /// pause, which is why dictating by voice has always worked well.</para>
+        /// </summary>
+        private async Task CheckContinuousRunAsync()
+        {
+            if (MaxContinuousMs <= 0) return;
+
+            bool due;
+
+            lock (_gate)
+            {
+                if (!_hasRecognizedText || !_wordTransferredSinceReset) return;
+
+                var running = (DateTime.Now - _runStartedAt).TotalMilliseconds;
+                var quiet = SafeIsQuiet();
+
+                due = running >= MaxContinuousMs || (quiet && running >= MaxContinuousMs / 3.0);
+            }
+
+            if (!due) return;
+
+            Report("Main_St_LongRunReset");
+            await PerformResetAsync();
+        }
+
+        /// <summary>A misbehaving level probe must not be able to stop dictation.</summary>
+        private bool SafeIsQuiet()
+        {
+            try { return SourceIsQuiet?.Invoke() == true; }
+            catch (Exception ex) { Debug.WriteLine($"[DictationSession] quiet probe: {ex.Message}"); return false; }
+        }
+
+        /// <summary>
+        /// Flushes what is pending, empties Google Translate's box and restarts its microphone.
+        /// Shared by both things that ask for it: a silence, and a run that has gone on too long.
+        /// </summary>
+        private async Task PerformResetAsync()
+        {
             // Stop observing *before* the reset: reading or transferring while the box is being
             // cleared is what used to re-send text that had already been typed.
             _suspendRecognition = true;

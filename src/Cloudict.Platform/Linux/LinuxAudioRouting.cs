@@ -30,6 +30,9 @@ namespace Cloudict.Platform.Linux
         public bool IsSupported => HasPactl();
         public bool IsActive { get; private set; }
 
+        /// <summary>Unknown here: the monitor source is read by Chrome directly, never through Cloudict.</summary>
+        public float CurrentLevel => -1f;
+
         private static void Log(string message) => DiagnosticLog.Write("LinuxAudioRouting", message);
 
         public AudioRoutingStatus Probe()

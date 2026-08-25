@@ -585,11 +585,49 @@ namespace Cloudict.App.Views
         }
 
         /// <summary>Puts the button, the badge and the saved setting in step with each other.</summary>
-        /// <summary>Puts the button and the badge in step with each other.</summary>
+        /// <summary>Puts the button, the badge and the session's pacing in step with each other.</summary>
         private void ApplySystemAudioState(bool active)
         {
             BtnSystemAudio.IsChecked = active;
             _indicator?.SetListeningToSystemAudio(active);
+            ApplyContinuousAudioPacing(active);
+        }
+
+        /// <summary>
+        /// Arms the long-run reset, and only for system audio.
+        ///
+        /// <para>Every reset until now was triggered by the recognised text going still — which is
+        /// what a person does constantly, pausing to breathe or to think. Each of those pauses
+        /// flushes what is pending and empties Google Translate's box, so the page never has to hold
+        /// a long phrase. A recording played straight through never goes still, so that never fired,
+        /// and Google was left revising one ever-growing phrase: fine for slow, well-spaced speech,
+        /// and increasingly garbled for anything faster. This gives that mode the pauses it does not
+        /// have.</para>
+        ///
+        /// <para>Both values are left at zero for the microphone, so dictating by voice runs exactly
+        /// the code it ran before.</para>
+        /// </summary>
+        private void ApplyContinuousAudioPacing(bool systemAudio)
+        {
+            if (!systemAudio)
+            {
+                _session.MaxContinuousMs = 0;
+                _session.SourceIsQuiet = null;
+                return;
+            }
+
+            // Well beyond any single sentence, so the cap itself is the last resort; in practice the
+            // quiet check below cuts in at a gap long before this.
+            _session.MaxContinuousMs = 24000;
+
+            var routing = AppServices.Platform.AudioRouting;
+            _session.SourceIsQuiet = () =>
+            {
+                var level = routing?.CurrentLevel ?? -1f;
+
+                // -1 means the platform cannot tell; then only the hard cap applies.
+                return level >= 0f && level < 0.012f;
+            };
         }
 
         private void OnLiveTransferClick(object sender, RoutedEventArgs e)
