@@ -88,32 +88,42 @@
                  Foreground="{DynamicResource TextSecondaryBrush}"/>
     </StackPanel>
 
-    <!-- Recognized text -->
+    <!--
+      Both boxes follow the same shape: the label above, the text and its two icon buttons side by
+      side, and whatever belongs to that box underneath. Copy and clear moved out of the row below
+      and became icon-only discs beside the text because the row had run out of width — adding the
+      system-audio button pushed its contents past the edge of the card — and because these two are
+      the same pair on both boxes, so they read better as a fixed pair of marks than as another two
+      labelled buttons competing with the ones that matter.
+    -->
     <Border Grid.Row="2" Classes="card" Margin="15,8,15,8">
       <Grid Margin="12" RowDefinitions="Auto,*,Auto">
         <TextBlock Grid.Row="0" Text="{loc:Tr Main_RecognizedLabel}" Classes="h2"
                    HorizontalAlignment="Center" Margin="0,0,0,8"/>
 
-        <TextBox Grid.Row="1" x:Name="TxtRecognized"
-                 IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
-                 FontSize="12" MinHeight="60" MaxHeight="90"
-                 Watermark="{loc:Tr Main_WaitingForSpeech}"
-                 VerticalContentAlignment="Top"/>
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" Margin="10,0,0,0">
+            <Button Classes="icon" Click="OnCopyRecognizedClick"
+                    ToolTip.Tip="{loc:Tr Main_CopyBtn}">
+              <Path Width="15" Height="15" Stretch="Uniform"
+                    Fill="{DynamicResource TextSecondaryBrush}" Data="{StaticResource IconCopy}"/>
+            </Button>
+            <Button Classes="icon danger" Click="OnClearRecognizedClick"
+                    ToolTip.Tip="{loc:Tr Main_ClearBtn}">
+              <Path Width="15" Height="15" Stretch="Uniform"
+                    Fill="{DynamicResource AccentHoverBrush}" Data="{StaticResource IconTrash}"/>
+            </Button>
+          </StackPanel>
+
+          <TextBox Grid.Column="0" x:Name="TxtRecognized"
+                   IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
+                   FontSize="12" MinHeight="60" MaxHeight="90"
+                   Watermark="{loc:Tr Main_WaitingForSpeech}"
+                   VerticalContentAlignment="Top"/>
+        </Grid>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center"
-                    Margin="0,8,0,0" Spacing="8">
-          <Button Classes="success" Click="OnCopyRecognizedClick">
-            <StackPanel Orientation="Horizontal" Spacing="7">
-              <Path Width="14" Height="14" Stretch="Uniform" Fill="White" Data="{StaticResource IconCopy}" VerticalAlignment="Center"/>
-              <TextBlock Text="{loc:Tr Main_CopyBtn}" VerticalAlignment="Center"/>
-            </StackPanel>
-          </Button>
-          <Button Classes="accent" Click="OnClearRecognizedClick">
-            <StackPanel Orientation="Horizontal" Spacing="7">
-              <Path Width="14" Height="14" Stretch="Uniform" Fill="White" Data="{StaticResource IconTrash}" VerticalAlignment="Center"/>
-              <TextBlock Text="{loc:Tr Main_ClearBtn}" VerticalAlignment="Center"/>
-            </StackPanel>
-          </Button>
+                    Margin="0,10,0,0">
           <Button Classes="accent" Content="{loc:Tr Main_QuickTransfer}" Click="OnQuickTransferClick"/>
         </StackPanel>
       </Grid>
@@ -125,26 +135,39 @@
         <TextBlock Grid.Row="0" Text="{loc:Tr Main_FinalLabel}" Classes="h2"
                    HorizontalAlignment="Center" Margin="0,0,0,8"/>
 
-        <TextBox Grid.Row="1" x:Name="TxtFinal"
-                 TextWrapping="Wrap" AcceptsReturn="True"
-                 FontSize="13" MinHeight="80"
-                 Watermark="{loc:Tr Main_FinalPlaceholder}"
-                 VerticalContentAlignment="Top"/>
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" Margin="10,0,0,0">
+            <Button Classes="icon" Click="OnCopyFinalClick"
+                    ToolTip.Tip="{loc:Tr Main_CopyBtn}">
+              <Path Width="15" Height="15" Stretch="Uniform"
+                    Fill="{DynamicResource TextSecondaryBrush}" Data="{StaticResource IconCopy}"/>
+            </Button>
+            <Button Classes="icon danger" Click="OnClearFinalClick"
+                    ToolTip.Tip="{loc:Tr Common_Clear}">
+              <Path Width="15" Height="15" Stretch="Uniform"
+                    Fill="{DynamicResource AccentHoverBrush}" Data="{StaticResource IconTrash}"/>
+            </Button>
+          </StackPanel>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center"
-                    Margin="0,8,0,0" Spacing="8">
-          <ToggleButton x:Name="BtnLiveTransfer" Content="{loc:Tr Main_TransferToCursor}"
-                        Click="OnLiveTransferClick" Padding="14,8" CornerRadius="8"/>
-          <ToggleButton x:Name="BtnSystemAudio" Content="{loc:Tr Main_SystemAudio}"
+          <TextBox Grid.Column="0" x:Name="TxtFinal"
+                   TextWrapping="Wrap" AcceptsReturn="True"
+                   FontSize="13" MinHeight="80"
+                   Watermark="{loc:Tr Main_FinalPlaceholder}"
+                   VerticalContentAlignment="Top"/>
+        </Grid>
+
+        <!-- The two modes, as switches rather than buttons: they are states that stay on, and a
+             button press reads as an action that happens once. -->
+        <StackPanel Grid.Row="2" HorizontalAlignment="Center" Margin="0,12,0,2" Spacing="9">
+          <ToggleSwitch x:Name="BtnLiveTransfer" Classes="mode"
+                        OnContent="{loc:Tr Main_TransferToCursor}"
+                        OffContent="{loc:Tr Main_TransferToCursor}"
+                        Click="OnLiveTransferClick"/>
+          <ToggleSwitch x:Name="BtnSystemAudio" Classes="mode"
+                        OnContent="{loc:Tr Main_SystemAudio}"
+                        OffContent="{loc:Tr Main_SystemAudio}"
                         ToolTip.Tip="{loc:Tr Main_SystemAudioTip}"
-                        Click="OnSystemAudioClick" Padding="14,8" CornerRadius="8"/>
-          <Button Classes="success" Click="OnCopyFinalClick">
-            <StackPanel Orientation="Horizontal" Spacing="7">
-              <Path Width="14" Height="14" Stretch="Uniform" Fill="White" Data="{StaticResource IconCopy}" VerticalAlignment="Center"/>
-              <TextBlock Text="{loc:Tr Main_CopyBtn}" VerticalAlignment="Center"/>
-            </StackPanel>
-          </Button>
-          <Button Classes="accent" Content="{loc:Tr Common_Clear}" Click="OnClearFinalClick"/>
+                        Click="OnSystemAudioClick"/>
         </StackPanel>
       </Grid>
     </Border>

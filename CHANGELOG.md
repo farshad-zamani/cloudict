@@ -8,6 +8,34 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.1.12] – 2026-08-26
+
+### Fixed
+- **Switching system audio off now really does put the recording device back.** Three separate holes
+  made this stick. `Disable()` restored only from an in-memory record and then deleted the file that
+  was the *other* copy — so whenever that field was empty it cleared the only way back and left the
+  machine recording from the cable. Restoring is now driven by the file, the file is kept unless the
+  device is read back and confirmed changed, and a failed restore is retried at the next start
+  instead of being forgotten.
+- **The mode no longer re-arms itself at every launch.** It was remembered and switched straight back
+  on when Cloudict started — which changes a machine-wide Windows setting without being asked, and is
+  indistinguishable from "the setting never went back". System audio is now always off at start and
+  is entered on purpose.
+- **A restore point is never overwritten with the routing device itself.** Enabling while the default
+  was already the cable used to save *the cable* as the thing to go back to, after which no restore
+  could ever succeed.
+
+### Changed
+- **The warning now says to play the audio at normal speed** — Google Translate hears it the way it
+  hears a voice, so anything sped up or scrubbed through comes out wrong or not at all.
+- **The buttons under the two text boxes were rearranged.** Adding the system-audio button had pushed
+  that row past the edge of its card. Copy and clear are now small icon-only discs beside each box,
+  on the side the text does not start from; quick transfer sits alone under the recognised text; and
+  live transfer and system audio moved under the final text.
+- **Live transfer and system audio are switches rather than buttons.** They are states that stay on,
+  and a button reads as something that happens once. They also carry the app's own green instead of
+  Fluent's blue.
+
 ## [3.1.11] – 2026-08-25
 
 ### Added

@@ -93,33 +93,23 @@ namespace Cloudict.App.Views
             StartMicrophoneWatch();
             ReportPlatformLimitations();
             RestoreLiveTransfer();
-            RestoreSystemAudio();
+            ResetSystemAudio();
             OpenBrowserOnStartup();
         }
 
         /// <summary>
-        /// Brings back the system-audio choice, but only if the machine can still do it — a cable
-        /// that has since been uninstalled must not leave the button on over a mode that is not
-        /// running.
+        /// System audio always starts off.
+        ///
+        /// <para>Deliberately not remembered across runs, unlike live transfer. Switching it on
+        /// changes a machine-wide Windows setting, and re-arming that at every launch — without the
+        /// user asking for it — is both surprising and indistinguishable from "the setting never
+        /// went back", which is exactly how it looked. A mode that reaches outside the application
+        /// should be entered on purpose, every time.</para>
         /// </summary>
-        private void RestoreSystemAudio()
+        private void ResetSystemAudio()
         {
-            if (_settings?.SystemAudioEnabled != true) return;
-
-            var routing = AppServices.Platform.AudioRouting;
-            if (routing == null || !routing.IsSupported) { PersistSystemAudio(false); return; }
-
-            var status = routing.Enable();
-            var active = status.State == AudioRoutingState.Active;
-
-            BtnSystemAudio.IsChecked = active;
-            _indicator?.SetListeningToSystemAudio(active);
-
-            if (!active)
-            {
-                PersistSystemAudio(false);
-                SetStatus(Loc.Get("SystemAudio_NotRestored"));
-            }
+            BtnSystemAudio.IsChecked = false;
+            _indicator?.SetListeningToSystemAudio(false);
         }
 
         /// <summary>Brings back the live-transfer choice from the last run.</summary>
@@ -595,26 +585,11 @@ namespace Cloudict.App.Views
         }
 
         /// <summary>Puts the button, the badge and the saved setting in step with each other.</summary>
+        /// <summary>Puts the button and the badge in step with each other.</summary>
         private void ApplySystemAudioState(bool active)
         {
             BtnSystemAudio.IsChecked = active;
             _indicator?.SetListeningToSystemAudio(active);
-            PersistSystemAudio(active);
-        }
-
-        private void PersistSystemAudio(bool active)
-        {
-            if (_settings == null) return;
-
-            try
-            {
-                _settings.SystemAudioEnabled = active;
-                AppServices.Settings.SaveSettings(_settings);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[MainWindow] could not remember the system-audio choice: {ex.Message}");
-            }
         }
 
         private void OnLiveTransferClick(object sender, RoutedEventArgs e)

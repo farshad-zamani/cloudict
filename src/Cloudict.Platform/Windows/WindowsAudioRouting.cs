@@ -169,8 +169,24 @@ namespace Cloudict.Platform.Windows
 
                     // Written before anything changes, so a kill at any point after this leaves a
                     // trail back to the user's own setting.
-                    _previousDefaultCaptureId = TryGetDefaultCaptureId(enumerator);
-                    SaveRestorePoint(_previousDefaultCaptureId);
+                    var current = TryGetDefaultCaptureId(enumerator);
+
+                    // Never record the routing device as the thing to go back to. If the default is
+                    // already the cable — a restore that did not take, or a second enable — saving it
+                    // here would overwrite the only record of the user's real microphone, and every
+                    // restore afterwards would put the cable back. That is how it gets stuck for good.
+                    if (!string.IsNullOrEmpty(current) &&
+                        !string.Equals(current, target.ID, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _previousDefaultCaptureId = current;
+                        SaveRestorePoint(current);
+                    }
+                    else
+                    {
+                        // Fall back to whatever the last good record was, rather than losing it.
+                        _previousDefaultCaptureId ??= ReadRestorePoint();
+                        Log($"default is already '{target.FriendlyName}'; keeping the existing restore point");
+                    }
 
                     StartBridgeIfNeeded(target.FriendlyName);
 
@@ -221,18 +237,66 @@ namespace Cloudict.Platform.Windows
             {
                 StopBridge();
 
-                if (!string.IsNullOrEmpty(_previousDefaultCaptureId))
+                // The file, not the field, is the record that matters. The field is empty whenever
+                // this object did not perform the enable itself, and clearing the file on the way
+                // out without restoring is what left a machine recording from the cable with no way
+                // back except the Sound control panel.
+                var target = _previousDefaultCaptureId ?? ReadRestorePoint();
+
+                if (string.IsNullOrEmpty(target))
                 {
-                    if (SetDefaultCaptureDevice(_previousDefaultCaptureId))
-                        Log("default recording device restored");
-                    else
-                        Log("could not restore the default recording device");
+                    _previousDefaultCaptureId = null;
+                    IsActive = false;
+                    return;
                 }
 
-                _previousDefaultCaptureId = null;
-                ClearRestorePoint();
+                if (RestoreAndVerify(target))
+                {
+                    _previousDefaultCaptureId = null;
+                    ClearRestorePoint();
+                }
+                else
+                {
+                    // Leave the file alone so the next start tries again.
+                    Log("could not restore the default recording device; the restore point is kept");
+                }
+
                 IsActive = false;
             }
+        }
+
+        /// <summary>
+        /// Sets the device and reads it back, retrying once. Windows applies the change
+        /// asynchronously, and a call that returned success has occasionally not taken effect by the
+        /// time anything looks — so the only honest confirmation is the device itself.
+        /// </summary>
+        private static bool RestoreAndVerify(string deviceId)
+        {
+            for (int attempt = 1; attempt <= 2; attempt++)
+            {
+                SetDefaultCaptureDevice(deviceId);
+                System.Threading.Thread.Sleep(250);
+
+                try
+                {
+                    using var enumerator = new MMDeviceEnumerator();
+                    var now = enumerator.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Console);
+
+                    if (string.Equals(now.ID, deviceId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Log($"default recording device restored to '{now.FriendlyName}'");
+                        return true;
+                    }
+
+                    Log($"restore attempt {attempt} did not take: default is '{now.FriendlyName}'");
+                }
+                catch (Exception ex)
+                {
+                    Log($"could not read back the default device: {ex.Message}");
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -297,11 +361,14 @@ namespace Cloudict.Platform.Windows
             {
                 if (!File.Exists(_restoreFile)) return;
 
-                var id = File.ReadAllText(_restoreFile).Trim();
+                var id = ReadRestorePoint();
+                if (string.IsNullOrEmpty(id)) { ClearRestorePoint(); return; }
+
                 Log($"a previous session left the recording device changed; restoring '{id}'");
 
-                if (!string.IsNullOrEmpty(id)) SetDefaultCaptureDevice(id);
-                ClearRestorePoint();
+                // Only forget the record once the device really is back, so a failure here is
+                // retried at the next start instead of stranding the user on the cable.
+                if (RestoreAndVerify(id)) ClearRestorePoint();
             }
             catch (Exception ex)
             {
@@ -321,6 +388,20 @@ namespace Cloudict.Platform.Windows
             catch (Exception ex)
             {
                 Log($"could not write the restore point: {ex.Message}");
+            }
+        }
+
+        /// <summary>The device the user had before Cloudict touched anything, or null.</summary>
+        private string ReadRestorePoint()
+        {
+            try
+            {
+                return File.Exists(_restoreFile) ? File.ReadAllText(_restoreFile).Trim() : null;
+            }
+            catch (Exception ex)
+            {
+                Log($"could not read the restore point: {ex.Message}");
+                return null;
             }
         }
 

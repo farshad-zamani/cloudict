@@ -394,7 +394,7 @@
   "SystemAudio_SwitchFailed": "The recording device could not be switched over. Nothing was changed.",
   "SystemAudio_Title": "Transcribe system audio",
   "SystemAudio_Unsupported": "Transcribing system audio is not available on this system yet.",
-  "SystemAudio_Warning": "With this on, Google Translate hears what this machine plays and nothing else. Speaking into the microphone will not be transcribed until you switch it back off.\n\nEverything else works exactly as before: press the start shortcut, play a voice note or a podcast in any application, and the words are typed as though you had spoken them.\n\nCloudict will use: {0}\n\nYour recording device is put back the moment you switch this off, when Cloudict closes, and at the next start even if Cloudict is killed.",
+  "SystemAudio_Warning": "With this on, Google Translate hears what this machine plays and nothing else. Speaking into the microphone will not be transcribed until you switch it back off.\n\nEverything else works exactly as before: press the start shortcut, play a voice note or a podcast in any application, and the words are typed as though you had spoken them.\n\nPlay the audio at normal speed. Google Translate transcribes it the way it transcribes a voice, so anything sped up, slowed down or scrubbed through comes out wrong or not at all.\n\nCloudict will use: {0}\n\nYour recording device is put back the moment you switch this off, when Cloudict closes, and at the next start even if Cloudict is killed.",
   "Tray_Quit": "Quit",
   "Tray_Show": "Show Cloudict"
 }

@@ -83,6 +83,61 @@
     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
   </Style>
 
+  <!--
+    A small round icon-only button, used for the copy and clear marks beside each text box. Quiet by
+    default and only picking up a background on hover: there are four of them on the window and they
+    are conveniences, not the controls the eye should land on first.
+  -->
+  <Style Selector="Button.icon">
+    <Setter Property="Width" Value="32"/>
+    <Setter Property="Height" Value="32"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.icon /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="CornerRadius" Value="16"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="Button.icon:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BgPanelBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}"/>
+  </Style>
+  <Style Selector="Button.icon.danger:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+  </Style>
+
+  <!-- The two mode switches under the final text. -->
+  <Style Selector="ToggleSwitch.mode">
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="HorizontalAlignment" Value="Center"/>
+  </Style>
+  <Style Selector="ToggleSwitch.mode:checked">
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+
+  <!-- Fluent's switch is blue; these are the app's own greens and greys. -->
+  <Style Selector="ToggleSwitch.mode:checked /template/ Border#SwitchKnobBounds">
+    <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}"/>
+  </Style>
+  <Style Selector="ToggleSwitch.mode:unchecked /template/ Border#SwitchKnobBounds">
+    <Setter Property="Background" Value="{DynamicResource BgWindowBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}"/>
+  </Style>
+  <Style Selector="ToggleSwitch.mode:checked:pointerover /template/ Border#SwitchKnobBounds">
+    <Setter Property="Background" Value="{DynamicResource SuccessHoverBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource SuccessHoverBrush}"/>
+  </Style>
+
   <!-- A round transport button (start / stop). -->
   <Style Selector="Button.circle">
     <Setter Property="Width" Value="50"/>
