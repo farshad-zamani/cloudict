@@ -1,0 +1,56 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:Cloudict.App.Localization"
+        x:Class="Cloudict.App.Views.SystemAudioDialog"
+        Width="660" Height="620"
+        MinWidth="520" MinHeight="380"
+        WindowStartupLocation="CenterOwner"
+        Icon="avares://Cloudict/Assets/app-icon.ico"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FlowDirection="{DynamicResource AppFlowDirection}"
+        Background="{DynamicResource BgWindowBrush}">
+
+  <!--
+    One window for both halves of switching system audio on: the warning that the two sources are
+    exclusive, and — when the machine has nothing that can carry its own output — what to install.
+    They are the same conversation, and splitting them into two dialogs would mean the user meets
+    the second only after agreeing to the first.
+  -->
+  <Grid Margin="22,20" RowDefinitions="Auto,*,Auto">
+
+    <Border Grid.Row="0" Classes="card" Padding="16,13" Margin="0,0,0,12">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <Path Width="26" Height="26" Stretch="Uniform" VerticalAlignment="Center"
+              Fill="{DynamicResource WarningBrush}"
+              Data="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+        <TextBlock x:Name="TxtHeader" Classes="h1" VerticalAlignment="Center"/>
+      </StackPanel>
+    </Border>
+
+    <Border Grid.Row="1" Classes="card" Padding="18,16">
+      <ScrollViewer>
+        <StackPanel Spacing="14">
+          <TextBlock x:Name="TxtBody" TextWrapping="Wrap" LineHeight="22"/>
+
+          <!-- The download comes before the instructions: it is the one thing the user has to do
+               next, and it must not sit below the fold behind four numbered steps. -->
+          <StackPanel x:Name="PanelHelper" Spacing="12" IsVisible="False">
+            <Button x:Name="BtnGetHelper" Classes="accent" HorizontalAlignment="Left"
+                    Padding="18,11" Click="OnGetHelperClick"/>
+            <TextBlock x:Name="TxtHelperSteps" Classes="hint" TextWrapping="Wrap" LineHeight="21"/>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+
+    <Border Grid.Row="2" Classes="card" Margin="0,12,0,0" Padding="14">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <Button Grid.Column="1" x:Name="BtnConfirm" Classes="success"
+                Click="OnConfirmClick" Margin="0,0,8,0"/>
+        <Button Grid.Column="2" x:Name="BtnCancel" Classes="subtle"
+                Content="{loc:Tr Common_Cancel}" Click="OnCancelClick"/>
+      </Grid>
+    </Border>
+
+  </Grid>
+</Window>

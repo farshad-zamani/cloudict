@@ -135,6 +135,9 @@
                     Margin="0,8,0,0" Spacing="8">
           <ToggleButton x:Name="BtnLiveTransfer" Content="{loc:Tr Main_TransferToCursor}"
                         Click="OnLiveTransferClick" Padding="14,8" CornerRadius="8"/>
+          <ToggleButton x:Name="BtnSystemAudio" Content="{loc:Tr Main_SystemAudio}"
+                        ToolTip.Tip="{loc:Tr Main_SystemAudioTip}"
+                        Click="OnSystemAudioClick" Padding="14,8" CornerRadius="8"/>
           <Button Classes="success" Click="OnCopyFinalClick">
             <StackPanel Orientation="Horizontal" Spacing="7">
               <Path Width="14" Height="14" Stretch="Uniform" Fill="White" Data="{StaticResource IconCopy}" VerticalAlignment="Center"/>

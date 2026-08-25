@@ -168,6 +168,15 @@ namespace Cloudict
         /// </summary>
         public bool OpenBrowserOnStartup { get; set; } = true;
 
+        /// <summary>
+        /// Whether the speech engine listens to the machine's own audio instead of the microphone.
+        ///
+        /// <para>Remembered between runs, but re-checked at every start: the helper it depends on can
+        /// be uninstalled between one run and the next, and a button left on over a mode that is not
+        /// actually running would be worse than one that resets.</para>
+        /// </summary>
+        public bool SystemAudioEnabled { get; set; } = false;
+
         // Voice Commands Configuration - تنظیمات دستورات صوتی
         /// <summary>
         /// لیست دستورات صوتی تعریف شده توسط کاربر

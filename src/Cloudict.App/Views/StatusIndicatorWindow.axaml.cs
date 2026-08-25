@@ -24,6 +24,34 @@ namespace Cloudict.App.Views
 
         // Null until the first paint, so the opening call is never mistaken for "no change".
         private bool? _isActive;
+        private bool _listeningToSystem;
+
+        /// <summary>
+        /// Switches the badge between the microphone glyph and the speaker one.
+        ///
+        /// <para>Which source is being listened to matters as much as whether anything is: the two
+        /// modes are exclusive, and someone who has left system audio on and starts talking would
+        /// otherwise have no way of knowing why nothing is being typed.</para>
+        /// </summary>
+        public void SetListeningToSystemAudio(bool system)
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.Post(() => SetListeningToSystemAudio(system));
+                return;
+            }
+
+            if (_listeningToSystem == system) return;
+            _listeningToSystem = system;
+
+            SystemGlyph.IsVisible = system;
+            MicGlyph.IsVisible = !system;
+
+            // Repaint the tooltip through the normal path.
+            var state = _isActive;
+            _isActive = null;
+            SetActive(state == true);
+        }
 
         public StatusIndicatorWindow()
         {
@@ -64,7 +92,9 @@ namespace Cloudict.App.Views
             Halo.Fill = BuildHalo(color);
             MutedSlash.IsVisible = !active;
 
-            StatusText = Loc.Get(active ? "Indicator_Listening" : "Indicator_Idle");
+            StatusText = Loc.Get(_listeningToSystem
+                ? (active ? "Indicator_ListeningSystem" : "Indicator_IdleSystem")
+                : (active ? "Indicator_Listening" : "Indicator_Idle"));
         }
 
         /// <summary>

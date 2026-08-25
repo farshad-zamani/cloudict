@@ -39,18 +39,20 @@ namespace Cloudict.Platform
             // One object serves both roles on Windows: a balloon is only shown on behalf of a
             // registered tray icon, so whatever notifies must also own the icon.
             var notifier = new WindowsNotifier();
+            var paths = new WindowsAppPaths();
 
             return new CompositePlatformServices
             {
                 Notifier = notifier,
                 TrayPresence = notifier,
-                Paths = new WindowsAppPaths(),
+                Paths = paths,
                 Info = info,
                 BrowserLocator = new WindowsBrowserLocator(info),
                 TextInjector = new WindowsTextInjector(),
                 GlobalHotkeys = new WindowsGlobalHotkeys(),
                 KeyboardLayout = new WindowsKeyboardLayout(),
-                MicrophoneMonitor = new WindowsMicrophoneMonitor()
+                MicrophoneMonitor = new WindowsMicrophoneMonitor(),
+                AudioRouting = new WindowsAudioRouting(paths)
             };
         }
 
@@ -64,9 +66,11 @@ namespace Cloudict.Platform
         {
             var info = new UnixPlatformInfo(isMacOS: false);
 
+            var paths = new UnixAppPaths(isMacOS: false);
+
             return new CompositePlatformServices
             {
-                Paths = new UnixAppPaths(isMacOS: false),
+                Paths = paths,
                 Info = info,
                 BrowserLocator = new UnixBrowserLocator(isMacOS: false, info),
                 TextInjector = new Linux.LinuxTextInjector(),
@@ -74,6 +78,7 @@ namespace Cloudict.Platform
                 KeyboardLayout = new NullKeyboardLayout(),
                 MicrophoneMonitor = new NullMicrophoneMonitor(),
                 Notifier = new UnixNotifier(isMacOS: false),
+                AudioRouting = new Linux.LinuxAudioRouting(paths),
                 TrayPresence = null
             };
         }
@@ -97,6 +102,10 @@ namespace Cloudict.Platform
                 KeyboardLayout = new NullKeyboardLayout(),
                 MicrophoneMonitor = new NullMicrophoneMonitor(),
                 Notifier = new UnixNotifier(isMacOS: true),
+
+                // macOS needs a virtual device such as BlackHole and a CoreAudio device switch.
+                // Not written yet, so it reports itself unsupported rather than half-working.
+                AudioRouting = new NullAudioRouting(),
                 TrayPresence = null
             };
         }
@@ -111,6 +120,7 @@ namespace Cloudict.Platform
             public IKeyboardLayout KeyboardLayout { get; init; }
             public IMicrophoneMonitor MicrophoneMonitor { get; init; }
             public INotifier Notifier { get; init; }
+            public IAudioRouting AudioRouting { get; init; }
             public ITrayPresence TrayPresence { get; init; }
 
             public PlatformCapabilities GetCapabilities()
@@ -140,7 +150,7 @@ namespace Cloudict.Platform
 
             public void Dispose()
             {
-                foreach (var disposable in new IDisposable[] { TextInjector, GlobalHotkeys, MicrophoneMonitor, Notifier })
+                foreach (var disposable in new IDisposable[] { TextInjector, GlobalHotkeys, MicrophoneMonitor, Notifier, AudioRouting })
                 {
                     try { disposable?.Dispose(); }
                     catch (Exception ex) { Debug.WriteLine($"[PlatformServices] dispose: {ex.Message}"); }

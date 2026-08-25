@@ -81,6 +81,11 @@ namespace Cloudict.App.Views
 
         private void OnOpened(object sender, EventArgs e)
         {
+            // Before anything else touches audio: if a previous run was killed while the machine's
+            // recording device was switched over, put it back.
+            try { AppServices.Platform.AudioRouting?.RecoverInterruptedSession(); }
+            catch (Exception ex) { Debug.WriteLine($"[MainWindow] audio recovery: {ex.Message}"); }
+
             ReloadCommands();
             RegisterShortcuts();
             SetUpTray();
@@ -88,7 +93,33 @@ namespace Cloudict.App.Views
             StartMicrophoneWatch();
             ReportPlatformLimitations();
             RestoreLiveTransfer();
+            RestoreSystemAudio();
             OpenBrowserOnStartup();
+        }
+
+        /// <summary>
+        /// Brings back the system-audio choice, but only if the machine can still do it — a cable
+        /// that has since been uninstalled must not leave the button on over a mode that is not
+        /// running.
+        /// </summary>
+        private void RestoreSystemAudio()
+        {
+            if (_settings?.SystemAudioEnabled != true) return;
+
+            var routing = AppServices.Platform.AudioRouting;
+            if (routing == null || !routing.IsSupported) { PersistSystemAudio(false); return; }
+
+            var status = routing.Enable();
+            var active = status.State == AudioRoutingState.Active;
+
+            BtnSystemAudio.IsChecked = active;
+            _indicator?.SetListeningToSystemAudio(active);
+
+            if (!active)
+            {
+                PersistSystemAudio(false);
+                SetStatus(Loc.Get("SystemAudio_NotRestored"));
+            }
         }
 
         /// <summary>Brings back the live-transfer choice from the last run.</summary>
@@ -351,6 +382,10 @@ namespace Cloudict.App.Views
             {
                 try { _micWatch?.Cancel(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
 
+                // Before the window goes: the machine's recording device is the user's, not ours.
+                try { AppServices.Platform.AudioRouting?.Disable(); }
+                catch (Exception ex) { Debug.WriteLine($"[MainWindow] audio restore: {ex.Message}"); }
+
                 _shortcuts.Dispose();
                 await _session.StopAsync();
                 await _engine.CloseBrowserAsync();
@@ -493,6 +528,93 @@ namespace Cloudict.App.Views
         {
             try { await _session.FlushPendingWordsAsync(); SetStatus(Loc.Get("Main_St_AllTransferred")); }
             catch (Exception ex) { SetStatus(Loc.Get("Main_St_QuickTransferErrorPrefix") + ex.Message); }
+        }
+
+        /// <summary>
+        /// Switches between hearing the room and hearing the machine. The two are exclusive, which
+        /// is the whole point: Chrome reads one audio input device, so whichever is chosen is the
+        /// only one the speech engine gets.
+        /// </summary>
+        private async void OnSystemAudioClick(object sender, RoutedEventArgs e)
+        {
+            var routing = AppServices.Platform.AudioRouting;
+            var wanted = BtnSystemAudio.IsChecked == true;
+
+            if (routing == null)
+            {
+                BtnSystemAudio.IsChecked = false;
+                return;
+            }
+
+            BtnSystemAudio.IsEnabled = false;
+
+            try
+            {
+                if (!wanted)
+                {
+                    routing.Disable();
+                    ApplySystemAudioState(false);
+                    SetStatus(Loc.Get("SystemAudio_Off"));
+                    return;
+                }
+
+                // Ask first: this changes which sound the machine transcribes, and — where a helper
+                // is missing — is the moment to say what needs installing.
+                var dialog = new SystemAudioDialog(routing.Probe());
+                await dialog.ShowDialog(this);
+
+                if (!dialog.Confirmed)
+                {
+                    ApplySystemAudioState(false);
+                    return;
+                }
+
+                var status = routing.Enable();
+
+                if (status.State != AudioRoutingState.Active)
+                {
+                    ApplySystemAudioState(false);
+                    SetStatus(Loc.Get(status.MessageKey ?? "SystemAudio_SwitchFailed"));
+                    Notify(Loc.Get(status.MessageKey ?? "SystemAudio_SwitchFailed"));
+                    return;
+                }
+
+                ApplySystemAudioState(true);
+                SetStatus(Loc.Get("SystemAudio_On", status.CaptureDevice ?? "-"));
+                Notify(Loc.Get("SystemAudio_OnNotify"));
+            }
+            catch (Exception ex)
+            {
+                ApplySystemAudioState(false);
+                SetStatus(Loc.Get("SystemAudio_SwitchFailed") + " " + ex.Message);
+            }
+            finally
+            {
+                BtnSystemAudio.IsEnabled = true;
+            }
+        }
+
+        /// <summary>Puts the button, the badge and the saved setting in step with each other.</summary>
+        private void ApplySystemAudioState(bool active)
+        {
+            BtnSystemAudio.IsChecked = active;
+            _indicator?.SetListeningToSystemAudio(active);
+            PersistSystemAudio(active);
+        }
+
+        private void PersistSystemAudio(bool active)
+        {
+            if (_settings == null) return;
+
+            try
+            {
+                _settings.SystemAudioEnabled = active;
+                AppServices.Settings.SaveSettings(_settings);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MainWindow] could not remember the system-audio choice: {ex.Message}");
+            }
         }
 
         private void OnLiveTransferClick(object sender, RoutedEventArgs e)

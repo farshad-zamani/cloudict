@@ -63,4 +63,25 @@ namespace Cloudict.Platform.Unsupported
 
         public void Dispose() { }
     }
+
+    /// <summary>
+    /// System-audio capture on a platform that has no implementation yet. Reports itself
+    /// unsupported so the button explains itself instead of failing when pressed.
+    /// </summary>
+    internal sealed class NullAudioRouting : IAudioRouting
+    {
+        public bool IsSupported => false;
+        public bool IsActive => false;
+
+        public AudioRoutingStatus Probe() => new AudioRoutingStatus
+        {
+            State = AudioRoutingState.Unsupported,
+            MessageKey = "SystemAudio_Unsupported"
+        };
+
+        public AudioRoutingStatus Enable() => Probe();
+        public void Disable() { }
+        public void RecoverInterruptedSession() { }
+        public void Dispose() { }
+    }
 }

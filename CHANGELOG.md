@@ -8,6 +8,35 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.1.11] – 2026-08-25
+
+### Added
+- **Transcribe what the machine plays, not what the microphone hears.** A new *System audio* button
+  beside live transfer. With it on, press the start shortcut and play a voice note, a podcast, an
+  interview — anything, in any application — and the words are typed exactly as they would be if you
+  had spoken them. Nothing is selected, imported or saved first; the only difference from dictating
+  is that you press play instead of talking.
+
+  The two sources are exclusive, because Chrome's speech recognition reads from one audio input
+  device and there is no way to hand it a stream. Switching the mode on therefore asks first, and
+  says plainly that the microphone will not be transcribed until it is switched back off.
+
+  **Windows** needs one small free driver, [VB-CABLE](https://vb-audio.com/Cable/) — its licence does
+  not permit bundling it in another installer, so Cloudict detects whether it is present and, if not,
+  opens a window with the download link and the four steps. Everything after that is automatic:
+  Cloudict captures the speakers with WASAPI loopback, which is passive and leaves playback alone —
+  you go on hearing what you play — and feeds that into the cable, whose other end becomes the
+  recording device Chrome reads. **Linux** needs nothing at all: PulseAudio and PipeWire already give
+  every output a `.monitor` source. **macOS** is not implemented yet and says so.
+
+  The recording device is put back when the mode is switched off, when Cloudict closes, and at the
+  next start even if Cloudict is killed outright — the previous device is written to disk before
+  anything is changed.
+
+- **The corner badge shows which source is being listened to**: the microphone glyph for the room, a
+  speaker glyph for the machine's own audio. Both still carry the listening/idle colours, so at a
+  glance you can tell not just whether Cloudict is listening but to what.
+
 ## [3.0.6] – 2026-08-25
 
 ### Fixed

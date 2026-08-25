@@ -128,6 +128,12 @@ namespace Cloudict.Abstractions
         INotifier Notifier { get; }
 
         /// <summary>
+        /// Sends the machine's own audio to the speech engine in place of the microphone. Never
+        /// null; may report itself unsupported or in need of a helper the user installs once.
+        /// </summary>
+        IAudioRouting AudioRouting { get; }
+
+        /// <summary>
         /// A tray presence owned by the platform, or null when the application should provide its
         /// own. Only Windows needs this, because a balloon there requires a registered tray icon.
         /// </summary>
