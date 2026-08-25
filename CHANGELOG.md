@@ -8,6 +8,22 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.0.6] – 2026-08-25
+
+### Fixed
+- **A helper browser that failed to load is no longer announced as ready.** Cloudict waited for the
+  voice button to appear and then carried on regardless of whether it had — so a page that did not
+  load (no network yet just after a reboot, a DNS hiccup, Google returning an error) left a Chrome
+  window showing an error that Cloudict reported as ready to dictate into. The load is now checked,
+  retried up to three times, and reported honestly when it will not come up.
+- **The startup launch waits a moment first.** Starting Chrome in the same breath as the window made
+  a cold start the least reliable moment there is; a short pause lets the machine settle.
+
+### Changed
+- **The helper-browser button changes colour with its state**: solid red with a globe while the
+  browser is closed — something still to be done — and the calm panel colour with a red cross and
+  red label once it is open, so it reads as "running, and this is how you close it".
+
 ## [3.0.5] – 2026-08-24
 
 ### Added

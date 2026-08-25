@@ -131,18 +131,19 @@ namespace Cloudict.Speech
 
                         Report("Main_St_OpeningGT");
                         _driver = CreateDriver(_provision);
-                        _driver.Navigate().GoToUrl(BuildUrl());
 
-                        Report("Main_St_WaitingPageLoad");
-                        new WebDriverWait(_driver, TimeSpan.FromSeconds(30)).Until(
-                            d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
-
-                        // readyState only says the document finished loading. Google Translate is a
-                        // single-page app that builds its controls afterwards, so the voice button
-                        // does not exist yet at that point. Reporting the browser ready here made
-                        // the first press of the shortcut fail and the second one work, because by
-                        // then the page had caught up.
-                        WaitForVoiceButton(TimeSpan.FromSeconds(20));
+                        // The page is loaded up to three times before giving up. What used to happen
+                        // instead: a page that failed to load — no network yet just after a reboot,
+                        // a DNS hiccup, Google returning an error — left the voice button missing,
+                        // the wait below simply timed out, and Cloudict announced the browser ready
+                        // over a Chrome window showing an error. The result was a window that looked
+                        // open and could not dictate a word.
+                        if (!LoadPageWithRetries(3))
+                        {
+                            Report("Main_St_PageLoadFailed");
+                            CloseInternal();
+                            return false;
+                        }
 
                         _ready = true;
 
@@ -373,6 +374,53 @@ namespace Cloudict.Speech
             if (!string.IsNullOrWhiteSpace(configured)) yield return configured.Trim();
 
             foreach (var xpath in BuiltInMicXPaths) yield return xpath;
+        }
+
+        /// <summary>
+        /// <summary>
+        /// Navigates to Google Translate and waits for it to be genuinely usable, retrying the whole
+        /// load when it is not.
+        ///
+        /// <para>"Usable" means the voice button exists, not that the document finished loading. An
+        /// error page finishes loading perfectly well, and its <c>readyState</c> is <c>complete</c>
+        /// just like a good one's — which is exactly how a Chrome window showing "this site can't be
+        /// reached" was reported as a browser ready to dictate into.</para>
+        /// </summary>
+        private bool LoadPageWithRetries(int attempts)
+        {
+            for (int attempt = 1; attempt <= attempts; attempt++)
+            {
+                try
+                {
+                    if (attempt > 1)
+                    {
+                        Report("Main_St_PageRetry", attempt, attempts);
+                        Log($"reloading Google Translate, attempt {attempt} of {attempts}");
+                        Thread.Sleep(1200);
+                    }
+
+                    _driver.Navigate().GoToUrl(BuildUrl());
+
+                    Report("Main_St_WaitingPageLoad");
+                    new WebDriverWait(_driver, TimeSpan.FromSeconds(30)).Until(
+                        d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
+
+                    // Google Translate is a single-page app that builds its controls after the
+                    // document is done, so the button is the only honest readiness signal.
+                    // A shorter wait on the first go: a page that is going to work usually shows the
+                    // button within a few seconds, and reloading beats waiting out a dead one.
+                    var patience = attempt == attempts ? TimeSpan.FromSeconds(25) : TimeSpan.FromSeconds(12);
+                    if (WaitForVoiceButton(patience)) return true;
+                }
+                catch (WebDriverException ex)
+                {
+                    Log($"attempt {attempt} of {attempts} failed: {ex.Message}");
+                    if (attempt == attempts) throw;
+                }
+            }
+
+            Log("Google Translate never became usable");
+            return false;
         }
 
         /// <summary>

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using Cloudict.Abstractions;
@@ -113,6 +114,12 @@ namespace Cloudict.App.Views
             {
                 try
                 {
+                    // A moment's grace before launching Chrome. Starting a browser in the same
+                    // breath as the window is what made this the least reliable part of a cold
+                    // start — most visibly just after a reboot, when Cloudict can be up before the
+                    // network is, and the page then loads as an error.
+                    await Task.Delay(TimeSpan.FromMilliseconds(1200));
+
                     await Dispatcher.UIThread.InvokeAsync(() => BtnHelperBrowser.IsEnabled = false);
                     await _engine.OpenBrowserAsync();
                 }
@@ -603,6 +610,23 @@ namespace Cloudict.App.Views
                     IconBrowser.Data = shape;
 
                 TxtBrowserLabel.Text = Loc.Get(open ? "Main_CloseHelperBrowser" : "Main_OpenHelperBrowser");
+
+                // Colour carries the state as well as the icon. Closed is the accent red — something
+                // still to be done, since nothing can be dictated until the browser is up. Open is
+                // the calm panel colour with the cross and its label in red, so the button reads as
+                // "this is running, and this is how you close it" at a glance.
+                BtnHelperBrowser.Classes.Set("accent", !open);
+                BtnHelperBrowser.Classes.Set("subtle", open);
+
+                var foreground = open
+                    ? Application.Current?.FindResource("AccentHoverBrush") as IBrush
+                    : Brushes.White;
+
+                if (foreground != null)
+                {
+                    IconBrowser.Fill = foreground;
+                    TxtBrowserLabel.Foreground = foreground;
+                }
             });
 
         private void OnUserMessage(object sender, UserMessageEventArgs e) =>
