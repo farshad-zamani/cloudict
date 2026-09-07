@@ -205,15 +205,23 @@ namespace Cloudict.App.Views
 
                 _settings.SetVoiceCommandsFor(_commandLanguage ?? _settings.TypingLanguage, _commands.ToList());
 
+                // Saving deliberately leaves the window open. Closing on save meant anyone
+                // adjusting two things in different tabs had to reopen Settings between them, and
+                // it threw away where they were. The window closes when the user says so.
                 if (AppServices.Settings.SaveSettings(_settings))
                 {
                     Saved = true;
-                    Close();
+                    ShowSaveResult(Loc.Get("Settings_Saved"), success: true);
+                }
+                else
+                {
+                    ShowSaveResult(Loc.Get("Settings_SaveFailed"), success: false);
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[SettingsWindow] save failed: {ex.Message}");
+                ShowSaveResult(Loc.Get("Settings_SaveFailed"), success: false);
             }
         }
 
@@ -235,6 +243,27 @@ namespace Cloudict.App.Views
                 .ToList();
 
         private void OnCancelClick(object sender, RoutedEventArgs e) => Close();
+
+        /// <summary>
+        /// Reports the outcome beside the buttons, and clears it after a few seconds so it does not
+        /// sit there claiming a save that happened several edits ago.
+        /// </summary>
+        private void ShowSaveResult(string message, bool success)
+        {
+            TxtSaveResult.Text = message;
+            TxtSaveResult.IsVisible = true;
+            TxtSaveResult.Foreground = this.FindResource(success ? "SuccessBrush" : "AccentHoverBrush") as Avalonia.Media.IBrush
+                                       ?? TxtSaveResult.Foreground;
+
+            var shown = ++_saveResultToken;
+
+            Avalonia.Threading.DispatcherTimer.RunOnce(() =>
+            {
+                if (_saveResultToken == shown) TxtSaveResult.IsVisible = false;
+            }, TimeSpan.FromSeconds(4));
+        }
+
+        private int _saveResultToken;
 
         private void OnResetClick(object sender, RoutedEventArgs e)
         {

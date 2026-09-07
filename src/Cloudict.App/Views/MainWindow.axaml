@@ -173,9 +173,14 @@
       </Grid>
     </Border>
 
-    <!-- Footer links always read left-to-right -->
+    <!--
+      These follow the interface direction rather than being forced left-to-right. Forcing it split
+      each Persian label at its zero-width non-joiner and laid the two halves out left to right, so
+      "گیت‌هاب" read as "هاب‌گیت" and "وب‌سایت" as "سایت‌وب" — the words were right in the resource
+      file and wrong only on screen.
+    -->
     <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center"
-                Margin="0,2,0,6" Spacing="8" FlowDirection="LeftToRight">
+                Margin="0,2,0,6" Spacing="8">
       <Button Classes="subtle" Padding="12,7" Tag="https://github.com/farshad-zamani" Click="OnOpenUrlClick">
         <StackPanel Orientation="Horizontal" Spacing="8">
           <Path Width="16" Height="16" Stretch="Uniform" Fill="{DynamicResource TextPrimaryBrush}"
@@ -187,7 +192,7 @@
         <StackPanel Orientation="Horizontal" Spacing="8">
           <Path Width="16" Height="16" Stretch="Uniform" Fill="#0A66C2"
                 Data="{StaticResource IconLinkedIn}"/>
-          <TextBlock Text="LinkedIn" VerticalAlignment="Center"/>
+          <TextBlock Text="{loc:Tr Main_LinkedIn}" VerticalAlignment="Center"/>
         </StackPanel>
       </Button>
       <Button Classes="subtle" Padding="12,7" Tag="https://cloudtart.com" Click="OnOpenUrlClick">

@@ -8,6 +8,29 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.1.15] – 2026-09-07
+
+First release whose packages are all built by CI, so it is also the first to carry macOS.
+
+### Fixed
+- **The Settings window no longer closes when you save.** Anyone adjusting two things in different
+  tabs had to reopen Settings between them, and it threw away where they were. Save now saves and
+  stays, confirming beside the buttons; the window closes when you say so. The second button is
+  "Close" rather than "Cancel", which is what it now does.
+- **The Persian footer labels were shown in the wrong order** — "گیت‌هاب" appeared as "هاب‌گیت" and
+  "وب‌سایت" as "سایت‌وب". The footer was forced left-to-right so its buttons would keep a fixed
+  order; that split each label at its zero-width non-joiner and laid the halves out left to right.
+  The words were right in the resource file and wrong only on screen. The row now follows the
+  interface direction, and the LinkedIn label is translated rather than left in English.
+- **Every tagged release since 3.0.1 silently failed to build in CI.** The Windows job could not
+  find Inno Setup because `"$env:ProgramFiles(x86)\..."` is read by PowerShell as the variable
+  `ProgramFiles` followed by the literal text `(x86)`, producing a path with the space missing. The
+  publish job needs all three platform jobs, so nothing was ever attached automatically — every
+  release until now carried only the three packages built by hand, and no `.dmg` or `.AppImage` had
+  ever been published even though the macOS jobs were succeeding the whole time.
+- **A manual workflow run no longer stamps packages `3.0.0`**, a hard-coded fallback left over from
+  that version. It reads the version from `Directory.Build.props`.
+
 ## [3.1.14] – 2026-08-26
 
 ### Fixed
