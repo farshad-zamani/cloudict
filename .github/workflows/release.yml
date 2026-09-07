@@ -50,7 +50,15 @@ jobs:
 
       - name: Build installer
         run: |
-          & "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" packaging\windows\Cloudict.iss
+          # Braces are required: PowerShell reads "$env:ProgramFiles(x86)" as the variable
+          # ProgramFiles followed by the literal text (x86), which resolves to a path with the
+          # space missing and no such file on disk. This is why every tagged release failed here.
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { $iscc = "$env:ProgramFiles\Inno Setup 6\ISCC.exe" }
+          if (-not (Test-Path $iscc)) { throw "Inno Setup 6 not found on the runner." }
+
+          & $iscc packaging\windows\Cloudict.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed with exit code $LASTEXITCODE." }
         shell: pwsh
 
       - uses: actions/upload-artifact@v4
