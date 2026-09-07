@@ -92,8 +92,13 @@ jobs:
 
       - name: Build packages
         run: |
+          # On a tag the tag is the version; on a manual run read it from the one place that
+          # holds it, rather than a hard-coded fallback that silently produced packages named
+          # 3.0.0 long after the project had moved on.
           VERSION="${GITHUB_REF_NAME#v}"
-          [ "$VERSION" = "$GITHUB_REF_NAME" ] && VERSION=3.0.0
+          if [ "$VERSION" = "$GITHUB_REF_NAME" ]; then
+            VERSION=$(sed -n 's:.*<VersionPrefix>\(.*\)</VersionPrefix>.*:\1:p' src/Directory.Build.props)
+          fi
           bash packaging/linux/build-linux-packages.sh \
             src/Cloudict.App/bin/Release/net10.0/linux-x64/publish "$VERSION" "$PWD/dist"
 
@@ -135,8 +140,13 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: |
+          # On a tag the tag is the version; on a manual run read it from the one place that
+          # holds it, rather than a hard-coded fallback that silently produced packages named
+          # 3.0.0 long after the project had moved on.
           VERSION="${GITHUB_REF_NAME#v}"
-          [ "$VERSION" = "$GITHUB_REF_NAME" ] && VERSION=3.0.0
+          if [ "$VERSION" = "$GITHUB_REF_NAME" ]; then
+            VERSION=$(sed -n 's:.*<VersionPrefix>\(.*\)</VersionPrefix>.*:\1:p' src/Directory.Build.props)
+          fi
           bash packaging/macos/build-macos-package.sh \
             src/Cloudict.App/bin/Release/net10.0/${{ matrix.rid }}/publish \
             "$VERSION" "${{ matrix.arch }}" "$PWD/dist"
