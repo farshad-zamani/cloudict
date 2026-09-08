@@ -68,26 +68,27 @@ else
   # trusted, so the first open still needs right-click -> Open or the quarantine attribute cleared.
   echo "=== ad-hoc signing (no MACOS_SIGN_IDENTITY, so no Developer ID) ==="
 
-  # Every Mach-O inside is signed first, then the bundle itself — and deliberately without --deep.
-  # --deep cannot cope with this layout: a self-contained .NET publish puts hundreds of dylibs and
-  # a chromedriver in subdirectories of Contents/MacOS, which is not where macOS expects nested
-  # code to live, and it gives up with "bundle format unrecognized, invalid, or unsuitable".
-  # Signing the inner binaries by hand and sealing the bundle afterwards is what Apple recommends
-  # in any case, since the outer signature covers everything already signed beneath it.
-  find "$APP/Contents" -type f -print0 |
+  # Every file under Contents/MacOS is signed, then the bundle — and deliberately without --deep.
+  #
+  # Every *file*, not only the Mach-O ones: codesign walks the bundle's nested code when sealing it
+  # and refuses the lot if anything inside is unsigned, and a self-contained .NET publish lays
+  # hundreds of managed assemblies beside the executable. Filtering to Mach-O left those untouched
+  # and the bundle would not sign at all — "code object is not signed at all, in subcomponent
+  # System.Diagnostics.Contracts.dll". Signing a non-Mach-O file simply records the signature in an
+  # extended attribute, which is enough to satisfy the check. This is the recipe .NET and Avalonia
+  # both document for macOS bundles.
+  #
+  # --deep is avoided throughout: it cannot cope with code sitting in subdirectories of
+  # Contents/MacOS and gives up with "bundle format unrecognized, invalid, or unsuitable".
+  find "$APP/Contents/MacOS" -type f -print0 |
     while IFS= read -r -d '' f; do
-      case "$(file -b "$f" 2>/dev/null)" in
-        *Mach-O*) codesign --force --sign - "$f" >/dev/null 2>&1 || true ;;
-      esac
+      codesign --force --sign - "$f" >/dev/null 2>&1 || true
     done
 
   codesign --force --sign - --identifier com.cloudtart.cloudict "$APP"
 
-  # Verify the executable, not the bundle's nested code. A .NET publish lays managed assemblies
-  # beside the binary, and those are PE files: dyld never loads them, codesign cannot sign them,
-  # and yet a nested-code check counts every one as an unsigned subcomponent and fails. What has
-  # to be true is that the thing macOS executes carries a signature — that is the whole reason an
-  # Apple Silicon Mac was calling the app damaged.
+  # What has to be true is that the thing macOS executes carries a signature: an Apple Silicon Mac
+  # refuses to load an arm64 binary without one, which is why the app was reported as damaged.
   codesign --verify --verbose=2 "$APP/Contents/MacOS/Cloudict"
 
   echo "    Signed ad-hoc. Gatekeeper still blocks the first open until the user right-clicks and"
