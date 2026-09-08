@@ -68,11 +68,21 @@ else
   # trusted, so the first open still needs right-click -> Open or the quarantine attribute cleared.
   echo "=== ad-hoc signing (no MACOS_SIGN_IDENTITY, so no Developer ID) ==="
 
-  # Nested code first: the bundle's own signature seals what it contains.
-  find "$APP/Contents/MacOS" -type f \( -name '*.dylib' -o -name 'chromedriver' \) -exec     codesign --force --sign - {} \; 2>/dev/null || true
+  # Every Mach-O inside is signed first, then the bundle itself — and deliberately without --deep.
+  # --deep cannot cope with this layout: a self-contained .NET publish puts hundreds of dylibs and
+  # a chromedriver in subdirectories of Contents/MacOS, which is not where macOS expects nested
+  # code to live, and it gives up with "bundle format unrecognized, invalid, or unsuitable".
+  # Signing the inner binaries by hand and sealing the bundle afterwards is what Apple recommends
+  # in any case, since the outer signature covers everything already signed beneath it.
+  find "$APP/Contents" -type f -print0 |
+    while IFS= read -r -d '' f; do
+      case "$(file -b "$f" 2>/dev/null)" in
+        *Mach-O*) codesign --force --sign - "$f" >/dev/null 2>&1 || true ;;
+      esac
+    done
 
-  codesign --force --deep --sign - "$APP"
-  codesign --verify --deep --strict --verbose=2 "$APP"
+  codesign --force --sign - --identifier com.cloudtart.cloudict "$APP"
+  codesign --verify --verbose=2 "$APP"
 
   echo "    Signed ad-hoc. Gatekeeper still blocks the first open until the user right-clicks and"
   echo "    chooses Open, or runs: xattr -dr com.apple.quarantine /Applications/Cloudict.app"

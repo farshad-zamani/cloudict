@@ -114,6 +114,8 @@ jobs:
     needs: test
     runs-on: macos-latest
     strategy:
+      # One architecture failing should not cancel the other; each is a separate answer.
+      fail-fast: false
       matrix:
         include:
           - rid: osx-arm64

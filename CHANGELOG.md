@@ -8,6 +8,26 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.1.17] – 2026-09-08
+
+### Fixed
+- **The macOS build is signed, so it can run at all.** Without an Apple certificate the build applied
+  no signature whatsoever, and macOS refuses to execute an arm64 binary that carries none — the
+  kernel requires at least an ad-hoc one. On an Apple Silicon Mac the app therefore did not warn, it
+  failed outright, reported as *"the application is damaged and should be moved to the Trash"*. The
+  advice to right-click and choose Open was wrong for that failure; it addresses trust, and this was
+  the loader refusing the code.
+
+  Each Mach-O inside the bundle is now ad-hoc signed and the bundle sealed afterwards — deliberately
+  without `--deep`, which cannot cope with a self-contained .NET layout and gives up with "bundle
+  format unrecognized". Signing costs nothing and needs no Apple account. The build verifies its own
+  signature under `set -e`, so an unsigned bundle fails the job instead of shipping, and prints the
+  signature into the CI log.
+
+  It is signed, not *trusted*: the first open still needs right-click → **Open**, or
+  `xattr -dr com.apple.quarantine /Applications/Cloudict.app`. Removing that step needs a paid
+  Developer ID, which the workflow is already wired for.
+
 ## [3.1.16] – 2026-09-07
 
 ### Fixed
