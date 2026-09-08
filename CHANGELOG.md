@@ -8,6 +8,20 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.1.16] – 2026-09-07
+
+### Fixed
+- **The macOS build is now signed, so it can actually run.** Without an Apple certificate the build
+  applied no signature at all — and macOS refuses to execute an arm64 binary that carries none. The
+  kernel requires at least an ad-hoc signature, so on an Apple Silicon Mac the app did not merely
+  warn, it failed outright, reported as *"the application is damaged and should be moved to the
+  Trash"*. It is now ad-hoc signed, which needs no Apple account and makes the code loadable.
+
+  It is still not *trusted* — that needs a paid Developer ID — so the first open needs
+  right-click → **Open**, or `xattr -dr com.apple.quarantine /Applications/Cloudict.app` if macOS
+  still refuses. The build verifies its own signature and prints it into the CI log, so whether a
+  release is signed is answerable from the run.
+
 ## [3.1.15] – 2026-09-07
 
 First release whose packages are all built by CI, so it is also the first to carry macOS.

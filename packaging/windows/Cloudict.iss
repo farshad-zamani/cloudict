@@ -5,7 +5,7 @@
 ; ============================================================================
 
 #define MyAppName        "Cloudict"
-#define MyAppVersion     "3.1.15"
+#define MyAppVersion     "3.1.16"
 #define MyAppPublisher   "Cloudtart"
 #define MyAppURL         "https://cloudtart.com"
 #define MyAppExeName     "Cloudict.exe"

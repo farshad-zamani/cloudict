@@ -59,8 +59,22 @@ if [ -n "${MACOS_SIGN_IDENTITY:-}" ]; then
 
   codesign --verify --deep --strict --verbose=2 "$APP"
 else
-  echo "=== not signing (MACOS_SIGN_IDENTITY unset) ==="
-  echo "    The .dmg will work, but Gatekeeper blocks it until the user right-clicks and"
+  # Ad-hoc signing, which needs no Apple account and no certificate.
+  #
+  # This is not a nicety. macOS refuses to execute an arm64 binary that carries no signature at
+  # all — the kernel requires at least an ad-hoc one — so an unsigned build does not merely warn
+  # on an Apple Silicon Mac, it fails outright, usually reported as "the application is damaged
+  # and should be moved to the Trash". Ad-hoc signing makes the code loadable; it does not make it
+  # trusted, so the first open still needs right-click -> Open or the quarantine attribute cleared.
+  echo "=== ad-hoc signing (no MACOS_SIGN_IDENTITY, so no Developer ID) ==="
+
+  # Nested code first: the bundle's own signature seals what it contains.
+  find "$APP/Contents/MacOS" -type f \( -name '*.dylib' -o -name 'chromedriver' \) -exec     codesign --force --sign - {} \; 2>/dev/null || true
+
+  codesign --force --deep --sign - "$APP"
+  codesign --verify --deep --strict --verbose=2 "$APP"
+
+  echo "    Signed ad-hoc. Gatekeeper still blocks the first open until the user right-clicks and"
   echo "    chooses Open, or runs: xattr -dr com.apple.quarantine /Applications/Cloudict.app"
 fi
 
@@ -87,6 +101,10 @@ if [ -n "${MACOS_SIGN_IDENTITY:-}" ] && [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_
 else
   echo "=== not notarising (Apple credentials unset) ==="
 fi
+
+echo
+echo "=== signature on the packaged app ==="
+codesign -dvv "$APP" 2>&1 | sed 's/^/    /' || echo "    UNSIGNED — this build will not run on Apple Silicon"
 
 echo
 echo "=== done ==="
