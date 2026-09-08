@@ -95,6 +95,95 @@ namespace Cloudict.App.Views
             RestoreLiveTransfer();
             ResetSystemAudio();
             OpenBrowserOnStartup();
+            CheckForUpdate();
+        }
+
+        /// <summary>
+        /// Asks once a day whether a newer release exists, and says so in a bar if one does.
+        ///
+        /// <para>Read-only and entirely optional: it reports and links, and never downloads or
+        /// installs anything. Failure is silent by design — Cloudict is used behind restrictive
+        /// networks, and a check that cannot reach GitHub must be indistinguishable from one that
+        /// found nothing.</para>
+        /// </summary>
+        private void CheckForUpdate()
+        {
+            if (_settings?.CheckForUpdates != true) return;
+            if ((DateTime.Now - _settings.LastUpdateCheck).TotalHours < 24) return;
+
+            _ = Task.Run(async () =>
+            {
+                // Well after the browser launch, so the two are never competing for a cold start.
+                await Task.Delay(TimeSpan.FromSeconds(12));
+
+                var update = await new UpdateChecker().CheckAsync();
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        _settings.LastUpdateCheck = DateTime.Now;
+                        AppServices.Settings.SaveSettings(_settings);
+
+                        if (update == null) return;
+                        if (string.Equals(update.Version, _settings.SkippedUpdateVersion, StringComparison.Ordinal)) return;
+
+                        ShowUpdateBar(update);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[MainWindow] update notice: {ex.Message}");
+                    }
+                });
+            });
+        }
+
+        private UpdateInfo _availableUpdate;
+
+        private void ShowUpdateBar(UpdateInfo update)
+        {
+            _availableUpdate = update;
+
+            TxtUpdate.Text = Loc.Get("Update_Available", update.Version, AppInfo.Version);
+
+            // A direct link when the release carries something this machine can install, and the
+            // release page when it does not — better than handing someone the wrong architecture.
+            BtnUpdate.Content = Loc.Get(update.DownloadUrl != null ? "Update_Download" : "Update_Open");
+            UpdateBar.IsVisible = true;
+        }
+
+        private void OnUpdateClick(object sender, RoutedEventArgs e)
+        {
+            var target = _availableUpdate?.DownloadUrl
+                         ?? _availableUpdate?.ReleaseUrl
+                         ?? UpdateChecker.ReleasesPage;
+
+            try
+            {
+                Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                SetStatus(Loc.Get("Main_OpenLinkError", ex.Message));
+            }
+        }
+
+        /// <summary>Passes over this version, so the bar does not reappear until the next one.</summary>
+        private void OnUpdateLaterClick(object sender, RoutedEventArgs e)
+        {
+            UpdateBar.IsVisible = false;
+
+            if (_settings == null || _availableUpdate == null) return;
+
+            try
+            {
+                _settings.SkippedUpdateVersion = _availableUpdate.Version;
+                AppServices.Settings.SaveSettings(_settings);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MainWindow] could not remember the skipped version: {ex.Message}");
+            }
         }
 
         /// <summary>

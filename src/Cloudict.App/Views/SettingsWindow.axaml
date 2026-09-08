@@ -171,6 +171,8 @@
                 <CheckBox x:Name="ChkShowIndicator" Content="{loc:Tr Settings_ShowIndicator}"/>
                 <CheckBox x:Name="ChkOpenBrowserOnStartup" Content="{loc:Tr Settings_OpenBrowserOnStartup}"/>
                 <TextBlock Text="{loc:Tr Settings_OpenBrowserOnStartupHint}" Classes="hint"/>
+                <CheckBox x:Name="ChkCheckForUpdates" Content="{loc:Tr Settings_CheckForUpdates}"/>
+                <TextBlock Text="{loc:Tr Settings_CheckForUpdatesHint}" Classes="hint"/>
               </StackPanel>
             </Border>
 

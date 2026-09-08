@@ -11,7 +11,7 @@
         FlowDirection="{DynamicResource AppFlowDirection}"
         Background="{DynamicResource BgWindowBrush}">
 
-  <Grid Margin="10" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
+  <Grid Margin="10" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
 
     <!-- Header: settings button on the leading edge, logo and version centred -->
     <Grid Grid.Row="0" Margin="0,4,0,0">
@@ -174,12 +174,38 @@
     </Border>
 
     <!--
+      Shown only when a newer release exists. A bar rather than a dialog: an update is worth knowing
+      about and never worth interrupting dictation for.
+    -->
+    <Border Grid.Row="4" x:Name="UpdateBar" Classes="card" IsVisible="False"
+            Margin="15,0,15,8" Padding="14,10"
+            Background="{DynamicResource AccentSoftBrush}"
+            BorderBrush="{DynamicResource AccentBrush}">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+        <!-- Stroked, not filled: the strokes are open lines, and a fill would close them into a blot. -->
+        <Path Grid.Column="0" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"
+              Data="M12 2 L12 15 M12 15 L7 10 M12 15 L17 10 M4 19 L20 19"
+              Stroke="{DynamicResource AccentHoverBrush}" StrokeThickness="2"
+              StrokeLineCap="Round" StrokeJoin="Round"/>
+
+        <TextBlock Grid.Column="1" x:Name="TxtUpdate" Margin="12,0" VerticalAlignment="Center"
+                   TextWrapping="Wrap" FontSize="13"/>
+
+        <Button Grid.Column="2" x:Name="BtnUpdate" Classes="accent" Padding="14,7"
+                Margin="0,0,8,0" Click="OnUpdateClick"/>
+
+        <Button Grid.Column="3" Classes="subtle" Padding="10,7"
+                Content="{loc:Tr Update_Later}" Click="OnUpdateLaterClick"/>
+      </Grid>
+    </Border>
+
+    <!--
       These follow the interface direction rather than being forced left-to-right. Forcing it split
       each Persian label at its zero-width non-joiner and laid the two halves out left to right, so
       "گیت‌هاب" read as "هاب‌گیت" and "وب‌سایت" as "سایت‌وب" — the words were right in the resource
       file and wrong only on screen.
     -->
-    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center"
+    <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center"
                 Margin="0,2,0,6" Spacing="8">
       <Button Classes="subtle" Padding="12,7" Tag="https://github.com/farshad-zamani" Click="OnOpenUrlClick">
         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -205,7 +231,7 @@
     </StackPanel>
 
     <!-- Status. Wraps rather than clipping: driver and browser messages run long. -->
-    <Border Grid.Row="5" Background="{DynamicResource BgPanelBrush}" MinHeight="35" Padding="8,5">
+    <Border Grid.Row="6" Background="{DynamicResource BgPanelBrush}" MinHeight="35" Padding="8,5">
       <TextBlock x:Name="TxtStatus" Classes="status" VerticalAlignment="Center" MaxHeight="64"/>
     </Border>
 

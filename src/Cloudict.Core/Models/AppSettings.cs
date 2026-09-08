@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -176,6 +177,21 @@ namespace Cloudict
         /// actually running would be worse than one that resets.</para>
         /// </summary>
         public bool SystemAudioEnabled { get; set; } = false;
+
+        /// <summary>
+        /// Whether Cloudict asks GitHub, once a day, whether a newer release exists.
+        ///
+        /// <para>On by default, and read-only: it reports what is available and links to it, never
+        /// downloads or installs anything by itself. Turning it off stops the request entirely for
+        /// anyone who would rather the application did not reach the network on its own.</para>
+        /// </summary>
+        public bool CheckForUpdates { get; set; } = true;
+
+        /// <summary>When the last check ran, so it happens once a day rather than at every launch.</summary>
+        public DateTime LastUpdateCheck { get; set; } = DateTime.MinValue;
+
+        /// <summary>A version the user chose to pass over, so the same bar does not keep returning.</summary>
+        public string SkippedUpdateVersion { get; set; } = "";
 
         // Voice Commands Configuration - تنظیمات دستورات صوتی
         /// <summary>

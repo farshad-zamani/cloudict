@@ -49,6 +49,18 @@ if command -v dpkg-deb >/dev/null 2>&1; then
   cp -r "$STAGE"/. "$DEB_STAGE/"
   install -d "$DEB_STAGE/DEBIAN"
 
+  # The alternations in Depends are not decoration. Two families of package have been renamed
+  # underneath us and the name that works depends entirely on the distribution release:
+  #
+  #   libicu*   — carries its ABI version in its name, so every release ships a different one.
+  #               Listed newest first; apt takes the first that exists.
+  #   libpng16-16t64 — Ubuntu's 64-bit time_t transition renamed the package. On 24.04 and later
+  #               the old name is virtual with no installation candidate, so depending on it alone
+  #               is not reliably satisfiable; on Debian 12 and Ubuntu 22.04 only the old name
+  #               exists. Both are listed, new name first.
+  #
+  # ICU is not optional here: the build sets InvariantGlobalization=false, which makes the .NET
+  # runtime refuse to start without it.
   cat > "$DEB_STAGE/DEBIAN/control" <<EOF
 Package: cloudict
 Version: $VERSION
@@ -57,7 +69,7 @@ Priority: optional
 Architecture: amd64
 Maintainer: Farshad Zamani <farshad.z1992@gmail.com>
 Installed-Size: $SIZE_KB
-Depends: libx11-6, libxtst6, libice6, libsm6, libfontconfig1
+Depends: libx11-6, libxtst6, libice6, libsm6, libfontconfig1, libfreetype6, libexpat1, libpng16-16t64 | libpng16-16, zlib1g, libbz2-1.0, libstdc++6, ca-certificates, libicu76 | libicu74 | libicu72 | libicu71 | libicu70 | libicu67 | libicu66
 Recommends: google-chrome-stable, ydotool
 Homepage: https://cloudtart.com
 Description: Free voice typing powered by Google's speech recognition
@@ -106,7 +118,7 @@ Summary:        Free voice typing powered by Google's speech recognition
 License:        MIT
 URL:            https://cloudtart.com
 BuildArch:      x86_64
-Requires:       libX11, libXtst, libICE, libSM, fontconfig
+Requires:       libX11, libXtst, libICE, libSM, fontconfig, freetype, expat, libpng, zlib, libstdc++, ca-certificates, libicu
 Recommends:     google-chrome-stable
 AutoReqProv:    no
 
@@ -157,6 +169,18 @@ if [ -n "$APPIMAGETOOL" ]; then
   cat > "$APPDIR/AppRun" <<'EOF'
 #!/bin/sh
 HERE="$(dirname "$(readlink -f "$0")")"
+
+# The .deb and .rpm can declare that they need ICU and let the package manager install it. An
+# AppImage has no such mechanism: it runs on whatever the machine happens to have. Without ICU,
+# .NET does not start at all — it exits with "Couldn't find a valid ICU package installed on the
+# system" before any of Cloudict's own code runs, which reads to the user as the app doing nothing.
+#
+# So look first, and fall back to invariant globalization if it is genuinely absent. That costs
+# culture-aware sorting and casing, which this app barely uses, and buys an application that starts.
+if ! ls /usr/lib/libicuuc.so* /usr/lib64/libicuuc.so*       /usr/lib/*/libicuuc.so* /lib/*/libicuuc.so* >/dev/null 2>&1; then
+  export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+fi
+
 exec "$HERE/usr/Cloudict" "$@"
 EOF
   chmod +x "$APPDIR/AppRun"

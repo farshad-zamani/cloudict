@@ -8,6 +8,48 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.2.0] – 2026-09-08
+
+### Added
+- **Cloudict says when a new version is out.** Until now the only way to learn that a release
+  existed was to go and look, which meant most installations simply stayed where they were. A bar
+  now appears in the window when a newer version is published, naming both versions, with a button
+  that downloads the right file for the machine it is running on — the `.exe` on Windows, the `.dmg`
+  for the correct Mac architecture, the `.deb` or `.rpm` depending on which package manager is
+  actually installed. When a release carries nothing recognisable for the platform, the button opens
+  the release page instead of offering the wrong file.
+
+  It only ever reports and links. It does not download or install anything by itself, it asks once a
+  day rather than at every start, and **Not now** dismisses that version for good so the same bar
+  does not keep returning. The whole thing can be switched off in Settings for anyone who would
+  rather the application did not reach the network on its own.
+
+  Failure is deliberately silent. Cloudict is used on networks where reaching a given host is not a
+  given — the driver downloads already route around one that answers 403 in some countries — so a
+  check that cannot get through looks exactly like one that found nothing. No error, no retry loop,
+  nothing waiting on it at startup.
+
+### Fixed
+- **Linux packages now declare what .NET actually needs to start.** The build sets
+  `InvariantGlobalization=false`, which means the runtime *requires* ICU and exits at startup
+  without it — but ICU was never listed as a dependency, so on a minimal Debian, Ubuntu or Fedora
+  install the application would fail before its window ever appeared, with nothing on screen to
+  explain why. ICU is now required by both the `.deb` and the `.rpm`, spanning the versions shipped
+  across current distributions, and the AppImage — which cannot demand anything of its host — falls
+  back to invariant mode rather than refusing to start.
+
+  The same audit added the X11, font and compression libraries an Avalonia application links
+  against but never declared: `libX11`, `libXtst`, `libICE`, `libSM`, fontconfig, freetype, expat,
+  libpng, zlib and `ca-certificates`. Each was present by default on a desktop install, which is
+  why this went unnoticed, and each is a startup failure on a system without it. Nothing changes for
+  a machine that already had them.
+
+  One of those names needed care. Ubuntu's 64-bit `time_t` transition renamed `libpng16-16` to
+  `libpng16-16t64`, and on 24.04 and later the old name survives only as a virtual package with no
+  installation candidate — so a package depending on it by that name alone is not reliably
+  installable on the current LTS. Debian 12 and Ubuntu 22.04 know only the old name. Both are now
+  listed as alternatives, as are the ICU versions, which change with every distribution release.
+
 ## [3.1.20] – 2026-09-08
 
 ### Fixed

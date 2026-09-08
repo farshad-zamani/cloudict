@@ -42,6 +42,9 @@ key (Enter, Tab, …), switch the keyboard language, or run a program.
   programs.
 - 🛠️ **Tunable** — adjust transfer delays and Google Translate selectors from Settings.
 - 🔌 **Works offline on first run** — the matching browser driver ships inside every package.
+- 🔔 **Tells you about new versions** — a notice in the window when a release is out, with a
+  direct download for your system. It only reports and links; it never installs anything by
+  itself, and it can be switched off in Settings.
 
 ## Requirements
 
