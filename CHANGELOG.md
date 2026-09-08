@@ -8,6 +8,28 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.1.20] – 2026-09-08
+
+### Fixed
+- **The macOS app is signed, which is what it needed in order to run at all.** Reported from a real
+  Mac as *"the application is damaged and should be moved to the Trash"* — a message about loading
+  rather than trust, which is why right-click → Open did nothing for it. Without an Apple certificate
+  the build had been applying no signature whatsoever, and macOS refuses to execute an arm64 binary
+  that carries none.
+
+  Two things had to change for signing to be possible at all. Every file under `Contents/MacOS` is
+  signed, not only the Mach-O ones, because codesign walks a bundle's nested code when sealing it and
+  refuses the lot if anything inside is unsigned — and a self-contained .NET publish lays hundreds of
+  managed assemblies beside the executable. And ChromeDriver moved to `Contents/Resources`, where
+  macOS expects a helper tool: under `Contents/MacOS` its version-named folder was read as a nested
+  bundle that codesign could not parse. Cloudict looks in both places, so nothing changes on Windows
+  or Linux.
+
+  Ad-hoc signing needs no Apple account and costs nothing. It makes the app *loadable*, not
+  *trusted*: the first open still needs right-click → **Open**, or
+  `xattr -dr com.apple.quarantine /Applications/Cloudict.app`. Removing that step needs a paid
+  Developer ID, which the workflow is already wired for.
+
 ## [3.1.19] – 2026-09-08
 
 ### Fixed

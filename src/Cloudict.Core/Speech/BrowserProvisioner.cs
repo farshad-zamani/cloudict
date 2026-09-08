@@ -209,6 +209,15 @@ namespace Cloudict.Speech
             // is the newer of the two by construction.
             Scan(UserDriverCache, "cache");
             Scan(Path.Combine(appDir, BundledDriverFolder), "bundled");
+
+            // Inside a macOS .app the driver lives in Contents/Resources rather than beside the
+            // executable in Contents/MacOS. That is where Apple expects a helper tool, and it is
+            // not merely a convention: codesign treats any directory holding a binary under
+            // Contents/MacOS as a nested bundle, could not make sense of "Drivers/152.0.7977.42",
+            // and refused to sign the app at all — leaving a build macOS would not launch.
+            // Harmless everywhere else, where the path simply does not exist.
+            Scan(Path.Combine(appDir, "..", "Resources", BundledDriverFolder), "bundled");
+
             Scan(Path.Combine(appDir, LegacyDriverFolder), "legacy");
 
             foreach (var extra in _info.AdditionalDriverSearchPaths ?? Enumerable.Empty<string>())

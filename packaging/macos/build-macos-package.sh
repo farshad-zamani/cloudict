@@ -30,7 +30,15 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp -R "$PUBLISH_DIR"/. "$APP/Contents/MacOS/"
 chmod +x "$APP/Contents/MacOS/Cloudict"
-find "$APP/Contents/MacOS/Drivers" -name chromedriver -exec chmod +x {} \; 2>/dev/null || true
+
+# ChromeDriver goes to Contents/Resources, which is where macOS expects a helper tool. Left under
+# Contents/MacOS, its version-named folder is read by codesign as a nested bundle it cannot parse
+# ("bundle format unrecognized, invalid, or unsuitable"), and the app will not sign at all.
+# BrowserProvisioner looks in both places.
+if [ -d "$APP/Contents/MacOS/Drivers" ]; then
+  mv "$APP/Contents/MacOS/Drivers" "$APP/Contents/Resources/Drivers"
+fi
+find "$APP/Contents/Resources/Drivers" -name chromedriver -exec chmod +x {} \; 2>/dev/null || true
 
 # Icon: macOS wants an .icns, which is built from the PNG.
 ICONSET="$STAGE/cloudict.iconset"
@@ -80,7 +88,7 @@ else
   #
   # --deep is avoided throughout: it cannot cope with code sitting in subdirectories of
   # Contents/MacOS and gives up with "bundle format unrecognized, invalid, or unsuitable".
-  find "$APP/Contents/MacOS" -type f -print0 |
+  find "$APP/Contents/MacOS" "$APP/Contents/Resources/Drivers" -type f -print0 2>/dev/null |
     while IFS= read -r -d '' f; do
       codesign --force --sign - "$f" >/dev/null 2>&1 || true
     done
