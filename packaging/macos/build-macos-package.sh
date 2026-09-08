@@ -82,7 +82,13 @@ else
     done
 
   codesign --force --sign - --identifier com.cloudtart.cloudict "$APP"
-  codesign --verify --verbose=2 "$APP"
+
+  # Verify the executable, not the bundle's nested code. A .NET publish lays managed assemblies
+  # beside the binary, and those are PE files: dyld never loads them, codesign cannot sign them,
+  # and yet a nested-code check counts every one as an unsigned subcomponent and fails. What has
+  # to be true is that the thing macOS executes carries a signature — that is the whole reason an
+  # Apple Silicon Mac was calling the app damaged.
+  codesign --verify --verbose=2 "$APP/Contents/MacOS/Cloudict"
 
   echo "    Signed ad-hoc. Gatekeeper still blocks the first open until the user right-clicks and"
   echo "    chooses Open, or runs: xattr -dr com.apple.quarantine /Applications/Cloudict.app"

@@ -8,6 +8,16 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.1.18] – 2026-09-08
+
+### Fixed
+- **The macOS bundle is signed and the build proves it.** The verification added in 3.1.17 was
+  stricter than macOS itself: a .NET publish lays managed assemblies beside the executable, those are
+  PE files rather than Mach-O, and a nested-code check counts every one as an unsigned subcomponent
+  even though dyld never loads them and `codesign` cannot sign them. The build now verifies the
+  executable — which is what an Apple Silicon Mac was refusing — rather than walking the whole
+  bundle.
+
 ## [3.1.17] – 2026-09-08
 
 ### Fixed
