@@ -7,9 +7,11 @@
 # arch is x64 or arm64, and only labels the output; the payload comes from <publish-dir>.
 #
 # Signing is optional and off unless the environment supplies credentials. Without them the .dmg
-# still works, but Gatekeeper will refuse it on first open until the user right-clicks and chooses
-# Open, or strips the quarantine attribute. Set MACOS_SIGN_IDENTITY (and, to notarise,
-# APPLE_ID / APPLE_TEAM_ID / APPLE_APP_PASSWORD) to produce a build that opens with no warning.
+# still works, but Gatekeeper refuses the first open until the user approves the app in
+# System Settings -> Privacy & Security, or strips the quarantine attribute. (Note that macOS 15
+# removed the older right-click -> Open shortcut, so that advice is no longer enough on its own.)
+# Set MACOS_SIGN_IDENTITY (and, to notarise, APPLE_ID / APPLE_TEAM_ID / APPLE_APP_PASSWORD) to
+# produce a build that opens with no warning at all.
 set -euo pipefail
 
 PUBLISH_DIR="${1:?usage: build-macos-package.sh <publish-dir> <version> <arch> [output-dir]}"
@@ -73,7 +75,9 @@ else
   # all — the kernel requires at least an ad-hoc one — so an unsigned build does not merely warn
   # on an Apple Silicon Mac, it fails outright, usually reported as "the application is damaged
   # and should be moved to the Trash". Ad-hoc signing makes the code loadable; it does not make it
-  # trusted, so the first open still needs right-click -> Open or the quarantine attribute cleared.
+  # trusted, so Gatekeeper still blocks the first open — see HOW TO OPEN THIS APP.txt, written into
+  # the disk image below. Only notarisation removes that step, and notarisation needs a paid
+  # Developer ID.
   echo "=== ad-hoc signing (no MACOS_SIGN_IDENTITY, so no Developer ID) ==="
 
   # Every file under Contents/MacOS is signed, then the bundle — and deliberately without --deep.
@@ -99,8 +103,8 @@ else
   # refuses to load an arm64 binary without one, which is why the app was reported as damaged.
   codesign --verify --verbose=2 "$APP/Contents/MacOS/Cloudict"
 
-  echo "    Signed ad-hoc. Gatekeeper still blocks the first open until the user right-clicks and"
-  echo "    chooses Open, or runs: xattr -dr com.apple.quarantine /Applications/Cloudict.app"
+  echo "    Signed ad-hoc, so the app loads but is not notarised. The first open needs approval in"
+  echo "    System Settings -> Privacy & Security, or: xattr -dr com.apple.quarantine /Applications/Cloudict.app"
 fi
 
 # ------------------------------------------------------------------ dmg
@@ -111,6 +115,54 @@ DMG_STAGE="$STAGE/dmg"
 mkdir -p "$DMG_STAGE"
 cp -R "$APP" "$DMG_STAGE/"
 ln -s /Applications "$DMG_STAGE/Applications"   # the familiar drag-to-install layout
+
+# The first-launch instructions travel inside the disk image, because that is the one moment the
+# user is guaranteed to be looking at it — and the moment macOS gives them a dialog with no way
+# forward. A build with a Developer ID is notarised and needs none of this, so the file is only
+# written for the ad-hoc case.
+if [ -z "${MACOS_SIGN_IDENTITY:-}" ]; then
+  cat > "$DMG_STAGE/HOW TO OPEN THIS APP.txt" <<'NOTE'
+Opening Cloudict for the first time
+==================================
+
+1. Drag Cloudict onto the Applications folder in this window.
+2. Eject this disk image. Do not run the app from inside it.
+3. Open Cloudict from Applications.
+
+macOS will refuse the first launch, saying:
+
+    "Cloudict can't be opened because Apple cannot check it
+     for malicious software."
+
+That message means this app carries no Apple notarisation ticket, which costs
+a paid Developer Program membership. It does not mean anything was found in it.
+Cloudict is open source: https://github.com/farshad-zamani/cloudict
+
+To open it anyway, once:
+
+  macOS 15 (Sequoia) and later
+    Apple removed the old right-click -> Open shortcut, which is why the
+    warning itself offers no way forward. Instead:
+      1. Dismiss the warning.
+      2. System Settings -> Privacy & Security -> scroll to "Security".
+      3. Next to "Cloudict was blocked to protect your Mac", click
+         "Open Anyway" and authenticate.
+
+  macOS 14 and earlier
+    Right-click Cloudict -> Open -> Open.
+
+  Either version, from Terminal
+    xattr -dr com.apple.quarantine /Applications/Cloudict.app
+
+Only the first launch is affected.
+
+Cloudict also needs two things to work:
+  * Google Chrome installed.
+  * Accessibility permission, so it can type into other apps:
+    System Settings -> Privacy & Security -> Accessibility.
+    Without it, macOS silently discards every keystroke Cloudict sends.
+NOTE
+fi
 
 rm -f "$DMG"
 hdiutil create -volname "Cloudict $VERSION" -srcfolder "$DMG_STAGE" \

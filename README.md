@@ -96,15 +96,31 @@ Not sure what your system supports? Run `cloudict --diagnose`; it prints exactly
 
 ### macOS
 
-Open the `.dmg` and drag Cloudict to Applications. Pick the **arm64** build for Apple Silicon and
-**x64** for Intel.
+Open the `.dmg` and **drag Cloudict onto the Applications folder**. Pick the **arm64** build for
+Apple Silicon and **x64** for Intel. Then eject the disk image — don't run the app from inside it,
+because a mounted `.dmg` is read-only and neither of the steps below can be applied there.
 
-The build is **not signed by Apple** (that needs a paid Developer Program membership), so
-Gatekeeper blocks it the first time. Either right-click the app and choose **Open**, or:
+The build is **not notarised by Apple** (notarisation needs a paid Developer Program membership),
+so Gatekeeper blocks the first launch with *"Cloudict can't be opened because Apple cannot check it
+for malicious software."* That message is about the absence of an Apple notarisation ticket, not
+about anything found in the app.
+
+**On macOS 15 (Sequoia) and later**, open it once through Settings — Apple removed the old
+right-click → Open shortcut in Sequoia, which is why no bypass appears in the dialog itself:
+
+1. Double-click Cloudict in Applications and dismiss the warning.
+2. Open **System Settings → Privacy & Security** and scroll to **Security**.
+3. Next to *"Cloudict was blocked to protect your Mac"*, click **Open Anyway**, then authenticate.
+
+On macOS 14 and earlier, right-click the app and choose **Open** instead.
+
+Either version can skip all of that from Terminal:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/Cloudict.app
 ```
+
+Only the first launch is affected; afterwards Cloudict opens normally.
 
 macOS then asks for **Accessibility** permission the first time Cloudict types. Grant it in
 *System Settings → Privacy & Security → Accessibility*; without it macOS silently discards every
