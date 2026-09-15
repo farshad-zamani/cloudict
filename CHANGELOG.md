@@ -8,6 +8,48 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.2.1] – 2026-09-15
+
+### Fixed
+- **Antivirus products no longer see Chrome creating background transfer jobs.** On a machine
+  running 360 Total Security, installing Cloudict produced a cascade of prompts — *"a process is
+  creating a BITS task, it could be a malicious behaviour"* — one for the installer, one for the
+  application, one for each of its libraries, one for the uninstaller. All of them named
+  `chrome.exe` as the source.
+
+  The cause was Chrome's own component updater. On Windows it fetches its downloads through BITS,
+  the system's background transfer service, and a process creating a BITS job is a textbook malware
+  heuristic. The antivirus did not blame Chrome; it walked the process ancestry back through
+  ChromeDriver to Cloudict and challenged every unsigned file it found in the install folder. The
+  helper Chrome is now launched with the component updater switched off, the BITS downloader named
+  specifically, and the rest of Chrome's background networking disabled — the same set of switches
+  Puppeteer and Playwright pass for every session. Verified on a machine with thirty-one BITS jobs
+  already present, several of them Edge's own component updater: forty-five seconds with the helper
+  open added none. Recognition is the page's foreground traffic and is untouched.
+
+- **The update check no longer writes to the machine's trusted-root certificate store.** The same
+  antivirus reported *"modifying certificate publisher"* against
+  `HKLM\SOFTWARE\Microsoft\SystemCertificates\AuthRoot`. That write is Windows keeping its own
+  root store current: the first HTTPS connection to a host whose root the machine has not yet cached
+  makes CryptoAPI download the root and store it — inside whichever process made the connection. It
+  was benign, but an unfamiliar application writing to the trusted-root list is exactly what a
+  registry guard exists to stop. The check now builds the certificate chain from what the machine
+  already has and fetches nothing; on a machine missing GitHub's root it simply fails, which this
+  check is allowed to do.
+
+### Added
+- **The Windows build signs itself the day a certificate exists.** Everything an antivirus objected
+  to above shares one property: the files carry no publisher's signature, so a heuristic has nothing
+  to trust and asks about each one. The release pipeline now Authenticode-signs every unsigned
+  binary in the publish folder, the installer and the uninstaller — with a SHA-256 digest and an
+  RFC 3161 timestamp, so signatures outlive the certificate — the moment two repository secrets are
+  set. Without them the build is byte-for-byte what it was. The whole path was exercised end to end
+  with a throwaway certificate: thirty-six files signed, the hundred and ninety-one Microsoft-signed
+  ones left alone, and Inno Setup calling the same script for the uninstaller it generates.
+
+- **The README explains antivirus prompts** — what triggers them, why an unsigned free program gets
+  them, and where to report a false positive so the program earns a reputation.
+
 ## [3.2.0] – 2026-09-08
 
 ### Added

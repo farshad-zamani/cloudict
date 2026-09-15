@@ -48,7 +48,20 @@ jobs:
           dotnet publish src/Cloudict.App/Cloudict.App.csproj
           -c Release -r win-x64 --self-contained true
 
+      # Signs every unsigned binary in the publish folder when a certificate is configured, and
+      # is a no-op that prints one line when it is not — the step is the same either way, and
+      # signing switches on the day the two secrets exist. See packaging/windows/sign.ps1.
+      - name: Sign binaries
+        env:
+          WINDOWS_SIGN_PFX_BASE64: ${{ secrets.WINDOWS_SIGN_PFX_BASE64 }}
+          WINDOWS_SIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGN_PFX_PASSWORD }}
+        run: pwsh packaging/windows/sign.ps1 -Path src/Cloudict.App/bin/Release/net10.0/win-x64/publish
+        shell: pwsh
+
       - name: Build installer
+        env:
+          WINDOWS_SIGN_PFX_BASE64: ${{ secrets.WINDOWS_SIGN_PFX_BASE64 }}
+          WINDOWS_SIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGN_PFX_PASSWORD }}
         run: |
           # Braces are required: PowerShell reads "$env:ProgramFiles(x86)" as the variable
           # ProgramFiles followed by the literal text (x86), which resolves to a path with the
@@ -57,7 +70,18 @@ jobs:
           if (-not (Test-Path $iscc)) { $iscc = "$env:ProgramFiles\Inno Setup 6\ISCC.exe" }
           if (-not (Test-Path $iscc)) { throw "Inno Setup 6 not found on the runner." }
 
-          & $iscc packaging\windows\Cloudict.iss
+          # With a certificate, Inno signs Setup.exe and the uninstaller through the same script.
+          # $f is Inno's placeholder for the file it wants signed.
+          $signArgs = @()
+          if ($env:WINDOWS_SIGN_PFX_BASE64) {
+            $signScript = (Resolve-Path packaging\windows\sign.ps1).Path
+            $signArgs = @('/DSIGN', "/Scloudict=pwsh -NoProfile -File `"$signScript`" -Path `$f")
+            Write-Host "Signing the installer."
+          } else {
+            Write-Host "No certificate configured; the installer will be unsigned."
+          }
+
+          & $iscc @signArgs packaging\windows\Cloudict.iss
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed with exit code $LASTEXITCODE." }
         shell: pwsh
 

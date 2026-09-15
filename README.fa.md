@@ -67,6 +67,27 @@ Cloudict گفتار شما را به متن تبدیل می‌کند و مستق
 پنجره‌ای است که *خودش* با دسترسی مدیر اجرا شده — ویندوز ورودی مصنوعی را از سطح دسترسی پایین‌تر
 نمی‌پذیرد. اگر به آن نیاز دارید، Cloudict را با «Run as administrator» اجرا کنید.
 
+#### اگر آنتی‌ویروس‌تان اعتراض کرد
+
+بعضی آنتی‌ویروس‌ها — به‌خصوص 360 Total Security — با پیام‌هایی مثل *«a process is performing risk
+operations»* یا *«modifying certificate publisher»* جلوی Cloudict را می‌گیرند، و SmartScreen هم ممکن
+است بار اولِ اجرای نصب‌کننده پیام *«Windows protected your PC»* را نشان دهد.
+
+Cloudict همان کاری را می‌کند که یک ابزار تایپ صوتی ناچار است بکند: کروم را اجرا می‌کند، در
+برنامه‌های دیگر تایپ می‌کند و روزی یک بار از گیت‌هاب می‌پرسد نسخهٔ جدیدی هست یا نه. برای یک
+اسکنر مبتنی بر رفتار، برنامه‌ای که آن را نمی‌شناسد و این کارها را می‌کند چیزی است که دربارهٔ آن
+سؤال می‌پرسد. چیزی که این پیام‌ها را قطع می‌کند **گواهی امضای کد (code-signing)** ناشر روی
+فایل‌هاست. Cloudict نرم‌افزاری رایگان و بدون شرکتی پشت آن است و هنوز چنین گواهی‌ای ندارد؛ ولی
+فرآیند ساخت از همین حالا آماده است که به محض وجود گواهی، تک‌تک فایل‌ها را امضا کند.
+
+انتشارها توسط [GitHub Actions](https://github.com/farshad-zamani/cloudict/actions) و از همین
+سورس‌کد ساخته می‌شوند؛ یعنی چیزی که دانلود می‌کنید همان چیزی است که می‌توانید بخوانید. اگر
+می‌خواهید خودتان فایل را بررسی کنید، آن را در [VirusTotal](https://www.virustotal.com/) آپلود کنید؛
+و اگر می‌خواهید کمک کنید، آن را به‌عنوان تشخیص اشتباه (false positive) گزارش دهید — این همان
+راهی است که یک برنامهٔ امضانشده اعتبار به دست می‌آورد:
+[360 Total Security](https://www.360totalsecurity.com/en/suspicion/false-positive/) ·
+[Microsoft Defender / SmartScreen](https://www.microsoft.com/en-us/wdsi/filesubmission).
+
 ### لینوکس
 
 <div dir="ltr">
@@ -234,6 +255,21 @@ powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1
 `dpkg`/`rpmbuild` برای بسته‌های لینوکس و ابزارهای مخصوص مک برای باندل `.app` — پس یک ماشین به‌ندرت
 می‌تواند همهٔ آن‌ها را بسازد. [ورک‌فلوی ریلیز](.github/workflows/release.yml) کل مجموعه را با یک
 رانر برای هر پلتفرم می‌سازد.
+
+#### امضای کد
+
+هر دو مسیر امضا سیم‌کشی شده و خاموش‌اند؛ فقط منتظر گواهی‌اند. Secretها را به مخزن اضافه کنید،
+ریلیز تگ‌شدهٔ بعدی امضا می‌شود و هیچ‌چیز دیگری تغییر نمی‌کند.
+
+| پلتفرم | Secretها | اثر |
+|---|---|---|
+| ویندوز | `WINDOWS_SIGN_PFX_BASE64` (فایل `.pfx` به‌صورت base64) و `WINDOWS_SIGN_PFX_PASSWORD` | همهٔ `.exe`/`.dll`های امضانشدهٔ پوشهٔ publish، خودِ `Setup.exe` و uninstaller با Authenticode امضا و timestamp می‌شوند. [`packaging/windows/sign.ps1`](packaging/windows/sign.ps1) را ببینید. |
+| مک | `MACOS_SIGN_IDENTITY`، و برای notarize: `APPLE_ID`، `APPLE_TEAM_ID`، `APPLE_APP_PASSWORD` | باندل با Developer ID امضا و notarize می‌شود و بدون هیچ اخطاری باز می‌شود. |
+
+گواهی ویندوز تنها چیزی است که پیام‌های آنتی‌ویروس را قطع می‌کند. برای پروژهٔ متن‌باز،
+[SignPath Foundation](https://signpath.org/apply) ریلیزها را رایگان امضا می‌کند؛ در غیر این صورت هر
+گواهی OV یا EV جواب می‌دهد. به‌صورت محلی هم `scripts\build-all.ps1` همین دو متغیر محیطی را
+می‌شناسد.
 
 ## ساختار پروژه
 

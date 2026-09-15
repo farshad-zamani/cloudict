@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
@@ -52,9 +53,34 @@ namespace Cloudict.Services
 
         private static HttpClient CreateClient()
         {
+            // The TLS chain is built from what the machine already has, with no fetching of
+            // certificates it lacks.
+            //
+            // Without this, the first HTTPS connection to a host whose root Windows has not yet
+            // cached makes CryptoAPI download that root and write it into
+            // HKLM\SOFTWARE\Microsoft\SystemCertificates\AuthRoot — inside this process. That is
+            // Windows keeping its own store current, but an antivirus sees only an unfamiliar
+            // application writing to the machine's trusted-root list, which is exactly what it is
+            // built to stop. .NET maps DisableCertificateDownloads to both CERT_CHAIN_DISABLE_AIA and
+            // CERT_CHAIN_DISABLE_AUTH_ROOT_AUTO_UPDATE, so the write never happens.
+            //
+            // The cost is that on a machine missing GitHub's root the check fails — and this check
+            // is allowed to fail. Revocation stays off, as it is for HttpClient by default.
+            var handler = new SocketsHttpHandler
+            {
+                SslOptions =
+                {
+                    CertificateChainPolicy = new X509ChainPolicy
+                    {
+                        DisableCertificateDownloads = true,
+                        RevocationMode = X509RevocationMode.NoCheck
+                    }
+                }
+            };
+
             // Short on purpose: this runs in the background and nothing waits for it, but a socket
             // left hanging for minutes on a blocked network is still a socket left hanging.
-            var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(10) };
 
             // GitHub rejects requests without one.
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Cloudict/" + AppInfo.Version);

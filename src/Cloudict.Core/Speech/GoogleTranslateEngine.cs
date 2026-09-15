@@ -206,6 +206,32 @@ namespace Cloudict.Speech
             // Grants the microphone without a prompt; without it the page silently hears nothing.
             options.AddArgument("--use-fake-ui-for-media-stream");
 
+            // The helper is a single page, not a browser, and everything Chrome does on its own
+            // behalf in the background is switched off here.
+            //
+            // This matters beyond tidiness. On Windows, Chrome's component updater fetches its
+            // downloads through BITS, the system's background transfer service — and a process that
+            // creates a BITS job is a classic malware heuristic. An antivirus seeing it happen in a
+            // Chrome launched by an unfamiliar application does not blame Chrome; it walks the
+            // process ancestry and challenges every unsigned file it finds in Cloudict's own folder,
+            // one dialog per file. The three component-updater switches below stop the job from
+            // ever being created: the first two are what Puppeteer and Playwright pass for every
+            // session, the third names the BITS downloader specifically.
+            //
+            // None of this reaches the page. Recognition is the page's own foreground traffic to
+            // Google, which these switches do not touch.
+            options.AddArgument("--disable-background-networking");
+            options.AddArgument("--disable-component-update");
+            options.AddArgument("--component-updater=disable-background-downloads");
+            options.AddArgument("--disable-sync");
+            options.AddArgument("--disable-breakpad");
+            options.AddArgument("--disable-domain-reliability");
+            options.AddArgument("--disable-client-side-phishing-detection");
+            options.AddArgument("--metrics-recording-only");
+            options.AddArgument("--no-first-run");
+            options.AddArgument("--no-default-browser-check");
+            options.AddArgument("--no-service-autorun");
+
             var language = TypingLanguage();
             options.AddArgument($"--lang={language}");
             options.AddUserProfilePreference("profile.default_content_setting_values.media_stream_mic", 1);

@@ -70,8 +70,20 @@ $iscc = @(
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
 if ($iscc) {
+    # Same arrangement as CI: with WINDOWS_SIGN_PFX_BASE64 / WINDOWS_SIGN_PFX_PASSWORD in the
+    # environment every binary is signed and Inno signs the installer; without them the script
+    # prints one line and the build is unsigned, exactly as before.
+    $signScript = Join-Path $repoRoot 'packaging\windows\sign.ps1'
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $signScript -Path $winPublish
+    if ($LASTEXITCODE -ne 0) { throw "Signing failed (exit $LASTEXITCODE)." }
+
+    $signArgs = @()
+    if ($env:WINDOWS_SIGN_PFX_BASE64) {
+        $signArgs = @('/DSIGN', "/Scloudict=powershell -NoProfile -ExecutionPolicy Bypass -File `"$signScript`" -Path `$f")
+    }
+
     Write-Host "`n=== Windows installer ===" -ForegroundColor Cyan
-    & $iscc (Join-Path $repoRoot 'packaging\windows\Cloudict.iss') | Select-String 'Successful compile|Error'
+    & $iscc @signArgs (Join-Path $repoRoot 'packaging\windows\Cloudict.iss') | Select-String 'Successful compile|Error|Sign Tool'
 } else {
     Write-Warning 'Inno Setup 6 not found; skipping the Windows installer. https://jrsoftware.org/isdl.php'
 }

@@ -67,6 +67,26 @@ Cloudict no longer requires administrator rights to run. The one thing it cannot
 is type into a window that is *itself* running as administrator — Windows refuses synthetic input
 from a lower integrity level. If you need that, start Cloudict as administrator.
 
+#### If your antivirus objects
+
+Some antivirus products — 360 Total Security in particular — challenge Cloudict with prompts
+such as *"a process is performing risk operations"* or *"modifying certificate publisher"*, and
+SmartScreen may show *"Windows protected your PC"* the first time the installer runs.
+
+Cloudict does what a voice-typing tool has to do: it launches Chrome, it types into other
+applications, and it asks GitHub once a day whether a newer version exists. To a heuristic scanner,
+an application it has never seen doing those things looks like something worth asking about. What
+would make the prompts stop is a publisher's **code-signing certificate** on the binaries. Cloudict
+is free software with no company behind it, and it does not carry one yet; the build is already
+wired to sign every file the moment a certificate exists.
+
+The releases are built by [GitHub Actions](https://github.com/farshad-zamani/cloudict/actions)
+from the source in this repository, so what you download is what you can read. If you want to
+check a file yourself, upload it to [VirusTotal](https://www.virustotal.com/); if you would like to
+help, report it as a false positive — that is how an unsigned program earns a reputation:
+[360 Total Security](https://www.360totalsecurity.com/en/suspicion/false-positive/) ·
+[Microsoft Defender / SmartScreen](https://www.microsoft.com/en-us/wdsi/filesubmission).
+
 ### Linux
 
 ```bash
@@ -208,6 +228,21 @@ To bundle drivers for a newer Chrome:
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\fetch-chromedriver.ps1
 ```
+
+#### Code signing
+
+Both signing paths are wired and switched off, waiting only for credentials. Add the secrets to
+the repository and the next tagged release is signed; nothing else changes.
+
+| Platform | Secrets | Effect |
+|---|---|---|
+| Windows | `WINDOWS_SIGN_PFX_BASE64` (the `.pfx`, base64) and `WINDOWS_SIGN_PFX_PASSWORD` | Every unsigned `.exe`/`.dll` in the publish folder, `Setup.exe` and the uninstaller are Authenticode-signed and timestamped. See [`packaging/windows/sign.ps1`](packaging/windows/sign.ps1). |
+| macOS | `MACOS_SIGN_IDENTITY`, plus `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_PASSWORD` to notarise | The bundle is signed with a Developer ID and notarised, so it opens with no warning. |
+
+A Windows certificate is the one thing that makes antivirus prompts stop. For an open-source
+project, [SignPath Foundation](https://signpath.org/apply) signs releases for free; otherwise any
+OV or EV code-signing certificate works. Locally, `scripts\build-all.ps1` honours the same two
+environment variables.
 
 ## Project structure
 

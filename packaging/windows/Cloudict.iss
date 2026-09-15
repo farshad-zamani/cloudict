@@ -5,12 +5,16 @@
 ; ============================================================================
 
 #define MyAppName        "Cloudict"
-#define MyAppVersion     "3.2.0"
+#define MyAppVersion     "3.2.1"
 #define MyAppPublisher   "Cloudtart"
 #define MyAppURL         "https://cloudtart.com"
 #define MyAppExeName     "Cloudict.exe"
 ; Folder produced by: dotnet publish src\Cloudict.App -c Release -r win-x64 --self-contained true
+; Overridable from the command line (/DMyPublishDir=...) so a signed copy can be packaged
+; without touching the publish folder itself.
+#ifndef MyPublishDir
 #define MyPublishDir     "..\..\src\Cloudict.App\bin\Release\net10.0\win-x64\publish"
+#endif
 #define MyIcon           "..\..\src\Cloudict.App\Assets\app-icon.ico"
 
 [Setup]
@@ -48,6 +52,19 @@ OutputDir=..\..\dist
 OutputBaseFilename=Cloudict-{#MyAppVersion}-Setup
 DisableWelcomePage=no
 LicenseFile=..\..\LICENSE
+
+; Authenticode signing of Setup.exe and the uninstaller, on when the build passes /DSIGN. The
+; "cloudict" tool itself is defined on the ISCC command line as /Scloudict="...sign.ps1 -Path $f",
+; so this script carries no path to a certificate and no password. The files inside the installer
+; are signed before ISCC runs, by the same script over the publish folder.
+;
+; Without /DSIGN nothing here applies and the installer is built exactly as before. An unsigned
+; installer is what makes antivirus products challenge the setup file and, later, the uninstaller
+; it writes: both are executables with no publisher behind them.
+#ifdef SIGN
+SignTool=cloudict
+SignedUninstaller=yes
+#endif
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
