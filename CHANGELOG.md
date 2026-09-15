@@ -8,6 +8,32 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.2.2] – 2026-09-15
+
+### Fixed
+- **The new-version notice could take up to a day to appear.** 3.2.0 checked once every 24 hours,
+  keyed on the time of the last check — so someone who opened Cloudict in the evening, with a
+  release going out overnight, saw nothing the next morning and nothing until the following
+  evening. Reproduced on a real 3.2.0 install: with the gate reset, the same build showed the
+  3.2.1 notice within thirty seconds of launch. The check now runs at every launch, and again once
+  a day for as long as the window stays open, which covers leaving Cloudict in the tray for a
+  week. One small request per launch; the daily timer never fires while a notice is already showing.
+
+- **Downloading a driver no longer touches the certificate store either.** The same
+  trusted-root write that 3.2.1 removed from the update check could also happen during a driver
+  download, on a machine that had not yet cached the download host's root. The download now builds
+  its certificate chain from what the machine already has; only if that genuinely fails — the
+  root is absent — does it retry with downloads allowed, because getting a driver matters more
+  than avoiding one prompt. Verified against all four hosts the app uses.
+
+### Changed
+- **ChromeDriver 153.0.8010.36 is bundled**, matching the current Chrome stable. The previous
+  release still carried 152, so every fresh install on an up-to-date Chrome had to download a
+  driver on first run — a network round trip, a wait, and an unsigned executable arriving on disk
+  at runtime, which is one of the things an antivirus watches for most closely. With the driver
+  shipped inside the package, none of that happens on a current machine. A newer driver already in
+  the user's cache still takes precedence, as before.
+
 ## [3.2.1] – 2026-09-15
 
 ### Fixed

@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using Cloudict.Abstractions;
 
@@ -347,7 +348,7 @@ namespace Cloudict.Speech
                     var url = string.Format(template, version, _info.DriverPlatformKey);
                     try
                     {
-                        var bytes = Http.GetByteArrayAsync(url, ct).GetAwaiter().GetResult();
+                        var bytes = GetBytes(url, ct);
                         var path = ExtractDriver(bytes, version);
                         if (path != null)
                         {
@@ -390,7 +391,7 @@ namespace Cloudict.Speech
                 ct.ThrowIfCancellationRequested();
                 try
                 {
-                    var json = Http.GetStringAsync(indexUrl, ct).GetAwaiter().GetResult();
+                    var json = System.Text.Encoding.UTF8.GetString(GetBytes(indexUrl, ct));
                     var builds = Newtonsoft.Json.Linq.JObject.Parse(json)["builds"] as Newtonsoft.Json.Linq.JObject;
                     if (builds == null) continue;
 
@@ -453,13 +454,51 @@ namespace Cloudict.Speech
             return target;
         }
 
-        private static HttpClient CreateHttpClient()
+        /// <summary>
+        /// Fetches a URL without letting Windows write to its certificate store, falling back to
+        /// a normal fetch only when that is the reason the first one failed.
+        ///
+        /// <para>Building a TLS chain for a host whose root the machine has not cached makes
+        /// CryptoAPI download the root and write it into HKLM's AuthRoot store — from inside this
+        /// process — and an antivirus reports that as the application "modifying certificate
+        /// publisher". The first attempt forbids the download. On the rare machine that genuinely
+        /// lacks the root, the handshake fails with an authentication error, and only then is the
+        /// download allowed: getting a driver still matters more than avoiding one prompt.</para>
+        /// </summary>
+        private static byte[] GetBytes(string url, CancellationToken ct)
         {
-            var handler = new HttpClientHandler
+            try
+            {
+                return Http.GetByteArrayAsync(url, ct).GetAwaiter().GetResult();
+            }
+            catch (HttpRequestException ex) when (ex.InnerException is System.Security.Authentication.AuthenticationException)
+            {
+                Debug.WriteLine($"[BrowserProvisioner] chain could not be built offline for {url}; retrying with certificate downloads allowed");
+                return HttpLenient.GetByteArrayAsync(url, ct).GetAwaiter().GetResult();
+            }
+        }
+
+        private static readonly HttpClient HttpLenient = CreateHttpClient(allowCertificateDownloads: true);
+
+        private static HttpClient CreateHttpClient() => CreateHttpClient(allowCertificateDownloads: false);
+
+        private static HttpClient CreateHttpClient(bool allowCertificateDownloads)
+        {
+            var handler = new SocketsHttpHandler
             {
                 AutomaticDecompression = System.Net.DecompressionMethods.All,
                 UseProxy = true
             };
+
+            if (!allowCertificateDownloads)
+            {
+                // Revocation stays off, as it is for HttpClient by default.
+                handler.SslOptions.CertificateChainPolicy = new X509ChainPolicy
+                {
+                    DisableCertificateDownloads = true,
+                    RevocationMode = X509RevocationMode.NoCheck
+                };
+            }
 
             var client = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(3) };
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Cloudict");

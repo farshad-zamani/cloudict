@@ -99,7 +99,14 @@ namespace Cloudict.App.Views
         }
 
         /// <summary>
-        /// Asks once a day whether a newer release exists, and says so in a bar if one does.
+        /// Asks whether a newer release exists — at every launch, and again once a day for as long
+        /// as the window stays open — and says so in a bar if one does.
+        ///
+        /// <para>At every launch rather than once a day. The first version of this kept a
+        /// once-a-day gate, and it produced exactly the wrong experience: someone opened Cloudict,
+        /// a release went out an hour later, they opened it again and saw nothing until the
+        /// following day. One small request per launch costs nothing, and the daily timer covers
+        /// the other habit, which is leaving Cloudict in the tray for a week.</para>
         ///
         /// <para>Read-only and entirely optional: it reports and links, and never downloads or
         /// installs anything. Failure is silent by design — Cloudict is used behind restrictive
@@ -109,12 +116,29 @@ namespace Cloudict.App.Views
         private void CheckForUpdate()
         {
             if (_settings?.CheckForUpdates != true) return;
-            if ((DateTime.Now - _settings.LastUpdateCheck).TotalHours < 24) return;
 
+            RunUpdateCheck(TimeSpan.FromSeconds(12));
+
+            if (_updateTimer == null)
+            {
+                _updateTimer = new DispatcherTimer { Interval = TimeSpan.FromHours(24) };
+                _updateTimer.Tick += (_, _) =>
+                {
+                    if (_settings?.CheckForUpdates == true && !UpdateBar.IsVisible)
+                        RunUpdateCheck(TimeSpan.Zero);
+                };
+                _updateTimer.Start();
+            }
+        }
+
+        private DispatcherTimer _updateTimer;
+
+        private void RunUpdateCheck(TimeSpan delay)
+        {
             _ = Task.Run(async () =>
             {
-                // Well after the browser launch, so the two are never competing for a cold start.
-                await Task.Delay(TimeSpan.FromSeconds(12));
+                // At launch, well after the browser starts, so the two never compete for a cold start.
+                if (delay > TimeSpan.Zero) await Task.Delay(delay);
 
                 var update = await new UpdateChecker().CheckAsync();
 
