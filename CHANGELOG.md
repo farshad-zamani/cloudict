@@ -8,6 +8,30 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.2.3] – 2026-09-17
+
+### Changed
+- **The Windows installer installs for the current user and asks for no elevation.** Cloudict
+  goes under `%LocalAppData%\Programs\Cloudict`, as Chrome, VS Code and Discord do, with its own
+  uninstall entry and Start Menu shortcut in the user's profile. Nothing about the application
+  changes — it has needed no administrator rights to run since 3.0, so requiring them to install
+  was the last UAC prompt left.
+
+  It is also the answer to the last two antivirus prompts standing after 3.2.2. Both reported
+  *"modifying key system file"* against `C:\Program Files\Cloudict\Cloudict.exe` — an unsigned
+  installer writing an unsigned executable into Program Files, which is precisely the event a
+  HIPS-style guard watches most closely. The Microsoft-signed `createdump.exe` written beside it
+  drew nothing, which is what confirmed the cause. A user's own profile is not a protected
+  location, so the prompt has nowhere to come from.
+
+  Upgrades are seamless: when Setup finds an installation registered for all users — every version
+  before this one — and none for the current user, it upgrades that one in place, elevating as
+  before, without asking. Only a machine with no previous installation sees the choice, and *all
+  users* remains available there for anyone who wants Program Files. Verified end to end: a
+  per-user install from the built package, no elevation, the application launching from the
+  profile and reaching ready, then a silent uninstall leaving nothing behind and the existing
+  all-users installation untouched.
+
 ## [3.2.2] – 2026-09-15
 
 ### Fixed

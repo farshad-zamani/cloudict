@@ -5,7 +5,7 @@
 ; ============================================================================
 
 #define MyAppName        "Cloudict"
-#define MyAppVersion     "3.2.2"
+#define MyAppVersion     "3.2.3"
 #define MyAppPublisher   "Cloudtart"
 #define MyAppURL         "https://cloudtart.com"
 #define MyAppExeName     "Cloudict.exe"
@@ -37,8 +37,22 @@ AllowNoIcons=yes
 UninstallDisplayName={#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
-; 3.0 no longer requires administrator to run, but installing under Program Files still does.
-PrivilegesRequired=admin
+; Installs for the current user, under %LocalAppData%\Programs, and asks for no elevation.
+;
+; This is what Chrome, VS Code, Discord and Telegram do, and it is here for two reasons that
+; turned out to be the same reason. Cloudict has needed no administrator rights to *run* since
+; 3.0, so requiring them to *install* was the last UAC prompt left. And an unsigned installer
+; writing an unsigned executable into Program Files is exactly the event a HIPS-style antivirus
+; guards most closely — 360 Total Security reported it as "modifying key system file", twice, on
+; every install, while the Microsoft-signed createdump.exe written beside it drew nothing. A
+; user's own profile is not a protected location; the prompt has nowhere to come from.
+;
+; "dialog" keeps the choice with the user and, more importantly, makes upgrades seamless: when
+; Setup finds an existing install registered under HKLM (every version before 3.2.3) and none
+; under HKCU, it silently upgrades that one in place, elevating as before — the dialog is only
+; shown on a machine with no previous installation. /ALLUSERS and /CURRENTUSER override both.
+PrivilegesRequired=lowest
+PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 

@@ -63,7 +63,12 @@ Download the package for your system from the [Releases](../../releases) page.
 
 Run **`Cloudict-x.y.z-Setup.exe`**.
 
-Cloudict no longer requires administrator rights to run. The one thing it cannot do without them
+It installs for the current user, under `%LocalAppData%\Programs\Cloudict`, and needs **no
+administrator rights** — the same arrangement as Chrome, VS Code or Discord. The first dialog
+offers *all users* instead, which installs under Program Files and asks for elevation once; an
+installation from before 3.2.3 is simply upgraded in place, wherever it is.
+
+Cloudict does not need administrator rights to run either. The one thing it cannot do without them
 is type into a window that is *itself* running as administrator — Windows refuses synthetic input
 from a lower integrity level. If you need that, start Cloudict as administrator.
 
