@@ -150,6 +150,89 @@ namespace Cloudict.Core.Tests
             Assert.Equal("firstsecond", injector.Raw);
         }
 
+        /// <summary>
+        /// The 3.2.4 report, reproduced: dictate, stop, type a space by hand, start again. The field
+        /// is a Chromium one that answers "unknown" to its first questions while it builds its
+        /// accessibility tree. One question per phrase got "unknown", fell back on the memory of
+        /// the last character Cloudict typed, and added a second space after the user's.
+        /// </summary>
+        [Fact]
+        public async Task A_space_typed_by_hand_during_a_stop_is_not_doubled()
+        {
+            var engine = new StubEngine();
+            var injector = new RecordingInjector();
+            var caret = new FakeCaret { Probe = CaretProbe.Unknown, Window = 5 };
+
+            await using var run = await Run.Start(engine, injector, caret);
+
+            engine.Speak("hello");
+            await run.WaitForResets(1);
+            Assert.Equal("hello", injector.Raw);
+
+            await run.Stop();
+
+            // The user types a space, then starts again. The field is cold: the warm-up question
+            // and the first real one both get "unknown" before it answers properly.
+            injector.UserTyped(" ");
+            caret.Probe = CaretProbe.After(' ');
+            caret.ColdQueries = 2;
+
+            await run.StartAgain();
+            engine.Speak("again");
+            await run.WaitForResets(1);
+
+            Assert.Equal("hello again", injector.Raw);
+        }
+
+        /// <summary>The same, when the field ends in a letter: the space must still go in.</summary>
+        [Fact]
+        public async Task A_cold_field_ending_in_a_letter_still_gets_its_space_after_a_restart()
+        {
+            var engine = new StubEngine();
+            var injector = new RecordingInjector();
+            var caret = new FakeCaret { Probe = CaretProbe.Unknown, Window = 5 };
+
+            await using var run = await Run.Start(engine, injector, caret);
+
+            engine.Speak("hello");
+            await run.WaitForResets(1);
+            await run.Stop();
+
+            caret.Probe = CaretProbe.After('o');
+            caret.ColdQueries = 2;
+
+            await run.StartAgain();
+            engine.Speak("again");
+            await run.WaitForResets(1);
+
+            Assert.Equal("hello again", injector.Raw);
+        }
+
+        /// <summary>
+        /// Memory bridges pauses, not stops. After a stop the user may have edited anything, so a
+        /// field that cannot be asked at all gets no guessed space — the behaviour before 3.2.4,
+        /// and never a doubled one.
+        /// </summary>
+        [Fact]
+        public async Task After_a_stop_an_unanswerable_field_gets_no_guessed_space()
+        {
+            var engine = new StubEngine();
+            var injector = new RecordingInjector();
+            var caret = new FakeCaret { Probe = CaretProbe.Unknown, Window = 5 };
+
+            await using var run = await Run.Start(engine, injector, caret);
+
+            engine.Speak("hello");
+            await run.WaitForResets(1);
+            await run.Stop();
+            await run.StartAgain();
+
+            engine.Speak("again");
+            await run.WaitForResets(1);
+
+            Assert.Equal("helloagain", injector.Raw);
+        }
+
         // ---------------------------------------------------------------- sleep
 
         [Theory]
@@ -256,6 +339,10 @@ namespace Cloudict.Core.Tests
                 Assert.True(await _session.StartAsync());
             }
 
+            public Task Stop() => _session.StopAsync();
+
+            public async Task StartAgain() => Assert.True(await _session.StartAsync());
+
             public async Task WaitForResets(int count)
             {
                 var target = _engine.ResetCount + count;
@@ -281,9 +368,18 @@ namespace Cloudict.Core.Tests
 
         private sealed class FakeCaret : ICaretContext
         {
+            private int _cold;
+
             public CaretProbe Probe { get; set; } = CaretProbe.Unknown;
             public long Window { get; set; }
-            public CaretProbe ProbeCharBeforeCaret() => Probe;
+
+            /// <summary>How many of the next questions get "unknown" before the real answer, the way
+            /// a Chromium field answers while it builds its accessibility tree.</summary>
+            public int ColdQueries { get => Volatile.Read(ref _cold); set => Volatile.Write(ref _cold, value); }
+
+            public CaretProbe ProbeCharBeforeCaret() =>
+                Interlocked.Decrement(ref _cold) >= 0 ? CaretProbe.Unknown : Probe;
+
             public long ForegroundWindowId() => Window;
         }
 
@@ -327,6 +423,9 @@ namespace Cloudict.Core.Tests
             public string UnavailableReasonKey => null;
             public string BackendName => "test";
             public void TypeText(string text) { lock (_sent) _sent.Add(text); }
+
+            /// <summary>Text the user typed themselves; it lands in the field like Cloudict's does.</summary>
+            public void UserTyped(string text) { lock (_sent) _sent.Add(text); }
             public void SendKey(InjectedKey key) { }
             public void SendChord(InjectedKey key, KeyModifiers modifiers) { }
             public void Refresh() { }

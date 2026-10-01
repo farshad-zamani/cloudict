@@ -75,7 +75,10 @@
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,8" Spacing="20">
         <Button x:Name="BtnStart" Classes="circle success" Click="OnStartClick"
                 ToolTip.Tip="{loc:Tr Main_MicControlsHint}">
-          <Path Width="16" Height="16" Stretch="Uniform" Fill="White" Data="{StaticResource IconPlay}"/>
+          <!-- Media symbols are never mirrored: "play" points right in every language, the same way
+               it does on every player. The window's right-to-left flow would otherwise flip it. -->
+          <Path Width="16" Height="16" Stretch="Uniform" Fill="White" Data="{StaticResource IconPlay}"
+                FlowDirection="LeftToRight"/>
         </Button>
         <Button x:Name="BtnStop" Classes="circle accent" Click="OnStopClick"
                 ToolTip.Tip="{loc:Tr Main_MicControlsHint}">
@@ -132,10 +135,22 @@
     <!-- Final text -->
     <Border Grid.Row="3" Classes="card" Margin="15,8,15,8">
       <Grid Margin="12" RowDefinitions="Auto,*,Auto">
-        <TextBlock Grid.Row="0" Text="{loc:Tr Main_FinalLabel}" Classes="h2"
-                   HorizontalAlignment="Center" Margin="0,0,0,8"/>
+        <!--
+          The title and the text area fade and lock while live transfer is on: words then go to
+          the application being typed into, and this box receives nothing. The switches in the
+          last row are deliberately outside this, so live transfer can always be turned back off.
+        -->
+        <TextBlock Grid.Row="0" x:Name="TxtFinalLabel" Text="{loc:Tr Main_FinalLabel}" Classes="h2"
+                   HorizontalAlignment="Center" Margin="0,0,0,8">
+          <TextBlock.Transitions>
+            <Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.18"/></Transitions>
+          </TextBlock.Transitions>
+        </TextBlock>
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+        <Grid Grid.Row="1" x:Name="FinalTextArea" ColumnDefinitions="*,Auto">
+          <Grid.Transitions>
+            <Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.18"/></Transitions>
+          </Grid.Transitions>
           <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" Margin="10,0,0,0">
             <Button Classes="icon" Click="OnCopyFinalClick"
                     ToolTip.Tip="{loc:Tr Main_CopyBtn}">

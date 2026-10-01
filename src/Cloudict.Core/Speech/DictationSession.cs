@@ -230,6 +230,12 @@ namespace Cloudict.Speech
 
             IsRunning = false;
 
+            // What Cloudict typed last only describes the field while Cloudict is the one typing.
+            // A stop is precisely when people edit by hand — add the space themselves, delete a
+            // word, click elsewhere — so after it, only the field itself is trusted. Keeping this
+            // across a stop is what put a second space after one the user had typed.
+            lock (_gate) _lastTypedChar = null;
+
             try { _cancellation?.Cancel(); }
             catch (Exception ex) { Debug.WriteLine($"[DictationSession] cancel: {ex.Message}"); }
 
@@ -823,10 +829,7 @@ namespace Cloudict.Speech
 
             if (caret != null)
             {
-                CaretProbe probe;
-                try { probe = caret.ProbeCharBeforeCaret(); }
-                catch (Exception ex) { Debug.WriteLine($"[DictationSession] caret probe: {ex.Message}"); probe = CaretProbe.Unknown; }
-
+                var probe = ProbeWithRetries(caret);
                 if (probe.IsKnown) return NeedsSpaceAfter(probe.CharBefore);
             }
 
@@ -860,6 +863,32 @@ namespace Cloudict.Speech
                 try { caret.ProbeCharBeforeCaret(); }
                 catch (Exception ex) { Debug.WriteLine($"[DictationSession] caret warm-up: {ex.Message}"); }
             });
+        }
+
+        /// <summary>
+        /// Pauses between attempts to read the caret when the field answers "unknown".
+        ///
+        /// <para>One attempt was not enough. Chrome, Edge and Electron applications build their
+        /// accessibility tree only when asked, and answer the very first question "unknown" while
+        /// they do — measured: unknown at once, correct 0.4 s later. Asking only once meant the first
+        /// phrase after a start fell back on memory, and memory cannot know about a space the user
+        /// typed by hand. An application that genuinely cannot answer says so in ~20 ms each time,
+        /// so the retries cost it well under a second, once per phrase, against a start delay of two.</para>
+        /// </summary>
+        internal static readonly int[] ProbeRetryDelaysMs = { 200, 400 };
+
+        private static CaretProbe ProbeWithRetries(ICaretContext caret)
+        {
+            for (int attempt = 0; ; attempt++)
+            {
+                CaretProbe probe;
+                try { probe = caret.ProbeCharBeforeCaret(); }
+                catch (Exception ex) { Debug.WriteLine($"[DictationSession] caret probe: {ex.Message}"); probe = CaretProbe.Unknown; }
+
+                if (probe.IsKnown || attempt >= ProbeRetryDelaysMs.Length) return probe;
+
+                Thread.Sleep(ProbeRetryDelaysMs[attempt]);
+            }
         }
 
         /// <summary>

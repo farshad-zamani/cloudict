@@ -24,10 +24,10 @@ namespace Cloudict.Platform.Windows
     [SupportedOSPlatform("windows")]
     public sealed class WindowsCaretContext : ICaretContext
     {
-        private static readonly TimeSpan Timeout = TimeSpan.FromMilliseconds(350);
+        private static readonly TimeSpan Timeout = TimeSpan.FromMilliseconds(600);
 
         private IUIAutomation _automation;
-        private int _probeInFlight;
+        private Task<CaretProbe> _inFlight;
 
         public long ForegroundWindowId()
         {
@@ -46,15 +46,16 @@ namespace Cloudict.Platform.Windows
                 GetWindowThreadProcessId(foreground, out var pid);
                 if (pid == (uint)Environment.ProcessId) return CaretProbe.Unknown;
 
-                // One probe at a time. If an application is slow enough that the previous probe is
-                // still waiting for it, a second one would only queue up behind it.
-                if (Interlocked.CompareExchange(ref _probeInFlight, 1, 0) != 0) return CaretProbe.Unknown;
+                // One probe at a time. If an earlier one is still waiting on a slow application,
+                // wait for it to finish and then ask afresh — its answer may describe a caret that
+                // has since moved. Giving up at once here used to turn a warm-up probe still in
+                // flight into an "unknown" for the first real question.
+                var previous = Volatile.Read(ref _inFlight);
+                if (previous != null && !previous.IsCompleted && !previous.Wait(Timeout))
+                    return CaretProbe.Unknown;
 
-                var task = Task.Run(() =>
-                {
-                    try { return Probe(); }
-                    finally { Interlocked.Exchange(ref _probeInFlight, 0); }
-                });
+                var task = Task.Run(Probe);
+                Volatile.Write(ref _inFlight, task);
 
                 return task.Wait(Timeout) ? task.Result : CaretProbe.Unknown;
             }

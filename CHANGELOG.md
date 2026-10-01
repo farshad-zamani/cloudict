@@ -8,6 +8,29 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.2.5] – 2026-10-01
+
+### Fixed
+- **No more doubled space after a stop and restart.** If the line already ended in a space — typed
+  by hand while dictation was stopped — the first word after starting again sometimes got a second
+  one. Two things had to go wrong together. Chrome, Edge and other Chromium applications build their
+  accessibility tree only when first asked, and answer that first question "unknown" (measured:
+  unknown at once, correct 0.4 s later); Cloudict asked only once per phrase. And on "unknown" it fell
+  back on its memory of the last character *it* had typed, which knows nothing of a space the user
+  added during a stop. The field is now asked again after 0.2 s and 0.4 s when it answers "unknown",
+  and that memory is dropped whenever dictation stops — it bridges pauses within a session, where the
+  user is speaking rather than editing, and nothing else. An application that cannot be asked at all
+  gets no guessed space after a restart, as before 3.2.4, and never a doubled one. The scenario is
+  reproduced in a test that fails on 3.2.4 and passes now.
+
+- **The play button no longer points left in the Persian interface.** Media symbols are not mirrored
+  in right-to-left layouts; it now points right in every language.
+
+### Changed
+- **The final-text box fades and locks while live transfer is on**, so it is plain at a glance that
+  words are going to the application being typed into rather than into the box. The two mode switches
+  beneath it stay fully usable.
+
 ## [3.2.4] – 2026-10-01
 
 ### Fixed

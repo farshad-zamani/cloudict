@@ -340,6 +340,21 @@ namespace Cloudict.App.Views
         {
             _session.IsLiveTransfer = _settings?.LiveTransferEnabled == true;
             BtnLiveTransfer.IsChecked = _session.IsLiveTransfer;
+            ApplyFinalTextAvailability();
+        }
+
+        /// <summary>
+        /// Fades and locks the final-text box while live transfer is on, so it is plain at a glance
+        /// that words are going elsewhere. Only its title and text area; the mode switches below stay
+        /// usable, since one of them is how this is undone.
+        /// </summary>
+        private void ApplyFinalTextAvailability()
+        {
+            var usable = !_session.IsLiveTransfer;
+
+            FinalTextArea.IsEnabled = usable;
+            FinalTextArea.Opacity = usable ? 1.0 : 0.38;
+            TxtFinalLabel.Opacity = usable ? 1.0 : 0.45;
         }
 
         /// <summary>
@@ -875,6 +890,7 @@ namespace Cloudict.App.Views
         private void OnLiveTransferClick(object sender, RoutedEventArgs e)
         {
             _session.IsLiveTransfer = BtnLiveTransfer.IsChecked == true;
+            ApplyFinalTextAvailability();
             SetStatus(Loc.Get(_session.IsLiveTransfer ? "Main_St_LiveOn" : "Main_St_LiveOff"));
 
             // Saved as soon as it is flipped, not when Settings is next opened: this is a main-window
