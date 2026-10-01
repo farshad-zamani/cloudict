@@ -139,6 +139,12 @@ namespace Cloudict.Abstractions
         /// </summary>
         ITrayPresence TrayPresence { get; }
 
+        /// <summary>
+        /// Reads what precedes the caret in the application being typed into. Never null; on a
+        /// platform that cannot ask, every probe reports unknown.
+        /// </summary>
+        ICaretContext CaretContext { get; }
+
         /// <summary>Recomputed from the services above; call after a permission may have changed.</summary>
         PlatformCapabilities GetCapabilities();
     }

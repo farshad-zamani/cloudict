@@ -54,10 +54,8 @@ namespace Cloudict.Services
         {
             _commands.Clear();
 
-            // Use the command set for the active typing/dictation language.
-            var active = _settings.GetVoiceCommandsFor(_settings.TypingLanguage);
-            _settings.VoiceCommands = active; // keep the flat list mirrored to the active language
-            _commands.AddRange(active);
+            // The set for the active dictation language, and only that one.
+            _commands.AddRange(_settings.GetVoiceCommandsFor(_settings.TypingLanguage));
 
             OnCommandsChanged();
         }
@@ -67,8 +65,7 @@ namespace Cloudict.Services
         /// </summary>
         private void SaveCommands()
         {
-            _settings.VoiceCommands = _commands;
-            _settings.SetVoiceCommandsFor(_settings.TypingLanguage, _commands);
+            _settings.SetVoiceCommandsFor(_settings.TypingLanguage, _commands.ToList());
             OnCommandsChanged();
         }
 
@@ -228,8 +225,10 @@ namespace Cloudict.Services
         /// </summary>
         public void ResetToDefaults()
         {
+            // The defaults of the language being dictated in — Persian has a ready-made set,
+            // the others start empty. This used to install the Persian set whatever the language.
             _commands.Clear();
-            _commands.AddRange(AppSettings.GetDefaultCommands());
+            _commands.AddRange(AppSettings.GetDefaultCommandsForLanguage(_settings.TypingLanguage));
             SaveCommands();
         }
 

@@ -31,7 +31,8 @@ key (Enter, Tab, …), switch the keyboard language, or run a program.
 
 ## Features
 
-- 🎙️ **Dictate anywhere** — recognized text is typed into the active window.
+- 🎙️ **Dictate anywhere** — recognized text is typed into the active window, with a space added
+  where the text before the caret needs one, so phrases never run together.
 - 🖥️ **Windows, Linux and macOS** — one application, one interface, three systems.
 - 🌍 **Dictate in many languages** — pick your speech/typing language from 20+ options
   (English, Persian, Arabic, French, German, Spanish, Russian, Hindi, Chinese, and more).

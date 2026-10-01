@@ -68,6 +68,11 @@ namespace Cloudict.App.Views
 
         private void PopulateFromSettings()
         {
+            // The grid is about to be reloaded for whichever language ends up selected. Without
+            // this, changing the selection below would first bank the grid's current rows into the
+            // settings being populated — under the old language — and carry them across a reset.
+            _commandLanguage = null;
+
             SelectByCode(CmbTypingLanguage, _settings.TypingLanguage, "en");
             SelectByCode(CmbUiLanguage, _settings.UILanguage, "en");
 
@@ -112,13 +117,32 @@ namespace Cloudict.App.Views
             return codes[combo.SelectedIndex];
         }
 
+        /// <summary>
+        /// Fills the grid with the commands of the selected dictation language.
+        ///
+        /// <para>The rows are copies, and the grid is detached while they go in. Switching languages
+        /// used to put the very same command objects back into the grid that had displayed them a
+        /// moment earlier, and the grid could hand those back rows laid out for the previous
+        /// contents — the scrambled Persian list that only "Restore defaults" cured, because that is
+        /// the one path that always created new objects. Every load now goes the way that worked.
+        /// The copies are what gets banked and saved, so nothing is lost by not editing the
+        /// originals.</para>
+        /// </summary>
         private void ReloadCommands()
         {
+            _commandLanguage = SelectedCode(CmbTypingLanguage, "en");
+            FillGrid(_settings.GetVoiceCommandsFor(_commandLanguage));
+        }
+
+        private void FillGrid(IEnumerable<VoiceCommand> commands)
+        {
+            GridCommands.ItemsSource = null;
             _commands.Clear();
 
-            _commandLanguage = SelectedCode(CmbTypingLanguage, "en");
-            foreach (var command in _settings.GetVoiceCommandsFor(_commandLanguage))
-                _commands.Add(command);
+            foreach (var command in commands)
+                _commands.Add(command.Clone());
+
+            GridCommands.ItemsSource = _commands;
         }
 
         /// <summary>
@@ -267,9 +291,27 @@ namespace Cloudict.App.Views
 
         private int _saveResultToken;
 
+        /// <summary>
+        /// Puts every setting back to its default — except the two languages, which are choices
+        /// rather than tuning, and which decide what "default" means for the voice commands.
+        ///
+        /// <para>This used to reset the dictation language to English along with everything else,
+        /// so the commands grid showed the English set, which is empty: to a Persian user the reset
+        /// simply erased their commands, with the Persian defaults nowhere to be seen. The fresh
+        /// settings carry no command sets at all, so each language now receives its own defaults
+        /// the first time it is shown — the Persian set for Persian, an empty one elsewhere.</para>
+        ///
+        /// <para>Nothing is written until Save, as before.</para>
+        /// </summary>
         private void OnResetClick(object sender, RoutedEventArgs e)
         {
+            var typingLanguage = SelectedCode(CmbTypingLanguage, _settings.TypingLanguage ?? "en");
+            var uiLanguage = SelectedCode(CmbUiLanguage, _settings.UILanguage ?? "en");
+
             _settings = AppServices.Settings.GetDefaultSettings();
+            _settings.TypingLanguage = typingLanguage;
+            _settings.UILanguage = uiLanguage;
+
             PopulateFromSettings();
         }
 
@@ -342,11 +384,7 @@ namespace Cloudict.App.Views
 
         private void OnRestoreCommandsClick(object sender, RoutedEventArgs e)
         {
-            var language = SelectedCode(CmbTypingLanguage, "en");
-            _commands.Clear();
-
-            foreach (var command in AppSettings.GetDefaultCommandsForLanguage(language))
-                _commands.Add(command);
+            FillGrid(AppSettings.GetDefaultCommandsForLanguage(SelectedCode(CmbTypingLanguage, "en")));
         }
 
         private async void OnCopyDiagnosticsClick(object sender, RoutedEventArgs e)

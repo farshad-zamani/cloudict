@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Avalonia;
 using Cloudict.App.Services;
@@ -33,6 +34,7 @@ namespace Cloudict.App
                 if (!SingleInstance.TryAcquire())
                 {
                     // Already running: surface that instance instead of starting a second.
+                    LetTheRunningInstanceComeForward();
                     SingleInstance.TrySend(InstanceCommand.Show);
                     return 0;
                 }
@@ -49,6 +51,30 @@ namespace Cloudict.App
                 SingleInstance.Release();
             }
         }
+
+        /// <summary>
+        /// Passes this launch's right to take the foreground on to the instance already running.
+        ///
+        /// <para>Windows lets a process bring its window to the front only when the user has just
+        /// interacted with that process. Clicking Cloudict's icon interacts with <em>this</em>
+        /// short-lived second process, not with the one hidden in the tray — so when the running
+        /// instance asked for the foreground, Windows quietly refused, and the window came back
+        /// behind whatever the user was looking at. The tray icon never had this problem because the
+        /// click lands on the running instance itself. This is the documented way to hand the right
+        /// over, and it lapses on its own a moment later.</para>
+        /// </summary>
+        private static void LetTheRunningInstanceComeForward()
+        {
+            if (!OperatingSystem.IsWindows()) return;
+
+            try { AllowSetForegroundWindow(ASFW_ANY); }
+            catch (Exception ex) { Debug.WriteLine($"[Program] AllowSetForegroundWindow: {ex.Message}"); }
+        }
+
+        private const int ASFW_ANY = -1;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool AllowSetForegroundWindow(int processId);
 
         public static AppBuilder BuildAvaloniaApp() =>
             AppBuilder.Configure<App>()

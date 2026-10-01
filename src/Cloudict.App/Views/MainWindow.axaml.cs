@@ -68,6 +68,10 @@ namespace Cloudict.App.Views
             _session.CommandExecuted += OnCommandNotification;
 
             _session.AutoStopped += OnSessionAutoStopped;
+            _session.SystemResumed += (_, _) => Dispatcher.UIThread.Post(async () => await RecoverFromSleepAsync());
+
+            // Lets the first word after a pause know whether the field already ends in a space.
+            _session.CaretContext = AppServices.Platform.CaretContext;
 
             Opened += OnOpened;
             Closing += OnClosing;
@@ -96,7 +100,113 @@ namespace Cloudict.App.Views
             ResetSystemAudio();
             OpenBrowserOnStartup();
             CheckForUpdate();
+            StartWakeWatch();
         }
+
+        #region Sleep and hibernation
+
+        private CancellationTokenSource _wakeWatch;
+        private bool _recovering;
+        private DateTime _lastRecovery = DateTime.MinValue;
+
+        /// <summary>
+        /// Watches for the machine waking from sleep or hibernation while dictation is <em>not</em>
+        /// running. A running session notices for itself, from inside its own loops; this covers the
+        /// helper browser left open and idle, whose page goes just as stale over a sleep.
+        /// </summary>
+        private void StartWakeWatch()
+        {
+            _wakeWatch = new CancellationTokenSource();
+            var token = _wakeWatch.Token;
+
+            _ = Task.Run(async () =>
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        if (await SuspendDetector.DelayAsync(TimeSpan.FromSeconds(2), token))
+                            Dispatcher.UIThread.Post(async () => await RecoverFromSleepAsync());
+                    }
+                    catch (OperationCanceledException) { break; }
+                    catch (Exception ex) { Debug.WriteLine($"[MainWindow] wake watch: {ex.Message}"); }
+                }
+            }, token);
+        }
+
+        /// <summary>
+        /// Puts Cloudict back in the state a fresh start would leave it in, after the machine woke.
+        ///
+        /// <para>This is exactly what restarting the application used to achieve, which until now
+        /// was the only cure: after hibernation the helper Chrome's microphone stream and its link to
+        /// Google are dead, and the page and the record of typed words disagree, so dictation typed
+        /// old and new words interleaved. Dictation is stopped, system audio is handed back to the
+        /// microphone, and the helper browser — if it was open — is closed and opened afresh.</para>
+        ///
+        /// <para>Dictation is deliberately not switched back on by itself. A microphone that comes
+        /// alive on its own the moment a laptop is opened is not something anyone should have to
+        /// discover; the user presses start, as after any launch.</para>
+        /// </summary>
+        private async Task RecoverFromSleepAsync()
+        {
+            // The session and the watch both notice the same wake; it is handled once.
+            if (_closing || _recovering) return;
+            if (DateTime.UtcNow - _lastRecovery < TimeSpan.FromSeconds(30)) return;
+
+            _recovering = true;
+            _lastRecovery = DateTime.UtcNow;
+
+            var wasRunning = _session.IsRunning;
+            var browserWasOpen = _engine.IsBrowserOpen;
+
+            // Nothing was open, so nothing went stale — and saying "restarted" would be untrue.
+            if (!wasRunning && !browserWasOpen)
+            {
+                _recovering = false;
+                return;
+            }
+
+            DiagnosticLog.Write("MainWindow", $"woke from sleep (dictation {(wasRunning ? "on" : "off")}, browser {(browserWasOpen ? "open" : "closed")}); restarting");
+            SetStatus(Loc.Get("Main_St_ResumedRestarting"));
+            BtnHelperBrowser.IsEnabled = false;
+
+            try
+            {
+                try { await StopDictationAsync(notify: false).WaitAsync(TimeSpan.FromSeconds(15)); }
+                catch (Exception ex) { Debug.WriteLine($"[MainWindow] stop after wake: {ex.Message}"); }
+
+                var routing = AppServices.Platform.AudioRouting;
+                if (routing?.IsActive == true)
+                {
+                    try { routing.Disable(); }
+                    catch (Exception ex) { Debug.WriteLine($"[MainWindow] system audio after wake: {ex.Message}"); }
+                    ApplySystemAudioState(false);
+                }
+
+                if (browserWasOpen)
+                {
+                    try { await _engine.CloseBrowserAsync().WaitAsync(TimeSpan.FromSeconds(20)); }
+                    catch (Exception ex) { Debug.WriteLine($"[MainWindow] close after wake: {ex.Message}"); }
+
+                    await _engine.OpenBrowserAsync();
+                }
+
+                SetStatus(Loc.Get(wasRunning ? "Main_St_ResumedPressStart" : "Main_St_ResumedReady"));
+                if (wasRunning) Notify(Loc.Get("Notify_ResumedStopped"));
+            }
+            catch (Exception ex)
+            {
+                SetStatus(Loc.Get("Main_St_OpenBrowserErrorPrefix") + ex.Message);
+            }
+            finally
+            {
+                BtnHelperBrowser.IsEnabled = true;
+                _recovering = false;
+                ReflectRunningState();
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// Asks whether a newer release exists — at every launch, and again once a day for as long
@@ -463,12 +573,30 @@ namespace Cloudict.App.Views
             ShowInTaskbar = false;
         }
 
+        /// <summary>
+        /// Brings the window back — from the tray, from the taskbar, or because the user launched
+        /// Cloudict again while it was already running.
+        ///
+        /// <para>A second launch used to run its own copy of this without restoring the taskbar
+        /// button, and Windows refused it the foreground (see Program.LetTheRunningInstanceComeForward),
+        /// so the window reappeared behind everything with no button to reach it by. Both paths now
+        /// come through here. If activation is still refused — some focus-assist and full-screen
+        /// states do that — briefly raising the window above the others puts it in view without
+        /// leaving it pinned there.</para>
+        /// </summary>
         private void RestoreFromTray()
         {
             ShowInTaskbar = true;
             Show();
             WindowState = WindowState.Normal;
             Activate();
+
+            if (!IsActive)
+            {
+                Topmost = true;
+                Topmost = false;
+                Activate();
+            }
         }
 
         private void RequestExit() => Close();
@@ -484,6 +612,7 @@ namespace Cloudict.App.Views
             try
             {
                 try { _micWatch?.Cancel(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
+                try { _wakeWatch?.Cancel(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
 
                 // Before the window goes: the machine's recording device is the user's, not ours.
                 try { AppServices.Platform.AudioRouting?.Disable(); }
@@ -1002,11 +1131,7 @@ namespace Cloudict.App.Views
                     case InstanceCommand.Toggle: await ToggleDictationAsync(); break;
                     case InstanceCommand.Start: await StartDictationAsync(); break;
                     case InstanceCommand.Stop: await StopDictationAsync(); break;
-                    case InstanceCommand.Show:
-                        Show();
-                        WindowState = WindowState.Normal;
-                        Activate();
-                        break;
+                    case InstanceCommand.Show: RestoreFromTray(); break;
                 }
             });
 

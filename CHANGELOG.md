@@ -8,6 +8,60 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.2.4] – 2026-10-01
+
+### Fixed
+- **Words no longer run together at the start of a phrase.** With live transfer on, the first word
+  after every pause was typed straight onto the last word before it, and the first word of a session
+  straight onto whatever was already in the field. The leading-space decision only ever looked at the
+  current phrase, and a pause wipes that. Cloudict now asks the field itself what sits before the
+  caret, through UI Automation — the read-only accessibility interface screen readers use, which
+  Notepad, Word, Chrome, Edge, Firefox, VS Code and the standard Windows controls all implement. A
+  space goes in front of the first word when the caret follows a letter or punctuation, and not when
+  it follows a space, a new line, an opening bracket or the start of the field. Nothing is moved,
+  selected or sent to find out. Where an application cannot be asked, Cloudict uses what it typed
+  there itself, and only while input is still going to the same window. Verified in a Windows text box
+  across ten cases (Latin, Persian, punctuation, selection, mid-text, new line, empty field) and in a
+  Chrome text area; every answer took under 60 ms.
+
+- **Hibernation no longer leaves Cloudict typing scrambled text.** After the machine woke, the helper
+  Chrome's microphone stream and its connection to Google were gone, and the page and Cloudict's
+  record of what had already been typed no longer agreed, so the first moments after waking typed old
+  and new words interleaved until the application was restarted. Cloudict now notices the wake —
+  a short wait that took far longer than asked can only mean the machine slept — stops reading and
+  typing on the spot, and then does what restarting used to: stops dictation, hands system audio back
+  to the microphone, and closes and reopens the helper browser. Dictation is not switched back on by
+  itself; the status line and a notification say to press start. Works on all three platforms without
+  asking the operating system anything. Verified by freezing the running application for 25 seconds,
+  idle and mid-dictation: the wake was caught both times and the helper browser came back fresh.
+
+- **Clicking Cloudict's icon while it sits in the tray brings the window back.** It used to come back
+  behind every other window, with no taskbar button, so it looked as if nothing had happened.
+  Windows only lets a process take the foreground when the user has just interacted with *it*, and a
+  click on the icon interacts with the short-lived second launch, not with the instance in the tray.
+  The second launch now hands its right over, and the restore goes through the same path the tray
+  icon uses. Verified: the window now returns in the foreground.
+
+- **Persian voice commands only appear for Persian.** One stored list was doing three contradictory
+  jobs — refilled with the Persian defaults on every load, mirrored from whichever language was
+  active, and treated as Persian commands awaiting migration — so English commands could be adopted
+  as Persian ones and deleted Persian commands came back on the next launch. It is now migrated once,
+  by content, and retired. Each language gets its own defaults the first time it is used: the Persian
+  set for Persian, an empty one for everything else.
+
+- **The Settings reset no longer erases the voice commands.** *Reset to defaults* also switched the
+  dictation language to English, whose command set is empty, so to a Persian user it simply deleted
+  their commands. It now keeps both language choices and gives every language its own defaults, which
+  for Persian is the full ready-made set. As before, nothing is written until Save.
+
+- **Switching dictation languages back and forth no longer garbles the command list.** The grid now
+  loads fresh copies of the commands each time, the same way *Restore defaults* always did — the one
+  path that was reported to fix it.
+
+### Changed
+- **ChromeDriver 154.0.8037.92 is bundled**, matching the current Chrome stable, so a fresh install on
+  an up-to-date machine needs no driver download on first run.
+
 ## [3.2.3] – 2026-09-17
 
 ### Changed

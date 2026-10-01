@@ -73,6 +73,16 @@ namespace Cloudict.Speech
 
         private string _lastSentText = string.Empty;
 
+        /// <summary>
+        /// The last character Cloudict typed into another application, and the window it went to.
+        /// Unlike <see cref="_lastSentText"/>, which describes only the current phrase and is wiped
+        /// at every pause, this survives pauses and restarts — it is what tells the first word after
+        /// a pause that it is continuing something. Null when the last thing sent left the content
+        /// unknowable (a Backspace, a Delete).
+        /// </summary>
+        private char? _lastTypedChar;
+        private long _lastTypedWindow;
+
         private VoiceCommandProcessor _commands;
 
         public DictationSession(
@@ -104,6 +114,18 @@ namespace Cloudict.Speech
         public event EventHandler AutoStopped;
 
         /// <summary>
+        /// Raised once when the machine is found to have been asleep while the session was running.
+        /// By then the session has already stopped reading and typing; the owner is asked to stop it
+        /// and restart whatever lost its connection during the sleep. See <see cref="SuspendDetector"/>.
+        /// </summary>
+        public event EventHandler SystemResumed;
+
+        private int _resumeReported;
+
+        /// <summary>The wall clock the sleep check reads. Replaceable so a test can make an hour pass.</summary>
+        internal Func<DateTime> Clock { get; set; } = () => DateTime.UtcNow;
+
+        /// <summary>
         /// A cap on how long recognition may run without a reset, in milliseconds. Zero — the
         /// default — leaves the behaviour exactly as it was.
         ///
@@ -125,6 +147,13 @@ namespace Cloudict.Speech
         /// pause, and the loss of a word or two if it lands mid-sentence.</para>
         /// </summary>
         public Func<bool> SourceIsQuiet { get; set; }
+
+        /// <summary>
+        /// Optional: reads what precedes the caret in the application being typed into, so the first
+        /// word of each phrase knows whether it needs a space in front. Without one — or where the
+        /// application cannot be asked — the decision falls back on what Cloudict typed there itself.
+        /// </summary>
+        public ICaretContext CaretContext { get; set; }
 
         /// <summary>True while dictation is running.</summary>
         public bool IsRunning { get; private set; }
@@ -167,6 +196,10 @@ namespace Cloudict.Speech
 
             if (!await _engine.StartListeningAsync()) return false;
 
+            // A fresh start after a wake: the guard that froze the previous session is lifted.
+            _suspendRecognition = false;
+            Interlocked.Exchange(ref _resumeReported, 0);
+
             ResetRecognitionState();
             ForgetCommandHistory();
 
@@ -178,6 +211,7 @@ namespace Cloudict.Speech
             var token = _cancellation.Token;
 
             IsRunning = true;
+            WarmUpCaretContext();
             _pollLoop = Task.Run(() => PollLoopAsync(token), token);
             _transferLoop = Task.Run(() => TransferLoopAsync(token), token);
 
@@ -307,11 +341,16 @@ namespace Cloudict.Speech
         /// </summary>
         private async Task PollLoopAsync(CancellationToken token)
         {
-            while (!token.IsCancellationRequested)
+            while (!token.IsCancellationRequested && Volatile.Read(ref _resumeReported) == 0)
             {
                 try
                 {
-                    await Task.Delay(Math.Max(50, Settings.ProcessDelayMs), token);
+                    if (await SuspendDetector.DelayAsync(TimeSpan.FromMilliseconds(Math.Max(50, Settings.ProcessDelayMs)), token, Clock))
+                    {
+                        OnSuspendDetected();
+                        break;
+                    }
+
                     if (token.IsCancellationRequested) break;
                     if (_suspendRecognition) continue;
 
@@ -452,6 +491,19 @@ namespace Cloudict.Speech
             await PerformResetAsync();
         }
 
+        /// <summary>
+        /// The machine slept while dictation was running. Both loops stop on the spot — before
+        /// reading the page or typing a word — and the owner is told once. Neither the page nor the
+        /// word record can be trusted any more, so nothing is salvaged from them.
+        /// </summary>
+        private void OnSuspendDetected()
+        {
+            _suspendRecognition = true;
+
+            if (Interlocked.Exchange(ref _resumeReported, 1) == 0)
+                SystemResumed?.Invoke(this, EventArgs.Empty);
+        }
+
         /// <summary>A misbehaving level probe must not be able to stop dictation.</summary>
         private bool SafeIsQuiet()
         {
@@ -474,8 +526,14 @@ namespace Cloudict.Speech
                 Report("Main_St_QuickTransferReset");
 
                 // Let the word-by-word loop finish whatever it is mid-way through before the
-                // remainder goes out in one piece, so the two cannot interleave.
-                await Task.Delay(400);
+                // remainder goes out in one piece, so the two cannot interleave. If the machine
+                // slept in the meantime, what is pending belongs to before the sleep: drop it.
+                if (await SuspendDetector.DelayAsync(TimeSpan.FromMilliseconds(400), CancellationToken.None, Clock))
+                {
+                    OnSuspendDetected();
+                    return;
+                }
+
                 await FlushPendingWordsAsync();
 
                 var reset = await _engine.ResetMicrophoneAsync();
@@ -505,7 +563,9 @@ namespace Cloudict.Speech
             }
             finally
             {
-                _suspendRecognition = false;
+                // Lifted when the reset is over — unless the machine slept, in which case the
+                // session stays frozen until it is stopped and started again.
+                if (Volatile.Read(ref _resumeReported) == 0) _suspendRecognition = false;
             }
         }
 
@@ -542,11 +602,16 @@ namespace Cloudict.Speech
         /// </summary>
         private async Task TransferLoopAsync(CancellationToken token)
         {
-            while (!token.IsCancellationRequested)
+            while (!token.IsCancellationRequested && Volatile.Read(ref _resumeReported) == 0)
             {
                 try
                 {
-                    await Task.Delay(Math.Max(50, Settings.WordByWordDelayMs), token);
+                    if (await SuspendDetector.DelayAsync(TimeSpan.FromMilliseconds(Math.Max(50, Settings.WordByWordDelayMs)), token, Clock))
+                    {
+                        OnSuspendDetected();
+                        break;
+                    }
+
                     if (token.IsCancellationRequested) break;
                     if (_suspendRecognition) continue;
 
@@ -620,6 +685,7 @@ namespace Cloudict.Speech
                     {
                         await EraseAsync(previousWord);
                         AnnounceCommand(result, phrase);
+                        RememberCommandKeys(result);
 
                         if (!string.IsNullOrEmpty(result.ProcessedText)) Emit(result.ProcessedText, prefixSpace: false);
                         return true;
@@ -630,6 +696,7 @@ namespace Cloudict.Speech
                 if (single.CommandExecuted)
                 {
                     AnnounceCommand(single, word);
+                    RememberCommandKeys(single);
                     if (!string.IsNullOrEmpty(single.ProcessedText)) Emit(single.ProcessedText, prefixSpace: false);
                     return true;
                 }
@@ -664,6 +731,10 @@ namespace Cloudict.Speech
                 {
                     for (int i = 0; i < toRemove.Length; i++) _injector.SendKey(InjectedKey.Backspace);
                     _lastSentText = _lastSentText.Substring(0, _lastSentText.Length - toRemove.Length);
+
+                    // What now precedes the caret is the phrase's remaining tail — or, if the whole
+                    // phrase was erased, whatever was there before it, which is no longer known.
+                    lock (_gate) _lastTypedChar = _lastSentText.Length > 0 ? _lastSentText[^1] : (char?)null;
                 }
 
                 return Task.CompletedTask;
@@ -695,13 +766,24 @@ namespace Cloudict.Speech
             if (IsLiveTransfer)
             {
                 var toSend = text;
-                if (prefixSpace && !string.IsNullOrEmpty(_lastSentText) && !_lastSentText.EndsWith(" ", StringComparison.Ordinal))
-                    toSend = " " + toSend;
+
+                if (prefixSpace)
+                {
+                    // Within a phrase the answer is in what this phrase has already sent. For the
+                    // first word of a phrase — at the start, and after every pause — it has to come
+                    // from the destination itself, or from what was typed there last.
+                    var needsSpace = string.IsNullOrEmpty(_lastSentText)
+                        ? NeedsSeparatorBeforePhrase()
+                        : !char.IsWhiteSpace(_lastSentText[^1]);
+
+                    if (needsSpace) toSend = " " + toSend;
+                }
 
                 try
                 {
                     _injector.TypeText(toSend);
                     _lastSentText += toSend;
+                    RememberTyped(toSend[^1]);
                 }
                 catch (Exception ex)
                 {
@@ -722,6 +804,122 @@ namespace Cloudict.Speech
             _output.FinalText = current.Substring(0, caret) + insert + current.Substring(caret);
             _output.CaretIndex = caret + insert.Length;
             _output.FocusFinalText();
+        }
+
+        /// <summary>
+        /// Decides whether the first word of a phrase needs a space in front of it.
+        ///
+        /// <para>Every phrase used to start bare, because the only record consulted was the current
+        /// phrase's, and a pause wipes that. So the first word after each pause ran straight into
+        /// the last word before it, and the first word of a session ran into whatever was already in
+        /// the field. The destination is now asked directly what precedes the caret, which also
+        /// copes with the user having typed or moved the caret in between. Where it cannot be asked,
+        /// what Cloudict itself typed last is used — but only if input is still going to the same
+        /// window, so a phrase dictated into a fresh, empty field is not given a stray space.</para>
+        /// </summary>
+        internal bool NeedsSeparatorBeforePhrase()
+        {
+            var caret = CaretContext;
+
+            if (caret != null)
+            {
+                CaretProbe probe;
+                try { probe = caret.ProbeCharBeforeCaret(); }
+                catch (Exception ex) { Debug.WriteLine($"[DictationSession] caret probe: {ex.Message}"); probe = CaretProbe.Unknown; }
+
+                if (probe.IsKnown) return NeedsSpaceAfter(probe.CharBefore);
+            }
+
+            char? last;
+            long lastWindow;
+            lock (_gate) { last = _lastTypedChar; lastWindow = _lastTypedWindow; }
+
+            if (last == null) return false;
+
+            var window = SafeWindowId();
+            if (window != 0 && lastWindow != 0 && window != lastWindow) return false;
+
+            return NeedsSpaceAfter(last);
+        }
+
+        /// <summary>
+        /// Asks the destination once, in the background, as dictation starts — and ignores the answer.
+        ///
+        /// <para>Chrome, Edge and other Chromium applications build their accessibility tree only
+        /// once something asks for it, so the very first question gets "unknown" and only later ones
+        /// a real answer. Measured: first probe unknown, every probe after it correct. Asking here,
+        /// seconds before the first word is ready, means the first phrase gets a real answer too.</para>
+        /// </summary>
+        private void WarmUpCaretContext()
+        {
+            var caret = CaretContext;
+            if (caret == null || !IsLiveTransfer) return;
+
+            _ = Task.Run(() =>
+            {
+                try { caret.ProbeCharBeforeCaret(); }
+                catch (Exception ex) { Debug.WriteLine($"[DictationSession] caret warm-up: {ex.Message}"); }
+            });
+        }
+
+        /// <summary>
+        /// A space is needed after anything but whitespace and an opening bracket or quote — and
+        /// never at the very start of a field.
+        /// </summary>
+        internal static bool NeedsSpaceAfter(char? before) =>
+            before is char c && !char.IsWhiteSpace(c) && OpeningMarks.IndexOf(c) < 0;
+
+        private const string OpeningMarks = "([{«‹“‘„";
+
+        private void RememberTyped(char last)
+        {
+            var window = SafeWindowId();
+            lock (_gate)
+            {
+                _lastTypedChar = last;
+                _lastTypedWindow = window;
+            }
+        }
+
+        /// <summary>
+        /// Keeps the spacing memory true after a key command. Enter, Tab and Space leave whitespace
+        /// before the caret — the word after an Enter command must not start its new line with a
+        /// space. A Backspace or Delete leaves something unknown there.
+        /// </summary>
+        private void RememberCommandKeys(CommandProcessResult result)
+        {
+            if (!IsLiveTransfer || result?.CommandsExecuted == null) return;
+
+            foreach (var command in result.CommandsExecuted)
+            {
+                if (command?.ActionType != CommandActionType.SendKeys) continue;
+
+                var whitespace = WhitespaceForKey(command.ActionValue);
+                if (whitespace != null)
+                {
+                    _lastSentText += whitespace;
+                    RememberTyped(whitespace[^1]);
+                }
+                else
+                {
+                    lock (_gate) _lastTypedChar = null;
+                }
+            }
+        }
+
+        internal static string WhitespaceForKey(string key) =>
+            (key ?? string.Empty).Trim().ToLowerInvariant() switch
+            {
+                "space" => " ",
+                "enter" or "return" => "\n",
+                "tab" => "\t",
+                _ => null
+            };
+
+        private long SafeWindowId()
+        {
+            try { return CaretContext?.ForegroundWindowId() ?? 0; }
+            catch { return 0; }
         }
 
         #endregion

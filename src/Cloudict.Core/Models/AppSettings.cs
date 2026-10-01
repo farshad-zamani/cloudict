@@ -302,41 +302,77 @@ namespace Cloudict
         /// </summary>
         public static List<VoiceCommand> GetDefaultCommandsForLanguage(string lang)
         {
-            lang = string.IsNullOrWhiteSpace(lang) ? "fa" : lang.ToLowerInvariant();
-            if (lang == "fa") return GetDefaultCommands();
-            return new List<VoiceCommand>();
+            return NormaliseLanguage(lang) == "fa" ? GetDefaultCommands() : new List<VoiceCommand>();
         }
 
-        /// <summary>Returns (and lazily seeds) the voice-command set for the given language.</summary>
-        public List<VoiceCommand> GetVoiceCommandsFor(string lang)
+        /// <summary>
+        /// Set once the pre-3.0 flat <see cref="VoiceCommands"/> list has been folded into
+        /// <see cref="VoiceCommandSets"/>. After that the flat list is never read again.
+        /// </summary>
+        public bool LegacyVoiceCommandsMigrated { get; set; }
+
+        /// <summary>
+        /// Folds the pre-3.0 flat command list into the per-language sets, exactly once.
+        ///
+        /// <para>Before this, that one list was doing three contradictory jobs. The settings loader
+        /// refilled it with the Persian defaults whenever it was empty; the command manager mirrored
+        /// whichever language was active into it; and the per-language lookup treated anything in it
+        /// as Persian commands awaiting migration. Together that meant English commands could be
+        /// adopted as Persian ones, deleted Persian commands came back on the next launch, and what
+        /// a language showed depended on which language had last been active rather than on what
+        /// the user had set up for it.</para>
+        ///
+        /// <para>A file with no per-language sets at all is from before 3.0, when commands were
+        /// Persian-only, so its list is Persian. In a 3.x file the list was a mirror of whichever
+        /// language was active, and is worth anything only when it holds Persian commands that the
+        /// Persian set has lost — the state the old settings-window bug left behind. Whether the
+        /// list is Persian is decided by its content: letters that exist in Persian and not in
+        /// English or Arabic. That is what keeps an English user's commands out of the Persian set,
+        /// which the old rule — "anything in the flat list is Persian" — let through.</para>
+        ///
+        /// <para>A Persian set that already holds commands is never touched.</para>
+        /// </summary>
+        public void MigrateLegacyVoiceCommands()
         {
-            lang = string.IsNullOrWhiteSpace(lang) ? "fa" : lang.ToLowerInvariant();
+            if (LegacyVoiceCommandsMigrated) return;
+            LegacyVoiceCommandsMigrated = true;
+
             if (VoiceCommandSets == null) VoiceCommandSets = new Dictionary<string, List<VoiceCommand>>();
 
-            VoiceCommandSets.TryGetValue(lang, out var list);
+            var legacy = VoiceCommands;
+            VoiceCommands = new List<VoiceCommand>();
+            if (legacy == null || legacy.Count == 0) return;
 
-            var hasLegacy = lang == "fa" && VoiceCommands != null && VoiceCommands.Count > 0;
+            var preThreeZero = VoiceCommandSets.Count == 0;
+            var looksPersian = legacy.Any(c => ContainsPersianLetter(c?.Phrase));
 
-            // An empty set counts as "never configured" while the pre-3.x flat list still holds
-            // something. Previously the migration ran only when the key was *missing*, so a single
-            // save with an empty grid — which the settings window produced whenever the typing
-            // language was switched — wrote an empty set and put the user's commands permanently
-            // out of reach, even though they were still sitting in the settings file.
-            if (list == null || (list.Count == 0 && hasLegacy))
+            VoiceCommandSets.TryGetValue("fa", out var persian);
+            var persianEmpty = persian == null || persian.Count == 0;
+
+            if (preThreeZero || (persianEmpty && looksPersian))
+                VoiceCommandSets["fa"] = legacy.Where(c => c != null).Select(c => c.Clone()).ToList();
+        }
+
+        /// <summary>پ چ ژ گ and the Persian forms of ک and ی — absent from English and Arabic.</summary>
+        internal static bool ContainsPersianLetter(string text) =>
+            !string.IsNullOrEmpty(text) &&
+            text.IndexOfAny(new[] { 'پ', 'چ', 'ژ', 'گ', 'ک', 'ی' }) >= 0;
+
+        /// <summary>
+        /// Returns the voice-command set for a language, seeding it with that language's defaults
+        /// the first time it is asked for.
+        ///
+        /// <para>Only a language that has never had a set is seeded. A set that exists but is empty
+        /// is one the user emptied, and stays empty.</para>
+        /// </summary>
+        public List<VoiceCommand> GetVoiceCommandsFor(string lang)
+        {
+            lang = NormaliseLanguage(lang);
+            MigrateLegacyVoiceCommands();
+
+            if (!VoiceCommandSets.TryGetValue(lang, out var list) || list == null)
             {
-                if (hasLegacy)
-                {
-                    list = new List<VoiceCommand>(VoiceCommands);
-
-                    // Adopted once and then dropped: left in place, the legacy list would resurrect
-                    // these commands every time the user deliberately deleted them.
-                    VoiceCommands = new List<VoiceCommand>();
-                }
-                else
-                {
-                    list = GetDefaultCommandsForLanguage(lang);
-                }
-
+                list = GetDefaultCommandsForLanguage(lang);
                 VoiceCommandSets[lang] = list;
             }
 
@@ -346,9 +382,12 @@ namespace Cloudict
         /// <summary>Stores the voice-command set for the given language.</summary>
         public void SetVoiceCommandsFor(string lang, List<VoiceCommand> list)
         {
-            lang = string.IsNullOrWhiteSpace(lang) ? "fa" : lang.ToLowerInvariant();
-            if (VoiceCommandSets == null) VoiceCommandSets = new Dictionary<string, List<VoiceCommand>>();
+            lang = NormaliseLanguage(lang);
+            MigrateLegacyVoiceCommands();
             VoiceCommandSets[lang] = list ?? new List<VoiceCommand>();
         }
+
+        private static string NormaliseLanguage(string lang) =>
+            string.IsNullOrWhiteSpace(lang) ? "en" : lang.Trim().ToLowerInvariant();
     }
 }

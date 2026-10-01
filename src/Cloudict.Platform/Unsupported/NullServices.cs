@@ -44,6 +44,17 @@ namespace Cloudict.Platform.Unsupported
         public void Dispose() { }
     }
 
+    /// <summary>
+    /// No way to read another application's caret. Dictation then decides spacing from what it
+    /// typed itself, which is exactly how it behaves on Windows in an application that does not
+    /// expose its text.
+    /// </summary>
+    internal sealed class NullCaretContext : ICaretContext
+    {
+        public CaretProbe ProbeCharBeforeCaret() => CaretProbe.Unknown;
+        public long ForegroundWindowId() => 0;
+    }
+
     internal sealed class NullKeyboardLayout : IKeyboardLayout
     {
         public bool IsSupported => false;

@@ -181,6 +181,18 @@ namespace Cloudict
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
+        /// <summary>An independent copy, so editing one cannot change the other.</summary>
+        public VoiceCommand Clone() => new VoiceCommand
+        {
+            Id = Id,
+            Phrase = Phrase,
+            ActionType = ActionType,
+            ActionValue = ActionValue,
+            IsEnabled = IsEnabled,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt
+        };
+
         public override string ToString()
         {
             return $"{Phrase} -> {ActionType}: {ActionValue}";

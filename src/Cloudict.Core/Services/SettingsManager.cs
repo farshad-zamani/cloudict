@@ -79,9 +79,11 @@ namespace Cloudict.Services
 
                     if (settings != null && settings.IsValid())
                     {
-                        if (settings.VoiceCommands == null || settings.VoiceCommands.Count == 0)
-                            settings.VoiceCommands = AppSettings.GetDefaultCommands();
-
+                        // Voice commands live in per-language sets, seeded on demand with each
+                        // language's defaults. The flat list used to be refilled with the Persian
+                        // defaults here on every load, which is how Persian commands resurfaced in
+                        // places they had been deleted from; it is now migrated once and retired.
+                        settings.MigrateLegacyVoiceCommands();
                         return settings;
                     }
 
@@ -100,6 +102,7 @@ namespace Cloudict.Services
 
                         if (backupSettings != null && backupSettings.IsValid())
                         {
+                            backupSettings.MigrateLegacyVoiceCommands();
                             Notify("SettingsMgr_LoadedFromBackup", "SettingsMgr_RestoredFromBackup_Title",
                                    UserMessageSeverity.Information, ex.Message);
                             return backupSettings;
@@ -153,9 +156,14 @@ namespace Cloudict.Services
             }
         }
 
+        /// <summary>
+        /// A fresh set of settings. Voice commands are not pre-filled: every language gets its own
+        /// defaults the first time it is used, so Persian receives its ready-made set and the others
+        /// start empty.
+        /// </summary>
         public AppSettings GetDefaultSettings()
         {
-            return new AppSettings { VoiceCommands = AppSettings.GetDefaultCommands() };
+            return new AppSettings { LegacyVoiceCommandsMigrated = true };
         }
 
         private void CreateBackup()

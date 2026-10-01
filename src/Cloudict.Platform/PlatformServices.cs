@@ -52,7 +52,8 @@ namespace Cloudict.Platform
                 GlobalHotkeys = new WindowsGlobalHotkeys(),
                 KeyboardLayout = new WindowsKeyboardLayout(),
                 MicrophoneMonitor = new WindowsMicrophoneMonitor(),
-                AudioRouting = new WindowsAudioRouting(paths)
+                AudioRouting = new WindowsAudioRouting(paths),
+                CaretContext = new WindowsCaretContext()
             };
         }
 
@@ -79,7 +80,8 @@ namespace Cloudict.Platform
                 MicrophoneMonitor = new NullMicrophoneMonitor(),
                 Notifier = new UnixNotifier(isMacOS: false),
                 AudioRouting = new Linux.LinuxAudioRouting(paths),
-                TrayPresence = null
+                TrayPresence = null,
+                CaretContext = new NullCaretContext()
             };
         }
 
@@ -106,7 +108,8 @@ namespace Cloudict.Platform
                 // macOS needs a virtual device such as BlackHole and a CoreAudio device switch.
                 // Not written yet, so it reports itself unsupported rather than half-working.
                 AudioRouting = new NullAudioRouting(),
-                TrayPresence = null
+                TrayPresence = null,
+                CaretContext = new NullCaretContext()
             };
         }
 
@@ -122,6 +125,7 @@ namespace Cloudict.Platform
             public INotifier Notifier { get; init; }
             public IAudioRouting AudioRouting { get; init; }
             public ITrayPresence TrayPresence { get; init; }
+            public ICaretContext CaretContext { get; init; }
 
             public PlatformCapabilities GetCapabilities()
             {
