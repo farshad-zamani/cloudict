@@ -69,6 +69,14 @@
                           SelectionChanged="OnTypingLanguageChanged"/>
               </StackPanel>
             </Border>
+
+            <Border Classes="card" Padding="18">
+              <StackPanel Spacing="10">
+                <TextBlock Text="{loc:Tr Settings_HelperBrowser}" Classes="h2"/>
+                <TextBlock Text="{loc:Tr Settings_HelperBrowserHint}" Classes="hint" TextWrapping="Wrap"/>
+                <ComboBox x:Name="CmbHelperBrowser" Width="380" HorizontalAlignment="Left"/>
+              </StackPanel>
+            </Border>
           </StackPanel>
         </ScrollViewer>
       </TabItem>

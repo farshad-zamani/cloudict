@@ -8,6 +8,51 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.2.6] – 2026-10-02
+
+### Added
+- **Google Chrome is no longer required.** Asked for on GitHub by a Brave user. A new *helper
+  browser* setting (Settings → Speech engine) defaults to *Automatic*, which uses installed Chrome
+  if there is one; otherwise a Chrome for Testing that Cloudict already downloaded; otherwise
+  **Microsoft Edge** — on every Windows 10 and 11 machine — if a quick check shows its speech
+  recognition works on this network; and otherwise **Chrome for Testing**, Google's official portable
+  Chrome build, downloaded once (about 200 MB). Chrome, Edge or Chrome for Testing can also be chosen
+  outright.
+
+  Every step was measured rather than assumed. With network logging in each browser on the Google
+  Translate page: Chrome and Chrome for Testing send the audio to Google's speech endpoint with
+  Google's own API key and get `200`; **Brave** sends it to the same endpoint with a key of its own
+  and gets **`403 Forbidden`** — which is why Brave, and other Chromium browsers built without
+  Google's key, cannot be supported in any configuration, and why the helper is limited to these
+  three. **Edge** sends the audio to Microsoft's speech service instead, which a network may refuse
+  — from the test machine it did, while Chrome's request to Google went through — so Edge is used
+  only after a five-second speech check passes, and the result is remembered per Edge version. Edge
+  needs Microsoft's own driver (ChromeDriver cannot start it — tried); it is fetched once from
+  Microsoft and kept. Chrome for Testing is downloaded at exactly the version of the ChromeDriver
+  already in the installer, so it never needs a driver download and can never be mismatched; the
+  download comes from the same mirror as the drivers, shows its progress, and is unpacked under a
+  marker so a half-finished one is never used.
+
+  Verified end to end with the real engine and Chrome hidden from it: Edge's driver fetched, Edge
+  opened, its speech check failed on this network, Cloudict fell back, downloaded Chrome for Testing
+  (196 MB, ~30 s), opened Google Translate in it and pressed the microphone — 52 s the first time,
+  4 s every time after. Choosing Edge outright on the same network opens it and then says clearly that
+  its speech service cannot be reached. Existing installations with Chrome behave exactly as before.
+
+- **The corner badge starts and stops dictation when clicked** (Windows), like the shortcuts: on
+  when off, off when on — and **it no longer takes the focus** from the document being dictated
+  into. Two things were needed for that. Avalonia windows take the keyboard focus on every mouse
+  press, so the badge now handles the click itself in its window procedure and declines activation;
+  measured with only the window style set, every second click lost the focus. And Windows draws
+  desktop notifications in the same corner as the badge, so Cloudict's own "dictation started"
+  notification covered the badge and caught the click meant to stop it — a click on the badge now
+  toggles silently, since the badge changing colour under the cursor is the feedback. Verified with
+  real mouse clicks: 6 of 6 toggled, and the focus stayed in the document every time. On Linux and
+  macOS the badge stays display-only until the same can be verified there.
+
+### Changed
+- **The corner badge is about 30% smaller** — a 28 px disc instead of 40 px.
+
 ## [3.2.5] – 2026-10-01
 
 ### Fixed

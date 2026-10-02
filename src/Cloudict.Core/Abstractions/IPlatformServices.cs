@@ -46,22 +46,50 @@ namespace Cloudict.Abstractions
         void EnsureCreated();
     }
 
-    /// <summary>A Chrome installation found on this machine.</summary>
+    /// <summary>
+    /// The browsers Cloudict can use as its helper.
+    ///
+    /// <para>Only these, and deliberately. Google Translate's microphone runs on the browser's own
+    /// speech service. Chrome and Chrome for Testing send the audio to Google with Google's own API
+    /// key; Edge sends it to Microsoft's speech service. Other Chromium browsers — Brave, Vivaldi,
+    /// Opera, plain Chromium — also send it to Google but with a key Google does not accept: Brave's
+    /// request was measured coming back <c>403 Forbidden</c>, so the page simply hears nothing.</para>
+    /// </summary>
+    public enum BrowserKind
+    {
+        Chrome,
+        Edge,
+        ChromeForTesting
+    }
+
+    /// <summary>A browser installation found on this machine.</summary>
     public sealed class BrowserInstall
     {
         public string Path { get; init; }
         public Version Version { get; init; }
+        public BrowserKind Kind { get; init; } = BrowserKind.Chrome;
         public int Major => Version?.Major ?? 0;
+
+        /// <summary>The name to show the user.</summary>
+        public string DisplayName => Kind switch
+        {
+            BrowserKind.Edge => "Microsoft Edge",
+            BrowserKind.ChromeForTesting => "Chrome for Testing",
+            _ => "Google Chrome"
+        };
     }
 
     /// <summary>
-    /// Finds Google Chrome. Chrome specifically, not Chromium: Chromium builds omit Google's API
-    /// keys, so the Web Speech API that Google Translate depends on silently returns nothing.
+    /// Finds the browsers that can serve as the helper — see <see cref="BrowserKind"/> for why it is
+    /// these two and not any Chromium-based browser.
     /// </summary>
     public interface IBrowserLocator
     {
-        /// <summary>The newest Chrome on this machine, or null when none is installed.</summary>
+        /// <summary>The newest Google Chrome on this machine, or null when none is installed.</summary>
         BrowserInstall FindChrome();
+
+        /// <summary>Microsoft Edge, or null when it is not installed.</summary>
+        BrowserInstall FindEdge();
     }
 
     /// <summary>
@@ -87,6 +115,25 @@ namespace Cloudict.Abstractions
 
         /// <summary>Reads a browser or driver executable's version without running it, where possible.</summary>
         Version ReadExecutableVersion(string path);
+
+        /// <summary>Microsoft's platform id for EdgeDriver: <c>win64</c>, <c>linux64</c>, <c>mac64</c> or <c>mac64_m1</c>.</summary>
+        string EdgeDriverPlatformKey { get; }
+
+        /// <summary><c>msedgedriver.exe</c> on Windows, <c>msedgedriver</c> elsewhere.</summary>
+        string EdgeDriverFileName { get; }
+
+        /// <summary>
+        /// Where the browser executable sits inside an unpacked Chrome-for-Testing download, relative
+        /// to the folder it was unpacked into.
+        /// </summary>
+        string ChromeForTestingExecutable { get; }
+
+        /// <summary>
+        /// Unpacks a downloaded browser archive. A platform concern because macOS app bundles are
+        /// full of symbolic links and permission bits that a general-purpose zip reader drops, which
+        /// leaves an app that will not start; there the system's own tool does it.
+        /// </summary>
+        void ExtractArchive(string zipPath, string destination);
     }
 
     /// <summary>

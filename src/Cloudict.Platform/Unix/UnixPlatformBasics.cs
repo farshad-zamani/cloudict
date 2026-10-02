@@ -83,6 +83,54 @@ namespace Cloudict.Platform.Unix
 
         public string DriverFileName => "chromedriver";
 
+        public string EdgeDriverPlatformKey =>
+            _isMacOS
+                ? (RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "mac64_m1" : "mac64")
+                : "linux64";
+
+        public string EdgeDriverFileName => "msedgedriver";
+
+        public string ChromeForTestingExecutable =>
+            _isMacOS
+                ? Path.Combine($"chrome-{DriverPlatformKey}", "Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing")
+                : Path.Combine("chrome-linux64", "chrome");
+
+        /// <summary>
+        /// On macOS through <c>ditto</c>, which every Mac has and which keeps the symbolic links and
+        /// permission bits a .app bundle depends on. On Linux through .NET, which restores the
+        /// permission bits recorded in the archive; the executables are made runnable afterwards in
+        /// case an archive did not record them.
+        /// </summary>
+        public void ExtractArchive(string zipPath, string destination)
+        {
+            Directory.CreateDirectory(destination);
+
+            if (_isMacOS)
+            {
+                var psi = new ProcessStartInfo("/usr/bin/ditto", $"-x -k \"{zipPath}\" \"{destination}\"")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardError = true
+                };
+
+                using var process = Process.Start(psi) ?? throw new IOException("ditto could not be started");
+                var error = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+                if (process.ExitCode != 0) throw new IOException($"ditto failed ({process.ExitCode}): {error}");
+                return;
+            }
+
+            System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, destination, overwriteFiles: true);
+
+            var folder = Path.Combine(destination, "chrome-linux64");
+            foreach (var name in new[] { "chrome", "chrome_crashpad_handler", "chrome-wrapper", "chrome_sandbox" })
+            {
+                var file = Path.Combine(folder, name);
+                if (File.Exists(file)) MakeExecutable(file);
+            }
+        }
+
         public IEnumerable<string> AdditionalDriverSearchPaths
         {
             get
@@ -186,10 +234,37 @@ namespace Cloudict.Platform.Unix
         {
             return CandidatePaths()
                 .Distinct()
-                .Select(TryRead)
+                .Select(p => TryRead(p, BrowserKind.Chrome))
                 .Where(c => c != null)
                 .OrderByDescending(c => c.Version)
                 .FirstOrDefault();
+        }
+
+        public BrowserInstall FindEdge()
+        {
+            return EdgeCandidatePaths()
+                .Distinct()
+                .Select(p => TryRead(p, BrowserKind.Edge))
+                .Where(c => c != null)
+                .OrderByDescending(c => c.Version)
+                .FirstOrDefault();
+        }
+
+        private IEnumerable<string> EdgeCandidatePaths()
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+            if (_isMacOS)
+            {
+                yield return "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge";
+                if (!string.IsNullOrEmpty(home))
+                    yield return Path.Combine(home, "Applications", "Microsoft Edge.app", "Contents", "MacOS", "Microsoft Edge");
+                yield break;
+            }
+
+            yield return "/usr/bin/microsoft-edge";
+            yield return "/usr/bin/microsoft-edge-stable";
+            yield return "/opt/microsoft/msedge/msedge";
         }
 
         private IEnumerable<string> CandidatePaths()
@@ -217,7 +292,7 @@ namespace Cloudict.Platform.Unix
                 yield return Path.Combine(home, ".local", "share", "flatpak", "exports", "bin", "com.google.Chrome");
         }
 
-        private BrowserInstall TryRead(string path)
+        private BrowserInstall TryRead(string path, BrowserKind kind)
         {
             try
             {
@@ -226,7 +301,7 @@ namespace Cloudict.Platform.Unix
                 var version = _isMacOS ? ReadMacBundleVersion(path) : null;
                 version ??= _info.ReadExecutableVersion(path);
 
-                return version == null ? null : new BrowserInstall { Path = path, Version = version };
+                return version == null ? null : new BrowserInstall { Path = path, Version = version, Kind = kind };
             }
             catch (Exception ex)
             {

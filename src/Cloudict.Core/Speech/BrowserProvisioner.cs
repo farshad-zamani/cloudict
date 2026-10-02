@@ -74,8 +74,23 @@ namespace Cloudict.Speech
             public string DriverPath { get; init; }
             public string DriverVersion { get; init; }
             public string DriverSource { get; init; }
+
+            /// <summary>The helper browser's executable. Named for Chrome, which it was until 3.2.6.</summary>
             public string ChromePath { get; init; }
             public string ChromeVersion { get; init; }
+
+            /// <summary>Which browser this is — and so which driver protocol to speak to it.</summary>
+            public BrowserKind Kind { get; init; } = BrowserKind.Chrome;
+
+            /// <summary>The browser, as installed — for its display name and version.</summary>
+            public BrowserInstall Browser { get; init; }
+
+            /// <summary>
+            /// True when this browser's speech recognition has not yet been seen to work on this
+            /// machine and network, so the engine should check before relying on it. Only ever set
+            /// for Edge — see <see cref="RecordSpeechCheck"/>.
+            /// </summary>
+            public bool NeedsSpeechCheck { get; init; }
 
             /// <summary>
             /// True when the driver's major version differs from Chrome's. ChromeDriver refuses to
@@ -106,19 +121,67 @@ namespace Cloudict.Speech
         }
 
         /// <summary>
-        /// Finds Chrome and the best matching driver.
+        /// Picks the helper browser and the driver to go with it.
+        ///
+        /// <para>Automatic — the default — goes in the order that keeps Google's own speech
+        /// recognition wherever it can: installed Chrome; a Chrome for Testing that Cloudict already
+        /// downloaded; Edge, if its speech service has not been seen failing here; and finally a
+        /// Chrome for Testing downloaded now. A named preference uses that browser or explains why
+        /// it cannot.</para>
         /// </summary>
         /// <param name="report">Receives progress steps for the status bar.</param>
         /// <param name="allowDownload">When false, never touches the network.</param>
-        /// <exception cref="ProvisionException">Chrome is missing, or no driver could be obtained.</exception>
-        public Provision Resolve(Action<ProvisionStatus> report, bool allowDownload = true, CancellationToken ct = default)
+        /// <param name="preference">One of <see cref="HelperBrowsers"/>.</param>
+        /// <param name="skip">Browsers already tried and found unusable in this session.</param>
+        /// <exception cref="ProvisionException">No usable browser, or no driver could be obtained.</exception>
+        public Provision Resolve(Action<ProvisionStatus> report, bool allowDownload = true, CancellationToken ct = default,
+                                 string preference = HelperBrowsers.Auto, ICollection<BrowserKind> skip = null)
         {
+            skip ??= Array.Empty<BrowserKind>();
             report?.Invoke(new ProvisionStatus("Browser_St_LookingForChrome"));
 
-            var chrome = _locator.FindChrome();
-            if (chrome == null)
-                throw new ProvisionException("Browser_Err_ChromeNotInstalled");
+            switch (HelperBrowsers.Normalise(preference))
+            {
+                case HelperBrowsers.Chrome:
+                    return ResolveChromium(_locator.FindChrome() ?? throw new ProvisionException("Browser_Err_ChromeNotInstalled"),
+                                           report, allowDownload, ct);
 
+                case HelperBrowsers.Edge:
+                    var chosenEdge = _locator.FindEdge() ?? throw new ProvisionException("Browser_Err_EdgeNotInstalled");
+                    return ResolveEdge(chosenEdge, report, allowDownload, ct);
+
+                case HelperBrowsers.ChromeForTesting:
+                    return ResolveChromeForTesting(report, allowDownload, ct);
+            }
+
+            // Automatic.
+            if (!skip.Contains(BrowserKind.Chrome) && _locator.FindChrome() is BrowserInstall chrome)
+                return ResolveChromium(chrome, report, allowDownload, ct);
+
+            // A Chrome for Testing already on disk is Google's recognition with nothing to fetch:
+            // better than Edge's, and it means Edge's speech is not re-tested on every start.
+            if (!skip.Contains(BrowserKind.ChromeForTesting) && FindInstalledChromeForTesting() is BrowserInstall cached)
+                return ResolveChromium(cached, report, allowDownload, ct);
+
+            if (!skip.Contains(BrowserKind.Edge) && _locator.FindEdge() is BrowserInstall edge && !SpeechRecentlyFailed(edge))
+            {
+                try { return ResolveEdge(edge, report, allowDownload, ct); }
+                catch (ProvisionException ex) { Debug.WriteLine($"[BrowserProvisioner] Edge unusable: {ex.Message}"); }
+            }
+
+            if (!skip.Contains(BrowserKind.ChromeForTesting) && allowDownload)
+                return ResolveChromeForTesting(report, allowDownload, ct);
+
+            throw new ProvisionException("Browser_Err_NoBrowser");
+        }
+
+        /// <summary>
+        /// Chrome or Chrome for Testing, with a matching ChromeDriver: from disk first, the network
+        /// only when the browser has outrun every local driver. Unchanged from when Chrome was the
+        /// only choice.
+        /// </summary>
+        private Provision ResolveChromium(BrowserInstall chrome, Action<ProvisionStatus> report, bool allowDownload, CancellationToken ct)
+        {
             report?.Invoke(new ProvisionStatus("Browser_St_LookingForDriver"));
 
             var candidates = FindLocalDrivers();
@@ -157,15 +220,19 @@ namespace Cloudict.Speech
             throw new ProvisionException("Browser_Err_NoDriver", $"(Chrome {chrome.Version})");
         }
 
-        private static Provision Describe(DriverCandidate driver, BrowserInstall chrome, bool buildCheckOverride) =>
+        private static Provision Describe(DriverCandidate driver, BrowserInstall browser, bool buildCheckOverride,
+                                          bool needsSpeechCheck = false) =>
             new Provision
             {
                 DriverPath = driver.Path,
                 DriverVersion = driver.Version.ToString(),
                 DriverSource = driver.Source,
-                ChromePath = chrome.Path,
-                ChromeVersion = chrome.Version.ToString(),
-                RequiresBuildCheckOverride = buildCheckOverride
+                ChromePath = browser.Path,
+                ChromeVersion = browser.Version.ToString(),
+                Kind = browser.Kind,
+                Browser = browser,
+                RequiresBuildCheckOverride = buildCheckOverride,
+                NeedsSpeechCheck = needsSpeechCheck
             };
 
         /// <summary>Directory this app may write downloaded drivers into (never the install folder).</summary>
@@ -243,12 +310,14 @@ namespace Cloudict.Speech
         }
 
         /// <summary>Depth-limited search that tolerates folders we are not allowed to read.</summary>
-        private IEnumerable<string> EnumerateDrivers(string root, int depth)
+        private IEnumerable<string> EnumerateDrivers(string root, int depth) => EnumerateFiles(root, _info.DriverFileName, depth);
+
+        private static IEnumerable<string> EnumerateFiles(string root, string fileName, int depth)
         {
             if (depth < 0 || !Directory.Exists(root)) yield break;
 
             string[] files;
-            try { files = Directory.GetFiles(root, _info.DriverFileName); }
+            try { files = Directory.GetFiles(root, fileName); }
             catch (Exception ex) { Debug.WriteLine($"[BrowserProvisioner] cannot list {root}: {ex.Message}"); yield break; }
 
             foreach (var f in files) yield return f;
@@ -258,7 +327,7 @@ namespace Cloudict.Speech
             catch (Exception ex) { Debug.WriteLine($"[BrowserProvisioner] cannot list {root}: {ex.Message}"); yield break; }
 
             foreach (var d in dirs)
-                foreach (var f in EnumerateDrivers(d, depth - 1))
+                foreach (var f in EnumerateFiles(d, fileName, depth - 1))
                     yield return f;
         }
 
@@ -453,6 +522,483 @@ namespace Cloudict.Speech
 
             return target;
         }
+
+        #endregion
+
+        #region Microsoft Edge
+
+        /// <summary>Where downloaded EdgeDrivers are kept, one folder per version.</summary>
+        private string EdgeDriverCache => Path.Combine(UserDriverCache, "edge");
+
+        /// <summary>
+        /// Microsoft's hosts for EdgeDriver. Both serve the same files; the second is the older
+        /// address, kept because some networks reach one and not the other.
+        /// </summary>
+        private static readonly string[] EdgeDriverUrlTemplates =
+        {
+            "https://msedgedriver.microsoft.com/{0}/edgedriver_{1}.zip",
+            "https://msedgedriver.azureedge.net/{0}/edgedriver_{1}.zip"
+        };
+
+        /// <summary>
+        /// Edge with a matching EdgeDriver. ChromeDriver cannot drive Edge — measured: it times out
+        /// creating the session — so Edge needs Microsoft's driver, matched to Edge's version. None
+        /// ships in the installer; it is fetched once, on the first use of Edge, and kept.
+        /// </summary>
+        private Provision ResolveEdge(BrowserInstall edge, Action<ProvisionStatus> report, bool allowDownload, CancellationToken ct)
+        {
+            report?.Invoke(new ProvisionStatus("Browser_St_LookingForDriver"));
+
+            var local = EnumerateFiles(EdgeDriverCache, _info.EdgeDriverFileName, 2)
+                .Select(path => new DriverCandidate { Path = path, Version = ReadDriverVersion(path), Source = "cache" })
+                .Where(c => c.Version != null)
+                .ToList();
+
+            var needsCheck = !SpeechKnownToWork(edge);
+
+            var exact = local.FirstOrDefault(c => c.Version == edge.Version);
+            if (exact != null) return Describe(exact, edge, buildCheckOverride: false, needsCheck);
+
+            var sameMajor = PickBest(local, edge.Major);
+
+            if (sameMajor == null && allowDownload)
+            {
+                var downloaded = DownloadEdgeDriver(edge, report, ct);
+                if (downloaded != null) return Describe(downloaded, edge, buildCheckOverride: false, needsCheck);
+            }
+
+            if (sameMajor != null) return Describe(sameMajor, edge, buildCheckOverride: false, needsCheck);
+
+            var closest = PickClosest(local, edge.Major);
+            if (closest != null) return Describe(closest, edge, buildCheckOverride: true, needsCheck);
+
+            throw new ProvisionException("Browser_Err_NoDriver", $"(Microsoft Edge {edge.Version})");
+        }
+
+        private DriverCandidate DownloadEdgeDriver(BrowserInstall edge, Action<ProvisionStatus> report, CancellationToken ct)
+        {
+            report?.Invoke(new ProvisionStatus("Browser_St_DownloadingDriver"));
+
+            var versions = new List<string> { edge.Version.ToString() };
+            var latest = LatestEdgeDriverForMajor(edge.Major, ct);
+            if (latest != null && !versions.Contains(latest)) versions.Add(latest);
+
+            foreach (var version in versions)
+            {
+                foreach (var template in EdgeDriverUrlTemplates)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var url = string.Format(template, version, _info.EdgeDriverPlatformKey);
+                    try
+                    {
+                        var path = ExtractNamedFile(GetBytes(url, ct), _info.EdgeDriverFileName, Path.Combine(EdgeDriverCache, version));
+                        if (path == null) continue;
+
+                        report?.Invoke(new ProvisionStatus("Browser_St_DriverDownloaded", version));
+                        return new DriverCandidate { Path = path, Version = Version.Parse(version), Source = "downloaded" };
+                    }
+                    catch (OperationCanceledException) { throw; }
+                    catch (Exception ex) { Debug.WriteLine($"[BrowserProvisioner] {url} -> {ex.Message}"); }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// The newest EdgeDriver Microsoft has published for an Edge major version, for when the
+        /// exact build has none. The file is UTF-16 with a byte-order mark, so it is decoded by the
+        /// mark rather than assumed.
+        /// </summary>
+        private string LatestEdgeDriverForMajor(int major, CancellationToken ct)
+        {
+            var os = _info.EdgeDriverPlatformKey.StartsWith("win", StringComparison.Ordinal) ? "WINDOWS"
+                   : _info.EdgeDriverPlatformKey.StartsWith("mac", StringComparison.Ordinal) ? "MACOS" : "LINUX";
+
+            foreach (var host in new[] { "https://msedgedriver.microsoft.com", "https://msedgedriver.azureedge.net" })
+            {
+                try
+                {
+                    var bytes = GetBytes($"{host}/LATEST_RELEASE_{major}_{os}", ct);
+                    using var reader = new StreamReader(new MemoryStream(bytes), System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+                    var text = reader.ReadToEnd().Trim().Trim('\0');
+                    if (Version.TryParse(text, out _)) return text;
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex) { Debug.WriteLine($"[BrowserProvisioner] latest EdgeDriver from {host}: {ex.Message}"); }
+            }
+
+            return null;
+        }
+
+        #endregion
+
+        #region Speech check results
+
+        private sealed class SpeechCheck
+        {
+            public string Version { get; set; }
+            public bool Works { get; set; }
+            public DateTime CheckedUtc { get; set; }
+        }
+
+        private string SpeechCheckFile => Path.Combine(_paths.DataDirectory, "speech-checks.json");
+
+        private static readonly object SpeechCheckGate = new object();
+
+        /// <summary>
+        /// Remembers whether a browser's speech recognition worked here, so the check runs once per
+        /// browser version rather than at every start.
+        ///
+        /// <para>Edge is the only browser this is kept for. Its recognition runs on Microsoft's
+        /// service, which a network may not reach — measured from one network, the connection was
+        /// refused while Chrome's, to Google, went through — and the page gives no sign of that: the
+        /// microphone button simply hears nothing. Chrome and Chrome for Testing reach Google
+        /// exactly as Chrome always has.</para>
+        /// </summary>
+        public void RecordSpeechCheck(BrowserInstall browser, bool works)
+        {
+            if (browser == null) return;
+
+            lock (SpeechCheckGate)
+            {
+                try
+                {
+                    var all = ReadSpeechChecks();
+                    all[browser.Kind.ToString()] = new SpeechCheck { Version = browser.Version?.ToString(), Works = works, CheckedUtc = DateTime.UtcNow };
+                    Directory.CreateDirectory(_paths.DataDirectory);
+                    File.WriteAllText(SpeechCheckFile, Newtonsoft.Json.JsonConvert.SerializeObject(all, Newtonsoft.Json.Formatting.Indented));
+                }
+                catch (Exception ex) { Debug.WriteLine($"[BrowserProvisioner] speech check not saved: {ex.Message}"); }
+            }
+        }
+
+        /// <summary>Seen working on this version.</summary>
+        private bool SpeechKnownToWork(BrowserInstall browser)
+        {
+            var check = ReadSpeechCheck(browser);
+            return check != null && check.Works && check.Version == browser.Version?.ToString();
+        }
+
+        /// <summary>
+        /// Seen failing on this version within the last day. A failure is not kept for longer
+        /// because the network may change — a VPN switched on, a firewall rule lifted — and a day's
+        /// wait before trying again costs nothing when Chrome for Testing is covering meanwhile.
+        /// </summary>
+        private bool SpeechRecentlyFailed(BrowserInstall browser)
+        {
+            var check = ReadSpeechCheck(browser);
+            return check != null && !check.Works
+                   && check.Version == browser.Version?.ToString()
+                   && DateTime.UtcNow - check.CheckedUtc < TimeSpan.FromDays(1);
+        }
+
+        private SpeechCheck ReadSpeechCheck(BrowserInstall browser)
+        {
+            lock (SpeechCheckGate)
+            {
+                return ReadSpeechChecks().TryGetValue(browser.Kind.ToString(), out var check) ? check : null;
+            }
+        }
+
+        private Dictionary<string, SpeechCheck> ReadSpeechChecks()
+        {
+            try
+            {
+                if (File.Exists(SpeechCheckFile))
+                    return Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, SpeechCheck>>(File.ReadAllText(SpeechCheckFile))
+                           ?? new Dictionary<string, SpeechCheck>();
+            }
+            catch (Exception ex) { Debug.WriteLine($"[BrowserProvisioner] speech checks unreadable: {ex.Message}"); }
+
+            return new Dictionary<string, SpeechCheck>();
+        }
+
+        #endregion
+
+        #region Chrome for Testing
+
+        /// <summary>Where Chrome for Testing is unpacked, one folder per version.</summary>
+        public string ChromeForTestingRoot => Path.Combine(_paths.DataDirectory, "Browser", "chrome-for-testing");
+
+        /// <summary>Written last, so a half-unpacked download is never mistaken for a browser.</summary>
+        private const string CompleteMarker = ".complete";
+
+        /// <summary>
+        /// How far behind the bundled driver a downloaded Chrome for Testing may fall before it is
+        /// replaced. It does not update itself, and Google Translate eventually stops supporting
+        /// old browsers; four major versions is about six months.
+        /// </summary>
+        private const int MaxChromeForTestingLag = 4;
+
+        private static readonly string[] ChromeForTestingZipUrlTemplates =
+        {
+            "https://cdn.npmmirror.com/binaries/chrome-for-testing/{0}/{1}/chrome-{1}.zip",
+            "https://registry.npmmirror.com/-/binary/chrome-for-testing/{0}/{1}/chrome-{1}.zip",
+            "https://storage.googleapis.com/chrome-for-testing-public/{0}/{1}/chrome-{1}.zip"
+        };
+
+        private static readonly string[] StableVersionUrls =
+        {
+            "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json",
+            "https://cdn.npmmirror.com/binaries/chrome-for-testing/last-known-good-versions.json"
+        };
+
+        /// <summary>
+        /// Google's own Chrome build for automation: the same browser as Chrome, carrying the same
+        /// Google API key — measured: its speech requests went to the same Google endpoint with the
+        /// same key and came back 200, exactly like Chrome's — but portable, never auto-updating, and
+        /// published alongside a ChromeDriver of the identical version. That last part is why the
+        /// version downloaded is the one matching the driver already in the installer: no driver
+        /// download, and no version mismatch, ever.
+        ///
+        /// <para>Downloaded rather than shipped: it is about 200 MB, and only users without Chrome
+        /// need it.</para>
+        /// </summary>
+        private Provision ResolveChromeForTesting(Action<ProvisionStatus> report, bool allowDownload, CancellationToken ct)
+        {
+            var target = BundledDriverVersion();
+            var installed = FindInstalledChromeForTesting();
+
+            var installedIsCurrent = installed != null && (target == null || installed.Major >= target.Major - MaxChromeForTestingLag);
+            if (installedIsCurrent) return ResolveChromium(installed, report, allowDownload, ct);
+
+            if (!allowDownload)
+            {
+                if (installed != null) return ResolveChromium(installed, report, allowDownload, ct);
+                throw new ProvisionException("Browser_Err_NoBrowser");
+            }
+
+            var version = target?.ToString() ?? LatestStableChromeForTesting(ct)
+                          ?? throw new ProvisionException("Browser_Err_ChromeForTestingDownloadFailed");
+
+            var fresh = DownloadChromeForTesting(version, report, ct);
+            if (fresh != null) return ResolveChromium(fresh, report, allowDownload, ct);
+
+            if (installed != null) return ResolveChromium(installed, report, allowDownload, ct);
+            throw new ProvisionException("Browser_Err_ChromeForTestingDownloadFailed");
+        }
+
+        /// <summary>The newest Chrome for Testing already unpacked, or null.</summary>
+        public BrowserInstall FindInstalledChromeForTesting()
+        {
+            try
+            {
+                if (!Directory.Exists(ChromeForTestingRoot)) return null;
+
+                return Directory.GetDirectories(ChromeForTestingRoot)
+                    .Select(dir => new
+                    {
+                        Dir = dir,
+                        Ok = TryParseVersion(Path.GetFileName(dir), out var v),
+                        Version = v
+                    })
+                    .Where(x => x.Ok && File.Exists(Path.Combine(x.Dir, CompleteMarker)))
+                    .Select(x => new BrowserInstall
+                    {
+                        Path = Path.Combine(x.Dir, _info.ChromeForTestingExecutable),
+                        Version = x.Version,
+                        Kind = BrowserKind.ChromeForTesting
+                    })
+                    .Where(b => File.Exists(b.Path))
+                    .OrderByDescending(b => b.Version)
+                    .FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[BrowserProvisioner] cannot read Chrome for Testing folder: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>The version of the newest driver shipped in the installer.</summary>
+        private Version BundledDriverVersion()
+        {
+            var appDir = AppContext.BaseDirectory;
+            return new[] { Path.Combine(appDir, BundledDriverFolder), Path.Combine(appDir, "..", "Resources", BundledDriverFolder) }
+                .SelectMany(root => EnumerateDrivers(root, MaxSearchDepth))
+                .Select(ReadDriverVersion)
+                .Where(v => v != null)
+                .OrderByDescending(v => v)
+                .FirstOrDefault();
+        }
+
+        private static string LatestStableChromeForTesting(CancellationToken ct)
+        {
+            foreach (var url in StableVersionUrls)
+            {
+                try
+                {
+                    var json = Newtonsoft.Json.Linq.JObject.Parse(System.Text.Encoding.UTF8.GetString(GetBytes(url, ct)));
+                    var version = json["channels"]?["Stable"]?["version"]?.ToString();
+                    if (Version.TryParse(version, out _)) return version;
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex) { Debug.WriteLine($"[BrowserProvisioner] stable version from {url}: {ex.Message}"); }
+            }
+
+            return null;
+        }
+
+        private BrowserInstall DownloadChromeForTesting(string version, Action<ProvisionStatus> report, CancellationToken ct)
+        {
+            Directory.CreateDirectory(ChromeForTestingRoot);
+            var zip = Path.Combine(ChromeForTestingRoot, $"download-{version}.zip");
+            var unpacking = Path.Combine(ChromeForTestingRoot, version + ".partial");
+            var final = Path.Combine(ChromeForTestingRoot, version);
+
+            foreach (var template in ChromeForTestingZipUrlTemplates)
+            {
+                ct.ThrowIfCancellationRequested();
+                var url = string.Format(template, version, _info.DriverPlatformKey);
+
+                try
+                {
+                    DownloadToFile(url, zip, (done, total) =>
+                    {
+                        var percent = total > 0 ? (int)(done * 100 / total) : 0;
+                        var megabytes = total > 0 ? (int)(total / (1024 * 1024)) : 0;
+                        report?.Invoke(new ProvisionStatus("Browser_St_DownloadingBrowser_Fmt", percent, megabytes));
+                    }, ct);
+
+                    report?.Invoke(new ProvisionStatus("Browser_St_UnpackingBrowser"));
+
+                    if (Directory.Exists(unpacking)) Directory.Delete(unpacking, recursive: true);
+                    _info.ExtractArchive(zip, unpacking);
+
+                    var exe = Path.Combine(unpacking, _info.ChromeForTestingExecutable);
+                    if (!File.Exists(exe)) throw new IOException($"{_info.ChromeForTestingExecutable} missing from the archive");
+                    _info.MakeExecutable(exe);
+
+                    if (Directory.Exists(final)) Directory.Delete(final, recursive: true);
+                    Directory.Move(unpacking, final);
+                    File.WriteAllText(Path.Combine(final, CompleteMarker), DateTime.UtcNow.ToString("o"));
+
+                    RemoveOtherChromeForTestingVersions(keep: final);
+
+                    return new BrowserInstall
+                    {
+                        Path = Path.Combine(final, _info.ChromeForTestingExecutable),
+                        Version = Version.Parse(version),
+                        Kind = BrowserKind.ChromeForTesting
+                    };
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[BrowserProvisioner] Chrome for Testing from {url}: {ex.Message}");
+                }
+                finally
+                {
+                    TryDelete(zip);
+                    try { if (Directory.Exists(unpacking)) Directory.Delete(unpacking, recursive: true); }
+                    catch (Exception ex) { Debug.WriteLine($"[BrowserProvisioner] cleanup: {ex.Message}"); }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>Older downloads are hundreds of megabytes each; only the one in use is kept.</summary>
+        private void RemoveOtherChromeForTestingVersions(string keep)
+        {
+            foreach (var dir in Directory.GetDirectories(ChromeForTestingRoot))
+            {
+                if (string.Equals(Path.GetFullPath(dir), Path.GetFullPath(keep), StringComparison.OrdinalIgnoreCase)) continue;
+                try { Directory.Delete(dir, recursive: true); }
+                catch (Exception ex) { Debug.WriteLine($"[BrowserProvisioner] could not remove {dir}: {ex.Message}"); }
+            }
+        }
+
+        private static void TryDelete(string file)
+        {
+            try { if (File.Exists(file)) File.Delete(file); }
+            catch (Exception ex) { Debug.WriteLine($"[BrowserProvisioner] could not delete {file}: {ex.Message}"); }
+        }
+
+        /// <summary>
+        /// Streams a large download to disk with progress, giving up only if the connection stalls —
+        /// a 200 MB file on a slow line can legitimately take longer than any fixed timeout.
+        /// </summary>
+        private static void DownloadToFile(string url, string path, Action<long, long> progress, CancellationToken ct)
+        {
+            var temp = path + ".tmp";
+            TryDelete(temp);
+
+            using var stall = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            stall.CancelAfter(TimeSpan.FromSeconds(60));
+
+            HttpResponseMessage response;
+            try
+            {
+                response = LargeDownloads.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, stall.Token).GetAwaiter().GetResult();
+            }
+            catch (HttpRequestException ex) when (ex.InnerException is System.Security.Authentication.AuthenticationException)
+            {
+                response = LargeDownloadsLenient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, stall.Token).GetAwaiter().GetResult();
+            }
+
+            using (response)
+            {
+                response.EnsureSuccessStatusCode();
+                var total = response.Content.Headers.ContentLength ?? -1;
+
+                using (var source = response.Content.ReadAsStream(stall.Token))
+                using (var target = File.Create(temp))
+                {
+                    var buffer = new byte[128 * 1024];
+                    long done = 0;
+                    var lastPercent = -1L;
+
+                    while (true)
+                    {
+                        stall.CancelAfter(TimeSpan.FromSeconds(60));
+                        var read = source.Read(buffer, 0, buffer.Length);
+                        if (read <= 0) break;
+
+                        target.Write(buffer, 0, read);
+                        done += read;
+
+                        var percent = total > 0 ? done * 100 / total : -1;
+                        if (percent != lastPercent && percent % 2 == 0) { progress?.Invoke(done, total); lastPercent = percent; }
+                    }
+
+                    if (total > 0 && done != total) throw new IOException($"download ended at {done} of {total} bytes");
+                }
+            }
+
+            File.Move(temp, path, overwrite: true);
+        }
+
+        private static readonly HttpClient LargeDownloads = CreateLargeDownloadClient(allowCertificateDownloads: false);
+        private static readonly HttpClient LargeDownloadsLenient = CreateLargeDownloadClient(allowCertificateDownloads: true);
+
+        private static HttpClient CreateLargeDownloadClient(bool allowCertificateDownloads)
+        {
+            var client = CreateHttpClient(allowCertificateDownloads);
+            client.Timeout = Timeout.InfiniteTimeSpan;
+            return client;
+        }
+
+        /// <summary>Extracts one named file from a zip into a folder, via a temporary name.</summary>
+        private string ExtractNamedFile(byte[] zipBytes, string fileName, string directory)
+        {
+            using var archive = new ZipArchive(new MemoryStream(zipBytes), ZipArchiveMode.Read);
+            var entry = archive.Entries.FirstOrDefault(e => string.Equals(e.Name, fileName, StringComparison.OrdinalIgnoreCase));
+            if (entry == null) return null;
+
+            Directory.CreateDirectory(directory);
+            var target = Path.Combine(directory, fileName);
+            var temp = target + ".tmp";
+            entry.ExtractToFile(temp, overwrite: true);
+            File.Move(temp, target, overwrite: true);
+            _info.MakeExecutable(target);
+            return target;
+        }
+
+        #endregion
+
+        #region HTTP
 
         /// <summary>
         /// Fetches a URL without letting Windows write to its certificate store, falling back to

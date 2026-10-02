@@ -64,6 +64,16 @@ namespace Cloudict.App.Views
             var ui = new (string Code, string Label)[] { ("en", "English"), ("fa", "فارسی") };
             CmbUiLanguage.ItemsSource = ui.Select(u => u.Label).ToList();
             CmbUiLanguage.Tag = ui.Select(u => u.Code).ToList();
+
+            var browsers = new (string Code, string LabelKey)[]
+            {
+                (Cloudict.Speech.HelperBrowsers.Auto, "Settings_HelperBrowser_Auto"),
+                (Cloudict.Speech.HelperBrowsers.Chrome, "Settings_HelperBrowser_Chrome"),
+                (Cloudict.Speech.HelperBrowsers.Edge, "Settings_HelperBrowser_Edge"),
+                (Cloudict.Speech.HelperBrowsers.ChromeForTesting, "Settings_HelperBrowser_Cft")
+            };
+            CmbHelperBrowser.ItemsSource = browsers.Select(b => Loc.Get(b.LabelKey)).ToList();
+            CmbHelperBrowser.Tag = browsers.Select(b => b.Code).ToList();
         }
 
         private void PopulateFromSettings()
@@ -75,6 +85,7 @@ namespace Cloudict.App.Views
 
             SelectByCode(CmbTypingLanguage, _settings.TypingLanguage, "en");
             SelectByCode(CmbUiLanguage, _settings.UILanguage, "en");
+            SelectByCode(CmbHelperBrowser, Cloudict.Speech.HelperBrowsers.Normalise(_settings.HelperBrowser), Cloudict.Speech.HelperBrowsers.Auto);
 
             TxtProcessDelay.Text = _settings.ProcessDelayMs.ToString(CultureInfo.InvariantCulture);
             TxtWordDelay.Text = _settings.WordByWordDelayMs.ToString(CultureInfo.InvariantCulture);
@@ -201,6 +212,7 @@ namespace Cloudict.App.Views
             {
                 _settings.TypingLanguage = SelectedCode(CmbTypingLanguage, "en");
                 _settings.UILanguage = SelectedCode(CmbUiLanguage, "en");
+                _settings.HelperBrowser = SelectedCode(CmbHelperBrowser, Cloudict.Speech.HelperBrowsers.Auto);
 
                 _settings.ProcessDelayMs = ParseDelay(TxtProcessDelay.Text, _settings.ProcessDelayMs);
                 _settings.WordByWordDelayMs = ParseDelay(TxtWordDelay.Text, _settings.WordByWordDelayMs);

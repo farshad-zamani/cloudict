@@ -30,6 +30,12 @@ namespace Cloudict
         /// </summary>
         public string TypingLanguage { get; set; } = "en";
 
+        /// <summary>
+        /// Which browser hosts Google Translate: <c>auto</c> (the default), <c>chrome</c>,
+        /// <c>edge</c> or <c>cft</c> (Chrome for Testing). See <see cref="Speech.HelperBrowsers"/>.
+        /// </summary>
+        public string HelperBrowser { get; set; } = "auto";
+
         // Text Transfer Delays - تاخیرهای انتقال متن
         /// <summary>
         /// تاخیر پردازش متن (میلی‌ثانیه)

@@ -58,6 +58,13 @@ namespace Cloudict.Platform.Windows
         /// <summary>No-op: Windows has no execute permission bit.</summary>
         public void MakeExecutable(string path) { }
 
+        public string EdgeDriverPlatformKey => "win64";
+        public string EdgeDriverFileName => "msedgedriver.exe";
+        public string ChromeForTestingExecutable => Path.Combine("chrome-win64", "chrome.exe");
+
+        public void ExtractArchive(string zipPath, string destination) =>
+            System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, destination, overwriteFiles: true);
+
         public Version ReadExecutableVersion(string path)
         {
             try
@@ -89,7 +96,17 @@ namespace Cloudict.Platform.Windows
 
         public WindowsBrowserLocator(IPlatformInfo info) => _info = info;
 
-        public BrowserInstall FindChrome()
+        public BrowserInstall FindChrome() =>
+            Find("chrome.exe", Path.Combine("Google", "Chrome", "Application", "chrome.exe"), BrowserKind.Chrome);
+
+        /// <summary>
+        /// Microsoft Edge. Present on every Windows 10 and 11 machine, which is what makes it worth
+        /// supporting: a user without Chrome still has it.
+        /// </summary>
+        public BrowserInstall FindEdge() =>
+            Find("msedge.exe", Path.Combine("Microsoft", "Edge", "Application", "msedge.exe"), BrowserKind.Edge);
+
+        private BrowserInstall Find(string exeName, string relativeToProgramFolder, BrowserKind kind)
         {
             var paths = new List<string>();
 
@@ -97,8 +114,8 @@ namespace Cloudict.Platform.Windows
             {
                 foreach (var key in new[]
                 {
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe",
-                    @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe"
+                    $@"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{exeName}",
+                    $@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\{exeName}"
                 })
                 {
                     try
@@ -119,23 +136,23 @@ namespace Cloudict.Platform.Windows
             })
             {
                 if (!string.IsNullOrEmpty(folder))
-                    paths.Add(Path.Combine(folder, "Google", "Chrome", "Application", "chrome.exe"));
+                    paths.Add(Path.Combine(folder, relativeToProgramFolder));
             }
 
             return paths
-                .Select(TryRead)
+                .Select(p => TryRead(p, kind))
                 .Where(c => c != null)
                 .OrderByDescending(c => c.Version)
                 .FirstOrDefault();
         }
 
-        private BrowserInstall TryRead(string path)
+        private BrowserInstall TryRead(string path, BrowserKind kind)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
                 var version = _info.ReadExecutableVersion(path);
-                return version == null ? null : new BrowserInstall { Path = path, Version = version };
+                return version == null ? null : new BrowserInstall { Path = path, Version = version, Kind = kind };
             }
             catch (Exception ex)
             {

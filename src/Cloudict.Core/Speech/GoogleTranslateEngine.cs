@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Cloudict.Abstractions;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Chromium;
+using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
 
 namespace Cloudict.Speech
@@ -67,6 +69,10 @@ namespace Cloudict.Speech
 
         private IWebDriver _driver;
         private BrowserProvisioner.Provision _provision;
+
+        /// <summary>The helper-browser preference <see cref="_provision"/> was resolved for. A
+        /// different preference in Settings means resolving again on the next open.</summary>
+        private string _provisionPreference;
         private bool _ready;
         private bool _disposed;
 
@@ -126,30 +132,75 @@ namespace Cloudict.Speech
 
                     try
                     {
-                        _provision ??= _provisioner.Resolve(
-                            status => Report(status.MessageKey, status.Args), ct: ct);
+                        var preference = HelperBrowsers.Normalise(_settings()?.HelperBrowser);
+                        if (_provisionPreference != preference) _provision = null;
 
-                        Report("Main_St_OpeningGT");
-                        _driver = CreateDriver(_provision);
+                        // Browsers found unusable while opening: in automatic mode the next one is
+                        // tried instead. Three rounds cover every browser there is to try.
+                        var skip = new List<BrowserKind>();
 
-                        // The page is loaded up to three times before giving up. What used to happen
-                        // instead: a page that failed to load — no network yet just after a reboot,
-                        // a DNS hiccup, Google returning an error — left the voice button missing,
-                        // the wait below simply timed out, and Cloudict announced the browser ready
-                        // over a Chrome window showing an error. The result was a window that looked
-                        // open and could not dictate a word.
-                        if (!LoadPageWithRetries(3))
+                        for (var round = 0; round < 3; round++)
                         {
-                            Report("Main_St_PageLoadFailed");
-                            CloseInternal();
-                            return false;
+                            _provision ??= _provisioner.Resolve(
+                                status => Report(status.MessageKey, status.Args), ct: ct, preference: preference, skip: skip);
+                            _provisionPreference = preference;
+
+                            var browserName = _provision.Browser?.DisplayName ?? "Google Chrome";
+                            Log($"helper browser: {browserName} {_provision.ChromeVersion}, driver {_provision.DriverVersion} [{_provision.DriverSource}]");
+
+                            Report("Main_St_OpeningGT");
+                            _driver = CreateDriver(_provision);
+
+                            // The page is loaded up to three times before giving up. What used to happen
+                            // instead: a page that failed to load — no network yet just after a reboot,
+                            // a DNS hiccup, Google returning an error — left the voice button missing,
+                            // the wait below simply timed out, and Cloudict announced the browser ready
+                            // over a Chrome window showing an error. The result was a window that looked
+                            // open and could not dictate a word.
+                            if (!LoadPageWithRetries(3))
+                            {
+                                Report("Main_St_PageLoadFailed");
+                                CloseInternal();
+                                return false;
+                            }
+
+                            if (_provision.NeedsSpeechCheck)
+                            {
+                                Report("Browser_St_CheckingSpeech_Fmt", browserName);
+                                var verdict = CheckSpeechRecognition();
+                                Log($"{browserName} speech check: {verdict}");
+
+                                if (verdict == SpeechVerdict.Unavailable)
+                                {
+                                    _provisioner.RecordSpeechCheck(_provision.Browser, works: false);
+                                    CloseInternal();
+
+                                    if (preference == HelperBrowsers.Auto)
+                                    {
+                                        skip.Add(_provision.Kind);
+                                        _provision = null;
+                                        Report("Browser_St_SpeechFallback_Fmt", browserName);
+                                        continue;
+                                    }
+
+                                    _provision = null;
+                                    Report("Browser_Err_SpeechUnavailable_Fmt", browserName);
+                                    return false;
+                                }
+
+                                if (verdict == SpeechVerdict.Works)
+                                    _provisioner.RecordSpeechCheck(_provision.Browser, works: true);
+                            }
+
+                            _ready = true;
+
+                            Report("Main_St_BrowserReadyPressGreen");
+                            BrowserOpenChanged?.Invoke(this, true);
+                            return true;
                         }
 
-                        _ready = true;
-
-                        Report("Main_St_BrowserReadyPressGreen");
-                        BrowserOpenChanged?.Invoke(this, true);
-                        return true;
+                        Report("Browser_Err_NoBrowser");
+                        return false;
                     }
                     catch (BrowserProvisioner.ProvisionException ex)
                     {
@@ -192,9 +243,58 @@ namespace Cloudict.Speech
             BrowserOpenChanged?.Invoke(this, false);
         }
 
+        private enum SpeechVerdict { Works, Unavailable, Inconclusive }
+
+        /// <summary>
+        /// Asks the browser to start speech recognition on the Google Translate page and watches
+        /// what happens for a few seconds — the same thing the page's microphone button does.
+        ///
+        /// <para>This is how a browser whose speech service cannot be reached is told apart from one
+        /// that works. Measured: Edge and Brave both report a <c>network</c> error within a second
+        /// when their service refuses them, while a working browser starts and simply waits for
+        /// speech. Without this, such a browser opened normally, the button lit up, and nothing the
+        /// user said was ever typed.</para>
+        ///
+        /// <para>A microphone problem — none plugged in, access refused — says nothing about the
+        /// browser, so it counts as inconclusive rather than as a failure.</para>
+        /// </summary>
+        private SpeechVerdict CheckSpeechRecognition()
+        {
+            try
+            {
+                _driver.Manage().Timeouts().AsynchronousJavaScript = TimeSpan.FromSeconds(15);
+
+                var result = ((IJavaScriptExecutor)_driver).ExecuteAsyncScript(@"
+                    var done = arguments[arguments.length - 1];
+                    var R = window.webkitSpeechRecognition || window.SpeechRecognition;
+                    if (!R) { done('unsupported'); return; }
+                    var r = new R(), finished = false;
+                    function finish(v) { if (finished) return; finished = true; try { r.abort(); } catch (e) {} done(v); }
+                    r.lang = 'en-US'; r.continuous = true;
+                    r.onerror = function (e) { finish('error:' + e.error); };
+                    r.onstart = function () { setTimeout(function () { finish('ok'); }, 5000); };
+                    try { r.start(); } catch (e) { finish('exception:' + e.message); }
+                    setTimeout(function () { finish('timeout'); }, 12000);") as string;
+
+                return result switch
+                {
+                    "ok" => SpeechVerdict.Works,
+                    "unsupported" or "error:network" or "error:service-not-allowed" or "error:language-not-supported"
+                        => SpeechVerdict.Unavailable,
+                    _ => SpeechVerdict.Inconclusive
+                };
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[GoogleTranslateEngine] speech check: {ex.Message}");
+                return SpeechVerdict.Inconclusive;
+            }
+        }
+
         private IWebDriver CreateDriver(BrowserProvisioner.Provision provision)
         {
-            var options = new ChromeOptions();
+            var isEdge = provision.Kind == BrowserKind.Edge;
+            ChromiumOptions options = isEdge ? new EdgeOptions() : new ChromeOptions();
             options.AddArgument("--disable-gpu");
             options.AddArgument("--window-size=450,540");
             options.AddArgument("--disable-extensions");
@@ -240,14 +340,18 @@ namespace Cloudict.Speech
             if (!string.IsNullOrWhiteSpace(provision.ChromePath))
                 options.BinaryLocation = provision.ChromePath;
 
-            var service = ChromeDriverService.CreateDefaultService(
-                provision.DriverDirectory, provision.DriverFileName);
+            // Edge speaks the same protocol through its own driver: ChromeDriver cannot start it.
+            ChromiumDriverService service = isEdge
+                ? EdgeDriverService.CreateDefaultService(provision.DriverDirectory, provision.DriverFileName)
+                : ChromeDriverService.CreateDefaultService(provision.DriverDirectory, provision.DriverFileName);
             service.HideCommandPromptWindow = true;
 
-            // Only when Chrome outran every driver available and the network could not help.
+            // Only when the browser outran every driver available and the network could not help.
             if (provision.RequiresBuildCheckOverride) service.DisableBuildCheck = true;
 
-            return new ChromeDriver(service, options);
+            return isEdge
+                ? new EdgeDriver((EdgeDriverService)service, (EdgeOptions)options)
+                : new ChromeDriver((ChromeDriverService)service, (ChromeOptions)options);
         }
 
         private string TypingLanguage()

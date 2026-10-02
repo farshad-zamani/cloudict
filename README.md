@@ -49,9 +49,21 @@ key (Enter, Tab, …), switch the keyboard language, or run a program.
 
 ## Requirements
 
-- **Google Chrome.** Cloudict drives a Chrome window as its helper browser. Chrome specifically:
-  Chromium builds are compiled without Google's API keys, so the speech recognition Google
-  Translate relies on silently does nothing there.
+- **A helper browser — usually nothing to install.** Cloudict opens Google Translate in a browser
+  window it controls. With the default *Automatic* setting it uses, in order:
+  1. **Google Chrome**, if installed;
+  2. **Microsoft Edge** (on every Windows 10/11 machine), if a quick check shows its speech
+     recognition works on your network — Edge sends audio to Microsoft's speech service rather
+     than Google's;
+  3. **Chrome for Testing** — Google's official portable Chrome build — downloaded once (about
+     200 MB) into Cloudict's data folder.
+
+  A specific browser can be chosen in *Settings → Speech engine*.
+
+  **Brave, Opera, Vivaldi and other Chromium-based browsers cannot be used.** They send the audio
+  to Google's speech service like Chrome does, but with a key Google refuses — measured: Brave's
+  request comes back `403 Forbidden` — so the microphone appears to listen and nothing is ever
+  recognised. On a machine with only Brave, Automatic simply uses Edge or Chrome for Testing.
 - Windows 10/11 (x64), a current Linux distribution (x64), or macOS 11+ (Apple Silicon or Intel).
 
 Everything else is bundled. Cloudict is self-contained — there is no .NET to install.
@@ -204,7 +216,10 @@ Chrome updates itself, so sooner or later it moves past the bundled driver. Clou
 3. **If that download can't happen either** (offline or blocked), Cloudict falls back to the
    closest driver it has rather than refusing to start.
 
-So the only thing you ever need is Chrome itself.
+So the only thing you ever need is a helper browser — and with the Automatic setting, Cloudict
+finds or fetches one itself. Edge uses Microsoft's `msedgedriver`, fetched once for your Edge
+version; Chrome for Testing is downloaded at exactly the version of the bundled driver, so it never
+needs a driver download at all.
 
 ## Build from source
 

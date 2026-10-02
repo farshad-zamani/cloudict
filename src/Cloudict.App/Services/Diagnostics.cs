@@ -83,10 +83,25 @@ namespace Cloudict.App.Services
                     ? "  Chrome : not found"
                     : $"  Chrome : {chrome.Version} @ {chrome.Path}");
 
+                var edge = platform.BrowserLocator.FindEdge();
+                report.AppendLine(edge == null
+                    ? "  Edge   : not found"
+                    : $"  Edge   : {edge.Version} @ {edge.Path}");
+
                 var provisioner = new BrowserProvisioner(platform.Paths, platform.Info, platform.BrowserLocator);
+
+                var cft = provisioner.FindInstalledChromeForTesting();
+                report.AppendLine(cft == null
+                    ? "  CfT    : not downloaded"
+                    : $"  CfT    : {cft.Version} @ {cft.Path}");
+
+                var preference = Cloudict.Speech.HelperBrowsers.Normalise(AppServices.Settings?.LoadSettings()?.HelperBrowser);
+                report.AppendLine($"  Choice : {preference}");
+
                 try
                 {
-                    var provision = provisioner.Resolve(_ => { }, allowDownload: false);
+                    var provision = provisioner.Resolve(_ => { }, allowDownload: false, preference: preference);
+                    report.AppendLine($"  Uses   : {provision.Browser?.DisplayName} {provision.ChromeVersion}{(provision.NeedsSpeechCheck ? " (speech not yet checked)" : "")}");
                     report.AppendLine($"  Driver : {provision.DriverVersion} [{provision.DriverSource}] @ {provision.DriverPath}");
                     if (provision.RequiresBuildCheckOverride)
                         report.AppendLine("  Driver : version differs from Chrome; running with the build check disabled");

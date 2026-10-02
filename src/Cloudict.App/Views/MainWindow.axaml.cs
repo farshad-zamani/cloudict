@@ -522,7 +522,14 @@ namespace Cloudict.App.Views
                     return;
                 }
 
-                _indicator ??= new StatusIndicatorWindow();
+                if (_indicator == null)
+                {
+                    _indicator = new StatusIndicatorWindow();
+
+                    // On when off, off when on — without a desktop notification, which Windows
+                    // would draw over the badge itself (see StartDictationAsync).
+                    _indicator.Clicked += async (_, _) => await ToggleDictationAsync(notify: false);
+                }
                 _indicator.Show();
                 _indicator.SetActive(_session.IsRunning);
             }
@@ -674,6 +681,25 @@ namespace Cloudict.App.Views
 
         #region Buttons
 
+        private async Task ReopenHelperBrowserAsync()
+        {
+            BtnHelperBrowser.IsEnabled = false;
+            try
+            {
+                await StopDictationAsync(notify: false);
+                await _engine.CloseBrowserAsync();
+                await _engine.OpenBrowserAsync();
+            }
+            catch (Exception ex)
+            {
+                SetStatus(Loc.Get("Main_St_OpenBrowserErrorPrefix") + ex.Message);
+            }
+            finally
+            {
+                BtnHelperBrowser.IsEnabled = true;
+            }
+        }
+
         private async void OnHelperBrowserClick(object sender, RoutedEventArgs e)
         {
             BtnHelperBrowser.IsEnabled = false;
@@ -712,7 +738,14 @@ namespace Cloudict.App.Views
         /// <c>IsRunning</c>, returns "already started", and the microphone stays off — which is what
         /// made the shortcut need a second press after Google Translate had switched itself off.</para>
         /// </summary>
-        private async Task StartDictationAsync()
+        /// <param name="notify">
+        /// False when started from the corner badge. Windows draws desktop notifications in the very
+        /// corner the badge sits in, so the "dictation started" notification appeared on top of the
+        /// badge — and the click meant to stop dictation landed on the notification instead, taking
+        /// the focus out of the user's document with it. The badge changing colour under the cursor
+        /// is the feedback there.
+        /// </param>
+        private async Task StartDictationAsync(bool notify = true)
         {
             if (_session.IsRunning && !_micReportedLive)
                 await StopDictationAsync(notify: false);
@@ -739,7 +772,7 @@ namespace Cloudict.App.Views
                 // Start and stop are usually driven by the shortcut while another application has
                 // focus, so this is exactly the moment the user cannot see Cloudict's own status
                 // line and the desktop has to say it instead.
-                if (await _session.StartAsync()) Notify(Loc.Get("Notify_Started"));
+                if (await _session.StartAsync() && notify) Notify(Loc.Get("Notify_Started"));
             }
             catch (Exception ex)
             {
@@ -946,6 +979,8 @@ namespace Cloudict.App.Views
         {
             try
             {
+                var browserBefore = Cloudict.Speech.HelperBrowsers.Normalise(_settings?.HelperBrowser);
+
                 var window = new SettingsWindow(_commandManager);
                 await window.ShowDialog(this);
 
@@ -956,6 +991,12 @@ namespace Cloudict.App.Views
                     RegisterShortcuts();
                     ShowIndicator();
                     RestoreLiveTransfer();
+
+                    // A different helper browser takes effect at once rather than at the next
+                    // launch: the open one is closed and the newly chosen one opened in its place.
+                    var browserAfter = Cloudict.Speech.HelperBrowsers.Normalise(_settings?.HelperBrowser);
+                    if (browserAfter != browserBefore && _engine.IsBrowserOpen)
+                        await ReopenHelperBrowserAsync();
                 }
             }
             catch (Exception ex)
@@ -1105,15 +1146,15 @@ namespace Cloudict.App.Views
         /// bind a shortcut to a command but cannot hand Cloudict a global hotkey — Wayland, mainly.
         /// The keyboard shortcuts themselves do not toggle: start starts and stop stops.
         /// </summary>
-        private async Task ToggleDictationAsync()
+        private async Task ToggleDictationAsync(bool notify = true)
         {
             if (_session.IsRunning && _micReportedLive)
             {
-                await StopDictationAsync();
+                await StopDictationAsync(notify);
                 return;
             }
 
-            await StartDictationAsync();
+            await StartDictationAsync(notify);
         }
 
         private void ReloadCommands()
