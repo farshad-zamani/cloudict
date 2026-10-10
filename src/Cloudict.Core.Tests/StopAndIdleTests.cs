@@ -43,13 +43,14 @@ namespace Cloudict.Core.Tests
         public async Task The_awake_clock_is_consulted_away_from_Windows()
         {
             var wall = DateTime.UtcNow;
-            var awake = TimeSpan.Zero;
 
-            // Wall and awake clocks both jump a minute: throttling, not sleep.
-            var call = 0;
+            // Wall and awake clocks both move exactly a minute between their two reads: throttling,
+            // not sleep.
+            var wallReads = 0;
+            var awakeReads = 0;
             var slept = await SuspendDetector.DelayAsync(TimeSpan.FromMilliseconds(10), CancellationToken.None,
-                utcNow: () => call++ == 0 ? wall : wall.AddMinutes(1),
-                awakeClock: () => awake += TimeSpan.FromSeconds(30));
+                utcNow: () => wallReads++ == 0 ? wall : wall.AddMinutes(1),
+                awakeClock: () => awakeReads++ == 0 ? TimeSpan.Zero : TimeSpan.FromMinutes(1));
 
             // On Windows only the wall clock counts, and a minute is sleep; elsewhere it is not.
             Assert.Equal(OperatingSystem.IsWindows(), slept);
