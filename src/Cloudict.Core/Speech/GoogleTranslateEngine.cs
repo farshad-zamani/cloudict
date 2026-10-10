@@ -70,6 +70,17 @@ namespace Cloudict.Speech
         private IWebDriver _driver;
         private BrowserProvisioner.Provision _provision;
 
+        /// <summary>
+        /// One microphone operation at a time — start, stop, the stop-clear-start of a reset, or the
+        /// clear before a new session.
+        ///
+        /// <para>They used to run independently, and a stop pressed while a pause-reset was in
+        /// flight could land between the reset's own stop and start: the user's stop switched the
+        /// microphone off, and a moment later the reset switched it back on. That is the "I pressed
+        /// stop and it carried on" report. Serialised, a stop waits for the reset and then wins.</para>
+        /// </summary>
+        private readonly SemaphoreSlim _micLock = new SemaphoreSlim(1, 1);
+
         /// <summary>The helper-browser preference <see cref="_provision"/> was resolved for. A
         /// different preference in Settings means resolving again on the next open.</summary>
         private string _provisionPreference;
@@ -332,6 +343,15 @@ namespace Cloudict.Speech
             options.AddArgument("--no-default-browser-check");
             options.AddArgument("--no-service-autorun");
 
+            // The helper is always behind the window being dictated into, and browsers slow down
+            // pages they believe nobody is looking at: timers throttled, and on macOS an occluded
+            // window's renderer suspended outright. The page's own microphone button and the scripts
+            // Cloudict runs in it then answer late or not at all — a stop that seemed not to reach
+            // the browser. These three are in the set Puppeteer and Playwright pass for every session.
+            options.AddArgument("--disable-background-timer-throttling");
+            options.AddArgument("--disable-renderer-backgrounding");
+            options.AddArgument("--disable-backgrounding-occluded-windows");
+
             var language = TypingLanguage();
             options.AddArgument($"--lang={language}");
             options.AddUserProfilePreference("profile.default_content_setting_values.media_stream_mic", 1);
@@ -376,8 +396,64 @@ namespace Cloudict.Speech
 
         #region Microphone
 
+        /// <summary>
+        /// The voice button's state, read from the page: <c>"on"</c>, <c>"off"</c>, <c>"none"</c> when
+        /// the button is not there, or null when the page could not be asked.
+        /// </summary>
+        private string MicState()
+        {
+            if (!IsBrowserOpen) return null;
+
+            return TryScriptValue($@"
+                var b = document.querySelector('button[jsname=""{VoiceButtonJsName}""]');
+                if (!b) return 'none';
+                return b.classList.contains('{ListeningClass}') ? 'on' : 'off';");
+        }
+
+        /// <summary>
+        /// Whether Google Translate's own microphone is on, as the page shows it. Null when that
+        /// cannot be told.
+        ///
+        /// <para>On macOS and Linux this is what keeps the session honest. Windows reports, at the
+        /// operating-system level, whether the microphone is actually being captured; the other two
+        /// cannot. Without it, a page that stopped listening on its own — after a silence, an error,
+        /// or a long idle — left the session "running" over a dead microphone, so the start shortcut
+        /// answered "already listening" and did nothing.</para>
+        /// </summary>
+        public Task<bool?> IsMicrophoneOnAsync() => Task.Run<bool?>(() =>
+        {
+            if (!IsBrowserOpen) return false;
+
+            return MicState() switch
+            {
+                "on" => true,
+                "off" => false,
+                _ => null
+            };
+        });
+
+        /// <summary>Waits up to <paramref name="timeout"/> for the button to reach <paramref name="wanted"/>.</summary>
+        private bool WaitForMicState(string wanted, TimeSpan timeout)
+        {
+            var deadline = DateTime.UtcNow + timeout;
+            while (true)
+            {
+                var state = MicState();
+                if (state == wanted) return true;
+                if (state == null || state == "none" || DateTime.UtcNow >= deadline) return false;
+                Thread.Sleep(150);
+            }
+        }
+
         /// <summary>Starts Google Translate listening. Returns false if the button could not be found.</summary>
-        public Task<bool> StartListeningAsync() => Task.Run(() =>
+        public async Task<bool> StartListeningAsync()
+        {
+            await _micLock.WaitAsync().ConfigureAwait(false);
+            try { return await Task.Run(StartListeningCore).ConfigureAwait(false); }
+            finally { _micLock.Release(); }
+        }
+
+        private bool StartListeningCore()
         {
             if (!IsBrowserOpen) return false;
 
@@ -403,6 +479,19 @@ namespace Cloudict.Speech
                         if(!b.classList.contains('{ListeningClass}')) b.click();
                         return true;"))
                 {
+                    // Seen to switch on, not assumed: a click on a page that is still waking up can
+                    // be lost. One more click only if the button is plainly still off — never while
+                    // it is on, which would turn it back off.
+                    if (!WaitForMicState("on", TimeSpan.FromSeconds(3)) && MicState() == "off")
+                    {
+                        Log("the voice button did not switch on; clicking it once more");
+                        TryScript($@"
+                            var b = document.querySelector('button[jsname=""{VoiceButtonJsName}""]');
+                            if(b && !b.classList.contains('{ListeningClass}')) b.click();
+                            return true;");
+                        WaitForMicState("on", TimeSpan.FromSeconds(3));
+                    }
+
                     IsListening = true;
                     Log("microphone activated via jsname toggle");
                     Report("Main_St_MicActivated");
@@ -419,26 +508,56 @@ namespace Cloudict.Speech
 
             Report("Main_St_MicButtonNotFound");
             return false;
-        });
+        }
 
-        /// <summary>Stops Google Translate listening.</summary>
-        public Task<bool> StopListeningAsync() => Task.Run(() =>
+        /// <summary>Stops Google Translate listening, and checks that it did.</summary>
+        public async Task<bool> StopListeningAsync()
+        {
+            await _micLock.WaitAsync().ConfigureAwait(false);
+            try { return await Task.Run(StopListeningCore).ConfigureAwait(false); }
+            finally { _micLock.Release(); }
+        }
+
+        /// <summary>
+        /// Clicks the voice button off and then <em>watches it go off</em>, clicking again if it did
+        /// not. A single unverified click was not enough: on a page the browser had slowed down,
+        /// the click could be lost and the microphone carried on listening after "stop".
+        /// </summary>
+        private bool StopListeningCore()
         {
             if (!IsBrowserOpen) return false;
 
-            // Same toggle, opposite condition: click only while it *is* listening.
-            if (TryScript($@"
-                    var b = document.querySelector('button[jsname=""{VoiceButtonJsName}""]');
-                    if(!b) return false;
-                    if(b.classList.contains('{ListeningClass}')) b.click();
-                    return true;"))
+            for (int attempt = 0; attempt < 3; attempt++)
             {
-                IsListening = false;
-                Report("Main_St_MicStopped");
-                return true;
+                var state = MicState();
+
+                if (state == "off")
+                {
+                    IsListening = false;
+                    Report("Main_St_MicStopped");
+                    return true;
+                }
+
+                if (state != "on") break;   // no button, or the page cannot be asked: fall back below
+
+                // Same toggle, opposite condition: click only while it *is* listening.
+                TryScript($@"
+                    var b = document.querySelector('button[jsname=""{VoiceButtonJsName}""]');
+                    if(b && b.classList.contains('{ListeningClass}')) b.click();
+                    return true;");
+
+                if (WaitForMicState("off", TimeSpan.FromSeconds(1.5)))
+                {
+                    IsListening = false;
+                    Report("Main_St_MicStopped");
+                    return true;
+                }
+
+                Log($"the voice button was still on after stop attempt {attempt + 1}");
             }
 
-            if (TryClickAny(MicXPaths()))
+            // The user's own selector, when the page's structure has changed under the built-in one.
+            if (MicState() == "none" && TryClickAny(MicXPaths()))
             {
                 IsListening = false;
                 Report("Main_St_MicStopped");
@@ -460,7 +579,7 @@ namespace Cloudict.Speech
 
             Report("Main_St_StopAllFailed");
             return false;
-        });
+        }
 
         /// <summary>
         /// Stops and restarts listening, and clears the source box. Google Translate keeps revising
@@ -473,7 +592,14 @@ namespace Cloudict.Speech
         /// </summary>
         public async Task<MicResetResult> ResetMicrophoneAsync()
         {
-            await StopListeningAsync();
+            await _micLock.WaitAsync().ConfigureAwait(false);
+            try { return await ResetMicrophoneCoreAsync().ConfigureAwait(false); }
+            finally { _micLock.Release(); }
+        }
+
+        private async Task<MicResetResult> ResetMicrophoneCoreAsync()
+        {
+            await Task.Run(StopListeningCore);
 
             // Give the page time to actually stop before touching its box. Clearing while its own
             // recognition is still winding down is how the phrase came back: it finishes, writes
@@ -482,10 +608,10 @@ namespace Cloudict.Speech
             // the repeat became more frequent rather than less.
             await Task.Delay(700);
 
-            var remaining = await ClearSourceTextAsync();
+            var remaining = await ClearCoreAsync();
             await Task.Delay(300);
 
-            var listening = await StartListeningAsync();
+            var listening = await Task.Run(StartListeningCore);
 
             var cleared = remaining != null && remaining.Length == 0;
 
@@ -654,6 +780,30 @@ namespace Cloudict.Speech
         /// by hand.</para>
         /// </summary>
         public async Task<string> ClearSourceTextAsync()
+        {
+            if (!IsBrowserOpen) return null;
+
+            await _micLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                // A recognizer still running from before — left on by a stop that did not take, or
+                // by the page itself — holds the last phrase it heard, and writes the whole of it
+                // back into the box a moment after the box is emptied. A new session then typed that
+                // old phrase as if it had just been said: the "after an idle spell it typed what I
+                // said earlier" report. It is switched off, and given time to finish, first.
+                if (MicState() == "on")
+                {
+                    Log("the page was still listening before a new session; stopping it before clearing");
+                    await Task.Run(StopListeningCore).ConfigureAwait(false);
+                    await Task.Delay(700).ConfigureAwait(false);
+                }
+
+                return await ClearCoreAsync().ConfigureAwait(false);
+            }
+            finally { _micLock.Release(); }
+        }
+
+        private async Task<string> ClearCoreAsync()
         {
             if (!IsBrowserOpen) return null;
 

@@ -37,6 +37,17 @@ namespace Cloudict.App.Views
 
             GridCommands.ItemsSource = _commands;
 
+            // A Mac keyboard says Control and Command, and the second shortcut key is Command there
+            // (see GlobalShortcuts.SecondModifier). Minimise-to-tray does not apply on a Mac, where a
+            // minimised window belongs in the Dock.
+            if (OperatingSystem.IsMacOS())
+            {
+                ChkToggleCtrl.Content = ChkStopCtrl.Content = "⌃ Control";
+                ChkToggleAlt.Content = ChkStopAlt.Content = "⌘ Command";
+                ChkMinimizeToTray.IsVisible = false;
+                TxtMacShortcutNote.IsVisible = true;
+            }
+
             PopulateLanguages();
             PopulateFromSettings();
             DescribePlatform();

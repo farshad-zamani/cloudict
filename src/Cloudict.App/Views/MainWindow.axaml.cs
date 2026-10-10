@@ -83,8 +83,23 @@ namespace Cloudict.App.Views
 
         #region Lifecycle
 
+        private bool _started;
+
+        /// <summary>
+        /// Everything that has to happen once, when the window first appears.
+        ///
+        /// <para>Once — and that needs saying, because Avalonia raises <c>Opened</c> again every time
+        /// a hidden window is shown (its <c>Hide()</c> resets the window's "shown" state). Restoring
+        /// from the tray therefore ran all of this a second and third time: on macOS each run added
+        /// another icon to the menu bar — three after a few restores — and on every system it started
+        /// another microphone watch and wake watch, re-registered the shortcuts, switched system audio
+        /// back off and reopened a helper browser the user had closed.</para>
+        /// </summary>
         private void OnOpened(object sender, EventArgs e)
         {
+            if (_started) return;
+            _started = true;
+
             // Before anything else touches audio: if a previous run was killed while the machine's
             // recording device was switched over, put it back.
             try { AppServices.Platform.AudioRouting?.RecoverInterruptedSession(); }
@@ -101,7 +116,83 @@ namespace Cloudict.App.Views
             OpenBrowserOnStartup();
             CheckForUpdate();
             StartWakeWatch();
+            ListenForReopen();
+            CheckTypingPermissionAtStartup();
         }
+
+        /// <summary>
+        /// Brings the window back when the Dock icon is clicked (macOS). macOS sends "reopen" for
+        /// that click; without an answer, a Cloudict whose window was closed into the menu bar showed
+        /// nothing at all when its Dock icon was clicked.
+        /// </summary>
+        private void ListenForReopen()
+        {
+            try
+            {
+                if (Application.Current?.TryGetFeature(typeof(Avalonia.Controls.ApplicationLifetimes.IActivatableLifetime))
+                    is Avalonia.Controls.ApplicationLifetimes.IActivatableLifetime lifetime)
+                {
+                    lifetime.Activated += (_, args) =>
+                    {
+                        if (args.Kind == Avalonia.Controls.ApplicationLifetimes.ActivationKind.Reopen)
+                            Dispatcher.UIThread.Post(RestoreFromTray);
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MainWindow] reopen events unavailable: {ex.Message}");
+            }
+        }
+
+        #region Typing permission (macOS)
+
+        private bool _permissionDialogOpen;
+
+        /// <summary>
+        /// On macOS, typing into other applications needs the user's Accessibility approval, and
+        /// without it every word is silently discarded. A line in the status bar is gone before
+        /// anyone reads it, so this is a window that explains it properly — shown when transfer to
+        /// the cursor is switched on, when dictation starts with it on, and once at startup if it
+        /// was left on. It closes by itself the moment macOS confirms the permission.
+        /// </summary>
+        private async Task EnsureTypingPermissionAsync()
+        {
+            if (!OperatingSystem.IsMacOS() || _permissionDialogOpen) return;
+
+            var injector = AppServices.Platform.TextInjector;
+            try { injector.Refresh(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
+            if (injector.IsAvailable) return;
+
+            _permissionDialogOpen = true;
+            try
+            {
+                if (!IsVisible || WindowState == WindowState.Minimized) RestoreFromTray();
+
+                var dialog = new AccessibilityPermissionDialog(injector);
+                await dialog.ShowDialog(this);
+
+                if (dialog.Granted) SetStatus(Loc.Get("Access_Granted"));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MainWindow] permission dialog: {ex.Message}");
+            }
+            finally
+            {
+                _permissionDialogOpen = false;
+            }
+        }
+
+        private void CheckTypingPermissionAtStartup()
+        {
+            if (!OperatingSystem.IsMacOS() || !_session.IsLiveTransfer) return;
+
+            // After the window has settled, so the dialog has something to sit on.
+            DispatcherTimer.RunOnce(async () => await EnsureTypingPermissionAsync(), TimeSpan.FromSeconds(2));
+        }
+
+        #endregion
 
         #region Sleep and hibernation
 
@@ -435,12 +526,34 @@ namespace Cloudict.App.Views
                             seenLive = false;
                             live = false;
                         }
-                        else if (!monitor.IsSupported || _session.IsResetting)
+                        else if (_session.IsResetting)
                         {
                             // A reset switches the microphone off for about a second by design;
                             // reporting that would make the badge flicker on every pause.
                             missed = 0;
                             live = true;
+                        }
+                        else if (!monitor.IsSupported)
+                        {
+                            // macOS and Linux cannot report microphone capture as Windows does, so
+                            // the page itself is asked. Before this, the session was simply assumed
+                            // live: when Google Translate stopped listening on its own — after an
+                            // idle spell, typically — Cloudict carried on "listening" to nothing, and
+                            // the start shortcut answered "already listening". The same three-miss
+                            // rule as Windows applies.
+                            var page = await _engine.IsMicrophoneOnAsync();
+
+                            if (page != false)
+                            {
+                                missed = 0;
+                                if (page == true) seenLive = true;
+                                live = true;
+                            }
+                            else
+                            {
+                                missed++;
+                                live = missed < (seenLive ? 3 : 8);
+                            }
                         }
                         else if (monitor.IsMicrophoneInUse())
                         {
@@ -590,6 +703,13 @@ namespace Cloudict.App.Views
             if (e.Property != WindowStateProperty) return;
             if (WindowState != WindowState.Minimized) return;
             if (_settings?.MinimizeToTray != true) return;
+
+            // Not on macOS, where a minimised window is already in the Dock. Hiding it there did not
+            // take it out of the Dock: the Dock kept its thumbnail, and clicking that brought back a
+            // window Avalonia had stopped drawing — the empty black window from the macOS report. On
+            // a Mac the window minimises to the Dock as every other application's does, and the
+            // menu-bar icon is there either way.
+            if (OperatingSystem.IsMacOS()) return;
 
             Hide();
             ShowInTaskbar = false;
@@ -762,11 +882,15 @@ namespace Cloudict.App.Views
 
             try
             {
+                if (_session.IsLiveTransfer) AppServices.Platform.TextInjector.Refresh();
+
                 if (!AppServices.Platform.TextInjector.IsAvailable && _session.IsLiveTransfer)
                 {
                     // Typing into other applications is exactly what live transfer needs.
                     var reason = AppServices.Platform.TextInjector.UnavailableReasonKey;
                     if (reason != null) SetStatus(Loc.Get(reason));
+
+                    if (OperatingSystem.IsMacOS()) _ = EnsureTypingPermissionAsync();
                 }
 
                 // Start and stop are usually driven by the shortcut while another application has
@@ -798,6 +922,14 @@ namespace Cloudict.App.Views
             try
             {
                 await _session.StopAsync();
+
+                // Stop always means the microphone ends up off — including when no session was
+                // running but the page was still listening (after a session wound down on its own,
+                // or a stop that did not take). Otherwise the page carried on hearing, and the next
+                // start began from whatever it had collected.
+                if (!wasRunning && _engine.IsBrowserOpen && await _engine.IsMicrophoneOnAsync() == true)
+                    await _engine.StopListeningAsync();
+
                 if (wasRunning && notify) Notify(Loc.Get("Notify_Stopped"));
             }
             catch (Exception ex) { SetStatus(Loc.Get("Main_St_MicDisableErrorPrefix") + ex.Message); }
@@ -925,6 +1057,8 @@ namespace Cloudict.App.Views
             _session.IsLiveTransfer = BtnLiveTransfer.IsChecked == true;
             ApplyFinalTextAvailability();
             SetStatus(Loc.Get(_session.IsLiveTransfer ? "Main_St_LiveOn" : "Main_St_LiveOff"));
+
+            if (_session.IsLiveTransfer) _ = EnsureTypingPermissionAsync();
 
             // Saved as soon as it is flipped, not when Settings is next opened: this is a main-window
             // control and the user has no reason to expect a separate save step for it.

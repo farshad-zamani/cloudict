@@ -165,13 +165,24 @@ namespace Cloudict.App.Services
 
         public static void Release()
         {
+            // Only the instance that owns the socket may remove it. Release runs at the end of every
+            // launch — including the short-lived second launch that only passes a message on — and
+            // that launch used to delete the running instance's socket file on its way out. The
+            // running instance kept listening on a path that no longer existed, so the first time
+            // Cloudict was launched again it came forward, and every time after that nothing
+            // happened: restoring from the tray worked once.
+            var owner = _listener != null;
+
             try { _cancellation?.Cancel(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
 
             try { _listener?.Dispose(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
             try { _lock?.Dispose(); } catch (Exception ex) { Debug.WriteLine(ex.Message); }
 
-            try { if (File.Exists(SocketPath)) File.Delete(SocketPath); }
-            catch (Exception ex) { Debug.WriteLine($"[SingleInstance] socket cleanup: {ex.Message}"); }
+            if (owner)
+            {
+                try { if (File.Exists(SocketPath)) File.Delete(SocketPath); }
+                catch (Exception ex) { Debug.WriteLine($"[SingleInstance] socket cleanup: {ex.Message}"); }
+            }
 
             _listener = null;
             _lock = null;

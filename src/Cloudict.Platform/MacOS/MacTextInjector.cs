@@ -62,6 +62,32 @@ namespace Cloudict.Platform.MacOS
             }
         }
 
+        /// <summary>
+        /// Puts Cloudict into the Accessibility list and opens it.
+        ///
+        /// <para><c>AXIsProcessTrustedWithOptions</c> with the prompt option is what adds the
+        /// application to System Settings' list — switched off — and shows Apple's own request. The
+        /// pane is then opened directly as well, because Apple shows that request only once: after it
+        /// has been dismissed, the call adds nothing and opens nothing, and the button would appear to
+        /// do nothing. The URL is the same on macOS 11 to 15 and later.</para>
+        /// </summary>
+        public void RequestPermission()
+        {
+            try { MacInterop.RequestAccessibilityTrust(); }
+            catch (Exception ex) { Debug.WriteLine($"[MacTextInjector] trust prompt: {ex.Message}"); }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo("/usr/bin/open",
+                    "\"x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility\"")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                });
+            }
+            catch (Exception ex) { Debug.WriteLine($"[MacTextInjector] could not open the Accessibility pane: {ex.Message}"); }
+        }
+
         public void TypeText(string text)
         {
             if (string.IsNullOrEmpty(text) || !IsAvailable) return;

@@ -56,5 +56,11 @@ namespace Cloudict.Abstractions
         /// app can notice the change without a restart.
         /// </summary>
         void Refresh();
+
+        /// <summary>
+        /// Asks the operating system for the permission typing needs and opens the place the user
+        /// grants it. Only macOS has such a permission; elsewhere this does nothing.
+        /// </summary>
+        void RequestPermission() { }
     }
 }

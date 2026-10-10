@@ -160,9 +160,21 @@ xattr -dr com.apple.quarantine /Applications/Cloudict.app
 
 Only the first launch is affected; afterwards Cloudict opens normally.
 
-macOS then asks for **Accessibility** permission the first time Cloudict types. Grant it in
-*System Settings → Privacy & Security → Accessibility*; without it macOS silently discards every
-keystroke Cloudict sends.
+**Typing into other apps needs Accessibility permission.** Without it macOS silently discards every
+keystroke Cloudict sends. When you switch on *Transfer to cursor*, Cloudict opens a window with the
+steps for your macOS version and closes it by itself once the permission is on:
+
+- **macOS 13 Ventura and later:** *System Settings → Privacy & Security → Accessibility* → turn
+  Cloudict on (if it is missing, add it with **+** from the Applications folder).
+- **macOS 12 and earlier:** *System Preferences → Security & Privacy → Privacy → Accessibility* →
+  click the padlock, then tick Cloudict.
+- **After every Cloudict update**, macOS may keep the old entry, which no longer applies to the new
+  version: remove Cloudict with **−** and add it again. If words are still not typed, quit Cloudict
+  (⌘Q) and open it again.
+
+**Shortcuts on a Mac** use Control and Command: **⌃⌘A** starts dictation and **⌃⌘S** stops it.
+The corner badge can also be clicked to start and stop; the focus goes straight back to the app you
+were typing in.
 
 ## Usage
 

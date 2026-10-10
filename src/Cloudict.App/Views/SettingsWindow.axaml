@@ -169,6 +169,8 @@
 
                 <TextBlock x:Name="TxtShortcutLimitation" Classes="hint"
                            Foreground="{DynamicResource WarningBrush}" IsVisible="False"/>
+                <TextBlock x:Name="TxtMacShortcutNote" Classes="hint" TextWrapping="Wrap"
+                           Text="{loc:Tr Settings_MacShortcutNote}" IsVisible="False"/>
               </StackPanel>
             </Border>
 

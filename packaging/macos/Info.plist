@@ -26,6 +26,12 @@
 
   <!-- Dictation should keep working while the user is in another app, so no Dock icon is forced. -->
   <key>LSApplicationCategoryType</key> <string>public.app-category.productivity</string>
+
+  <!-- Opts out of App Nap. Cloudict works from the background, on timers; napping, those timers
+       were held back for minutes, which read as the machine having slept and restarted the helper
+       browser by itself. The application also begins an NSProcessInfo activity at launch, which is
+       the current API for the same thing; this key covers the moments before that runs. -->
+  <key>NSAppSleepDisabled</key>        <true/>
   <key>LSUIElement</key>               <false/>
 </dict>
 </plist>

@@ -1,0 +1,66 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:Cloudict.App.Localization"
+        x:Class="Cloudict.App.Views.AccessibilityPermissionDialog"
+        Width="640" Height="640"
+        MinWidth="500" MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        Icon="avares://Cloudict/Assets/app-icon.ico"
+        FontFamily="{DynamicResource AppFontFamily}"
+        FlowDirection="{DynamicResource AppFlowDirection}"
+        Background="{DynamicResource BgWindowBrush}"
+        Title="{loc:Tr Access_Title}">
+
+  <!--
+    macOS only. Typing into other applications needs the user's Accessibility approval, and a
+    refused post fails silently, so this has to be explained in a window rather than a status line.
+    The steps are chosen for the running macOS version: System Settings from macOS 13, System
+    Preferences with its padlock before that.
+  -->
+  <Grid Margin="22,20" RowDefinitions="Auto,*,Auto">
+
+    <Border Grid.Row="0" Classes="card" Padding="16,13" Margin="0,0,0,12">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <Path Width="26" Height="26" Stretch="Uniform" VerticalAlignment="Center"
+              Fill="{DynamicResource WarningBrush}"
+              Data="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 3.2a1.9 1.9 0 1 1 0 3.8 1.9 1.9 0 0 1 0-3.8zM17 10.6l-3.2.7v2.4l1.6 5.3-1.8.6-1.6-4.7-1.6 4.7-1.8-.6 1.6-5.3v-2.4L7 10.6l.4-1.7 4.6 1 4.6-1z"/>
+        <StackPanel Spacing="2" VerticalAlignment="Center">
+          <TextBlock Text="{loc:Tr Access_Title}" Classes="h1" TextWrapping="Wrap"/>
+          <TextBlock x:Name="TxtVersion" Classes="hint"/>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <Border Grid.Row="1" Classes="card" Padding="18,16">
+      <ScrollViewer>
+        <StackPanel Spacing="14">
+          <TextBlock Text="{loc:Tr Access_Intro}" TextWrapping="Wrap" LineHeight="22"/>
+
+          <Button x:Name="BtnOpen" Classes="accent" HorizontalAlignment="Left" Padding="18,11"
+                  Content="{loc:Tr Access_Open}" Click="OnOpenClick"/>
+
+          <TextBlock x:Name="TxtSteps" TextWrapping="Wrap" LineHeight="22"/>
+
+          <Border Background="{DynamicResource BgPanelBrush}" CornerRadius="8" Padding="12,10">
+            <StackPanel Spacing="8">
+              <TextBlock Text="{loc:Tr Access_AfterUpdate}" Classes="hint" TextWrapping="Wrap" LineHeight="20"/>
+              <TextBlock Text="{loc:Tr Access_StillNotTyping}" Classes="hint" TextWrapping="Wrap" LineHeight="20"/>
+            </StackPanel>
+          </Border>
+
+          <TextBlock x:Name="TxtResult" TextWrapping="Wrap" IsVisible="False"
+                     Foreground="{DynamicResource WarningBrush}"/>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+
+    <Border Grid.Row="2" Classes="card" Margin="0,12,0,0" Padding="14">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <Button Grid.Column="1" Classes="success" Content="{loc:Tr Access_CheckAgain}"
+                Click="OnCheckClick" Margin="0,0,8,0"/>
+        <Button Grid.Column="2" Classes="subtle" Content="{loc:Tr Common_Close}" Click="OnCloseClick"/>
+      </Grid>
+    </Border>
+
+  </Grid>
+</Window>

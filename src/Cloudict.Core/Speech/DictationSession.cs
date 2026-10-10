@@ -239,14 +239,18 @@ namespace Cloudict.Speech
             try { _cancellation?.Cancel(); }
             catch (Exception ex) { Debug.WriteLine($"[DictationSession] cancel: {ex.Message}"); }
 
-            await _engine.StopListeningAsync();
-
+            // The loops are let finish before the microphone is switched off. A pause-reset
+            // in flight switches it off and back on again; stopping first meant the reset's "on"
+            // could come after the user's "off", and dictation carried on after stop. Waiting here,
+            // and the engine serialising microphone operations, means the stop always comes last.
             try
             {
-                if (_pollLoop != null) await _pollLoop.WaitAsync(TimeSpan.FromSeconds(2));
-                if (_transferLoop != null) await _transferLoop.WaitAsync(TimeSpan.FromSeconds(2));
+                if (_pollLoop != null) await _pollLoop.WaitAsync(TimeSpan.FromSeconds(8));
+                if (_transferLoop != null) await _transferLoop.WaitAsync(TimeSpan.FromSeconds(3));
             }
             catch (Exception ex) { Debug.WriteLine($"[DictationSession] loop shutdown: {ex.Message}"); }
+
+            await _engine.StopListeningAsync();
 
             _cancellation?.Dispose();
             _cancellation = null;
@@ -540,7 +544,13 @@ namespace Cloudict.Speech
                     return;
                 }
 
+                // Stopped while this reset was getting going: type nothing more, and do not switch
+                // the microphone back on — both would happen after the user said stop.
+                if (!IsRunning) return;
+
                 await FlushPendingWordsAsync();
+
+                if (!IsRunning) return;
 
                 var reset = await _engine.ResetMicrophoneAsync();
 
@@ -651,6 +661,9 @@ namespace Cloudict.Speech
                     }
 
                     if (string.IsNullOrEmpty(word)) continue;
+
+                    // A word taken just as stop was pressed is not typed after it.
+                    if (token.IsCancellationRequested) break;
 
                     if (await TryRunCommandAsync(word, previousWord)) continue;
 

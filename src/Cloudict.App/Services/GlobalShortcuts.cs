@@ -50,7 +50,7 @@ namespace Cloudict.App.Services
             var modifiers = KeyModifiers.None;
             if (ctrl) modifiers |= KeyModifiers.Control;
             if (shift) modifiers |= KeyModifiers.Shift;
-            if (alt) modifiers |= KeyModifiers.Alt;
+            if (alt) modifiers |= SecondModifier;
 
             var binding = new HotkeyBinding(KeyNames.Parse(keyName), modifiers);
             if (!binding.IsValid) return;
@@ -58,6 +58,17 @@ namespace Cloudict.App.Services
             if (!_hotkeys.Register(binding, handler))
                 Debug.WriteLine($"[GlobalShortcuts] {binding} was refused — most likely already claimed");
         }
+
+        /// <summary>
+        /// What the setting stored as "Alt" means on this system.
+        ///
+        /// <para>On a Mac it is Command. The Option key sits where Alt does, so the shortcut used to
+        /// be Control+Option+A — labelled "Ctrl+Alt" — which is awkward to reach and not what a Mac
+        /// user would look for. Control+Command+A and Control+Command+S are free system-wide on
+        /// current macOS. The setting keeps its name so a settings file moves between machines
+        /// unchanged; the label in Settings follows the platform.</para>
+        /// </summary>
+        public static KeyModifiers SecondModifier => OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Alt;
 
         /// <summary>
         /// Releases this object's registrations. The hotkey service itself belongs to

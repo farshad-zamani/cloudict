@@ -72,8 +72,27 @@ namespace Cloudict.App.Views
             if (ClickToToggle)
                 Root.Cursor = new Cursor(StandardCursorType.Hand);
 
+            // On macOS the click arrives through Avalonia (its view accepts the first click of an
+            // inactive window), and the focus is handed back to the user's application at once.
+            if (OperatingSystem.IsMacOS())
+            {
+                _frontmost = new Services.MacFrontmostApp();
+                Root.PointerPressed += (_, e) => _pressed = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed;
+                Root.PointerReleased += (_, _) =>
+                {
+                    if (!_pressed) return;
+                    _pressed = false;
+
+                    _frontmost?.ReturnFocus();
+                    RaiseClicked();
+                };
+                Closed += (_, _) => _frontmost?.Dispose();
+            }
+
             SetActive(false);
         }
+
+        private Services.MacFrontmostApp _frontmost;
 
         /// <summary>
         /// Raised when the badge is clicked. The owner starts or stops dictation, exactly as the
@@ -82,15 +101,15 @@ namespace Cloudict.App.Views
         public event EventHandler Clicked;
 
         /// <summary>
-        /// Clicking is offered on Windows only, for now.
+        /// Clicking is offered on Windows and macOS.
         ///
-        /// <para>The click is only useful if it leaves keyboard focus where it was — in the
-        /// document the user is dictating into. On Windows that is guaranteed by the window style
-        /// below, and verified. On Linux and macOS, clicking a window normally hands it the focus;
-        /// dictation would then type into the badge, which takes no text, and the words would be
-        /// lost. Until that can be verified on those systems the badge stays display-only there.</para>
+        /// <para>The click is only useful if it leaves keyboard focus where it was — in the document
+        /// the user is dictating into. On Windows the badge never takes the focus (see
+        /// MakeNonActivating). On macOS a click always activates the clicked application, so the
+        /// focus is given straight back (see MacFrontmostApp). On Linux, window managers differ too
+        /// much for either to be relied on, and the badge stays display-only.</para>
         /// </summary>
-        private static bool ClickToToggle => OperatingSystem.IsWindows();
+        private static bool ClickToToggle => OperatingSystem.IsWindows() || OperatingSystem.IsMacOS();
 
         private bool _pressed;
         private DateTime _lastClick = DateTime.MinValue;

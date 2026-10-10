@@ -8,6 +8,62 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.2.7] – 2026-10-10
+
+Every item below was reported from an Intel MacBook on macOS 13.7. Several turned out to affect
+Windows and Linux too, and are fixed there as well.
+
+### Fixed
+- **The helper browser no longer closes and reopens by itself after an idle spell (macOS).** App
+  Nap throttles the timers of an application idle in the background — a two-second wait could take a
+  minute — and Cloudict's sleep detection read that as the Mac having slept and restarted the browser.
+  Cloudict now opts out of App Nap (`NSAppSleepDisabled` plus an `NSProcessInfo` activity), and on
+  macOS and Linux sleep is recognised by comparing two clocks: the wall clock keeps running during
+  sleep, the system's uptime clock does not, so only real sleep separates them — throttling moves
+  both alike. Windows keeps its rule, which is unaffected by App Nap.
+- **"Stop" now always stops.** A stop pressed while a pause-reset was switching the microphone off and
+  on could land in the middle, and the reset's "on" came after the user's "off": dictation resumed
+  and typed. Microphone operations are now serialised, a stop waits for a reset in flight and then
+  wins, nothing is typed after a stop, and the stop is verified on the page — clicked again if the
+  button is still listening. A test reproducing the race fails on 3.2.6 and passes now; against the
+  live Google Translate page, a stop raced against a reset left the microphone off.
+- **No more old words after an idle spell.** A recognizer left running on the page holds the last
+  phrase it heard and writes it back a moment after the box is emptied, so a new session typed
+  something said earlier. Before a session starts, a page still listening is now switched off and
+  given time to finish, and only then cleared. Stop also switches the page's microphone off when no
+  session was running.
+- **Cloudict notices when Google Translate stops listening on its own (macOS, Linux).** Windows reports
+  microphone capture at the system level; macOS and Linux cannot, so a session was simply assumed
+  live, and after the page stopped by itself the start shortcut answered "already listening" and did
+  nothing — the start-stop-start workaround. The page's own microphone button is now watched instead,
+  with the same rule as Windows.
+- **One menu-bar icon, not three (macOS) — and startup no longer re-runs on every restore.** Avalonia
+  raises `Opened` again each time a hidden window is shown; restoring from the tray re-ran all of
+  startup — on macOS adding another menu-bar icon each time, on every system starting another
+  microphone watch, switching system audio off and reopening a helper browser the user had closed.
+- **No empty black window from the Dock (macOS).** Minimise-to-tray hid a window macOS had already put
+  in the Dock; the Dock kept its thumbnail, and clicking it brought back a window that was no longer
+  being drawn. On a Mac the window now minimises to the Dock like any other, and clicking the Dock
+  icon brings Cloudict back. The option is hidden in Settings on macOS.
+- **Launching Cloudict while it is already running brings it forward every time, not just once (all
+  systems).** The short-lived second launch deleted the running instance's socket file on its way out,
+  so only the first such launch ever reached it. Verified: four hide-and-restore cycles in a row.
+
+### Added
+- **The corner badge is clickable on macOS**, as on Windows: it starts and stops dictation, and the
+  focus goes straight back to the app being typed into (a click on a Mac always activates the clicked
+  app, so the previously frontmost app is re-activated at once).
+- **A clear Accessibility window on macOS.** Switching on *Transfer to cursor* without the permission —
+  or starting dictation with it on — opens a window with the steps for the running macOS version
+  (System Settings from macOS 13, System Preferences with its padlock before that), a button that
+  adds Cloudict to the list and opens the right pane, what to do after an update, and it closes by
+  itself as soon as macOS confirms the permission.
+
+### Changed
+- **macOS shortcuts are Control+Command** — ⌃⌘A starts, ⌃⌘S stops — instead of Control+Option, which
+  the settings had labelled "Ctrl+Alt". Settings now shows the Mac key names.
+- **The helper browser is kept from throttling itself** while it sits behind other windows.
+
 ## [3.2.6] – 2026-10-02
 
 ### Added

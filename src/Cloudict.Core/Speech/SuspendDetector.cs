@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,10 +15,20 @@ namespace Cloudict.Speech
     /// iteration after waking then typed from that mismatch: old words, new words and repeats
     /// interleaved, until the user restarted the application.</para>
     ///
-    /// <para>This works on every platform without asking the operating system anything: a short wait
-    /// that took far longer than requested can only mean the machine was suspended in the middle of
-    /// it. Only the wait itself is timed — never the work around it — so a slow page read or a busy
-    /// moment is never mistaken for sleep.</para>
+    /// <para>A short wait that took far longer than requested is the signal. Only the wait itself is
+    /// timed — never the work around it — so a slow page read or a busy moment is never mistaken for
+    /// sleep.</para>
+    ///
+    /// <para><b>macOS and Linux need a second clock.</b> On macOS a long wait does not prove the
+    /// machine slept: App Nap throttles the timers of an application sitting idle in the background,
+    /// and a two-second wait can take a minute. Taken as sleep, that closed and reopened the helper
+    /// browser by itself while the user was away — reported from an Intel Mac on macOS 13.7. On these
+    /// systems <see cref="Stopwatch"/> stops counting while the machine is asleep (it reads
+    /// <c>CLOCK_UPTIME_RAW</c> on macOS and <c>CLOCK_MONOTONIC</c> on Linux; dotnet/runtime#77945)
+    /// while the wall clock keeps going, so the gap <em>between the two clocks</em> is time spent
+    /// asleep — and only that. A throttled timer moves both clocks alike and is no longer mistaken for
+    /// sleep. On Windows <see cref="Stopwatch"/> keeps counting through sleep, so there the wall clock
+    /// alone decides, exactly as before; Windows has no App Nap.</para>
     /// </summary>
     public static class SuspendDetector
     {
@@ -28,21 +39,38 @@ namespace Cloudict.Speech
         public static readonly TimeSpan Slack = TimeSpan.FromSeconds(15);
 
         /// <summary>True when a wait of <paramref name="requested"/> actually took long enough that
-        /// the machine must have been suspended during it.</summary>
+        /// the machine must have been suspended during it. The Windows rule.</summary>
         public static bool SleptDuring(TimeSpan requested, TimeSpan measured) =>
             measured - requested > Slack;
 
         /// <summary>
-        /// Waits, and reports whether the machine slept during the wait. The wall clock is used on
-        /// purpose: it is the clock that keeps running while the machine is suspended.
+        /// The macOS and Linux rule: the wall clock ran well past the request, <em>and</em> well past
+        /// a clock that does not count sleep. Throttling stretches both; only sleep separates them.
         /// </summary>
-        public static async Task<bool> DelayAsync(TimeSpan delay, CancellationToken token, Func<DateTime> utcNow = null)
+        public static bool SleptDuring(TimeSpan requested, TimeSpan wallElapsed, TimeSpan awakeElapsed) =>
+            wallElapsed - requested > Slack && wallElapsed - awakeElapsed > Slack;
+
+        /// <summary>
+        /// Waits, and reports whether the machine slept during the wait.
+        /// </summary>
+        /// <param name="utcNow">Replaces the wall clock, for tests.</param>
+        /// <param name="awakeClock">Replaces the clock that excludes sleep, for tests. Ignored on Windows.</param>
+        public static async Task<bool> DelayAsync(TimeSpan delay, CancellationToken token,
+                                                  Func<DateTime> utcNow = null, Func<TimeSpan> awakeClock = null)
         {
             utcNow ??= () => DateTime.UtcNow;
+            awakeClock ??= () => Stopwatch.GetElapsedTime(0);
 
-            var started = utcNow();
+            var wallStart = utcNow();
+            var awakeStart = awakeClock();
+
             await Task.Delay(delay, token).ConfigureAwait(false);
-            return SleptDuring(delay, utcNow() - started);
+
+            var wall = utcNow() - wallStart;
+
+            return OperatingSystem.IsWindows()
+                ? SleptDuring(delay, wall)
+                : SleptDuring(delay, wall, awakeClock() - awakeStart);
         }
     }
 }

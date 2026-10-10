@@ -94,6 +94,9 @@ namespace Cloudict.Platform
         {
             var info = new UnixPlatformInfo(isMacOS: true);
 
+            try { MacOS.MacInterop.DisableAppNap(); }
+            catch (Exception ex) { Debug.WriteLine($"[PlatformServices] App Nap could not be disabled: {ex.Message}"); }
+
             return new CompositePlatformServices
             {
                 Paths = new UnixAppPaths(isMacOS: true),
