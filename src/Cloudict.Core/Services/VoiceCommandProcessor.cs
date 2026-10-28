@@ -1,352 +1,133 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
+using System.Text;
 using Cloudict.Abstractions;
 
 namespace Cloudict.Services
 {
-    /// <summary>
-    /// نتیجه پردازش دستورات صوتی
-    /// </summary>
-    public class CommandProcessResult
+    /// <summary>A voice command found at the start of a run of words, and how many words it used.</summary>
+    public sealed class CommandMatch
     {
-        public string OriginalText { get; set; }
-        public string ProcessedText { get; set; }
-        public List<VoiceCommand> CommandsExecuted { get; set; }
-        public bool HasCommands { get; set; }
-        public bool CommandExecuted => CommandsExecuted.Count > 0;
-
-        public CommandProcessResult()
+        public CommandMatch(VoiceCommand command, int wordCount)
         {
-            CommandsExecuted = new List<VoiceCommand>();
+            Command = command;
+            WordCount = wordCount;
         }
+
+        public VoiceCommand Command { get; }
+        public int WordCount { get; }
     }
 
     /// <summary>
-    /// پردازشگر دستورات صوتی با قابلیت ردیابی کلمات جدید
+    /// Recognises voice commands in the stream of words Google Translate produces, and carries them
+    /// out.
+    ///
+    /// <para>It is deliberately a <em>matcher</em>, not a text processor. Commands used to be found by
+    /// searching the last two words for any command they contained, which meant a command was found
+    /// twice — once as the word that was just reached, again as the "previous word" of the next one —
+    /// and a command that began a longer phrase could only be recognised after its first word had
+    /// already been typed, which then had to be erased. The session now offers words strictly in the
+    /// order they were spoken and asks two questions of this class: <em>does what I hold so far
+    /// match a command</em>, and <em>could it still become a longer one</em>. Each word is therefore
+    /// seen exactly once, at the moment its turn comes.</para>
     /// </summary>
     public class VoiceCommandProcessor
     {
-        private readonly List<VoiceCommand> _commands;
         private readonly ITextInjector _injector;
         private readonly IKeyboardLayout _keyboardLayout;
-        private readonly bool _caseSensitive;
-        private readonly WordTracker _wordTracker;
+        private readonly StringComparison _comparison;
 
-        // Phrase regex is built per command on every Tick; caching avoids re-parsing
-        // and lets us flip on RegexOptions.Compiled for the hot path.
-        private static readonly ConcurrentDictionary<string, Regex> _phraseRegexCache =
-            new ConcurrentDictionary<string, Regex>();
-        private static readonly Regex _whitespaceRegex =
-            new Regex(@"\s+", RegexOptions.Compiled);
+        /// <summary>Enabled commands as word sequences, longest first so the first hit is the best one.</summary>
+        private readonly Entry[] _entries;
 
-        private Regex GetPhraseRegex(string commandPhrase)
+        private sealed class Entry
         {
-            string key = (_caseSensitive ? "cs:" : "ci:") + commandPhrase;
-            return _phraseRegexCache.GetOrAdd(key, _ =>
-            {
-                var options = RegexOptions.Compiled | (_caseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase);
-                return new Regex($@"\b{Regex.Escape(commandPhrase)}\b", options);
-            });
+            public VoiceCommand Command;
+            public string[] Words;
         }
 
-        /// <summary>
-        /// سازنده پردازشگر دستورات صوتی
-        /// </summary>
-        /// <param name="commands">لیست دستورات فعال</param>
+        /// <param name="commands">The active commands.</param>
         /// <param name="injector">Presses keys in the focused application; may be null in tests.</param>
         /// <param name="keyboardLayout">Switches the system keyboard layout; may be null in tests.</param>
-        /// <param name="caseSensitive">حساسیت به حروف بزرگ و کوچک</param>
+        /// <param name="caseSensitive">Whether "Comma" and "comma" are different words.</param>
         public VoiceCommandProcessor(
             List<VoiceCommand> commands,
             ITextInjector injector = null,
             IKeyboardLayout keyboardLayout = null,
             bool caseSensitive = false)
         {
-            _commands = commands?.Where(c => c.IsEnabled).ToList() ?? new List<VoiceCommand>();
             _injector = injector;
             _keyboardLayout = keyboardLayout;
-            _caseSensitive = caseSensitive;
-            _wordTracker = new WordTracker();
+            _comparison = caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+
+            _entries = (commands ?? new List<VoiceCommand>())
+                .Where(c => c != null && c.IsEnabled && !string.IsNullOrWhiteSpace(c.Phrase))
+                .Select(c => new Entry { Command = c, Words = Split(c.Phrase) })
+                .Where(e => e.Words.Length > 0)
+                .OrderByDescending(e => e.Words.Length)
+                .ThenByDescending(e => e.Command.Phrase.Length)
+                .ToArray();
         }
 
-        /// <summary>
-        /// پردازش متن ورودی برای تشخیص و جایگزینی کلمات دستوری با عبارات تعریف شده
-        /// </summary>
-        /// <param name="inputText">متن ورودی</param>
-        /// <returns>نتیجه پردازش شامل متن پردازش شده با کلمات جایگزین شده</returns>
-        public CommandProcessResult ProcessText(string inputText)
-        {
-            var result = new CommandProcessResult
-            {
-                OriginalText = inputText,
-                ProcessedText = inputText,
-                CommandsExecuted = new List<VoiceCommand>()
-            };
-
-            if (string.IsNullOrWhiteSpace(inputText) || _commands.Count == 0)
-            {
-                return result;
-            }
-
-            // بررسی تغییرات در متن برای تشخیص عبارات جدید
-            var hasNewContent = _wordTracker.HasNewContent(inputText);
-            
-            if (!hasNewContent)
-            {
-                // اگر محتوای جدیدی نیست، فقط متن را برگردان
-                return result;
-            }
-
-            // مرتب‌سازی دستورات بر اساس تعداد کلمات (بیشتر اول) سپس طول عبارت برای اولویت‌بندی بهتر
-            var sortedCommands = _commands
-                .OrderByDescending(c => c.Phrase.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length)
-                .ThenByDescending(c => c.Phrase.Length)
-                .ToList();
-
-            // لیست دستورات اجرا شده برای جلوگیری از تکرار
-            var executedCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var commandsToExecute = new List<VoiceCommand>();
-
-            // ابتدا تمام دستورات موجود در متن را شناسایی کن
-            foreach (var command in sortedCommands)
-            {
-                // بررسی اینکه دستور قبلاً اجرا نشده باشد و در متن وجود دارد
-                if (!executedCommands.Contains(command.Phrase) && 
-                    _wordTracker.IsCommandNew(command.Phrase) && 
-                    ContainsCommand(result.ProcessedText, command.Phrase))
-                {
-                    commandsToExecute.Add(command);
-                    result.CommandsExecuted.Add(command);
-                    
-                    // اضافه کردن به لیست دستورات اجرا شده
-                    executedCommands.Add(command.Phrase);
-                    
-                    // علامت‌گذاری دستور به عنوان اجرا شده
-                    _wordTracker.MarkCommandAsExecuted(command.Phrase);
-                }
-            }
-
-            // جایگزینی و اجرای دستورات در متن
-            foreach (var command in commandsToExecute)
-            {
-                if (command.ActionType == CommandActionType.TypeText && !string.IsNullOrWhiteSpace(command.ActionValue))
-                {
-                    result.ProcessedText = ReplaceCommandWord(result.ProcessedText, command.Phrase, command.ActionValue);
-                }
-                else
-                {
-                    // حذف دستور از متن
-                    result.ProcessedText = RemoveCommandFromText(result.ProcessedText, command.Phrase);
-                    
-                    // اجرای دستورات سیستمی
-                    ExecuteSystemCommand(command);
-                }
-            }
-
-            // پاک‌سازی متن نهایی
-            result.ProcessedText = CleanupText(result.ProcessedText);
-
-            return result;
-        }
-
-
+        /// <summary>True when there is at least one command to look for.</summary>
+        public bool HasCommands => _entries.Length > 0;
 
         /// <summary>
-        /// دریافت متن جایگزین برای کلمه دستوری
+        /// The longest command that the run of words starts with, or null.
+        /// "علامت سوال" wins over a single-word command inside it, because the longer phrase is the
+        /// more specific thing the speaker said.
         /// </summary>
-        /// <param name="commandPhrase">عبارت دستور</param>
-        /// <returns>متن جایگزین یا null اگر دستور یافت نشد</returns>
-        private string GetReplacementText(string commandPhrase)
+        public CommandMatch LongestMatchAt(IReadOnlyList<string> words)
         {
-            if (string.IsNullOrWhiteSpace(commandPhrase))
-                return null;
+            if (words == null || words.Count == 0) return null;
 
-            var command = _commands
-                .FirstOrDefault(c => c.IsEnabled && 
-                    string.Equals(c.Phrase, commandPhrase, 
-                        _caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase));
-
-            if (command != null && command.ActionType == CommandActionType.TypeText)
+            foreach (var entry in _entries)
             {
-                return command.ActionValue;
+                if (entry.Words.Length > words.Count) continue;
+                if (StartsWith(words, entry.Words, entry.Words.Length))
+                    return new CommandMatch(entry.Command, entry.Words.Length);
             }
 
             return null;
         }
 
         /// <summary>
-        /// جایگزینی کلمه دستوری با متن تعریف شده
+        /// True when <paramref name="words"/>, taken whole, is the beginning of a longer command —
+        /// the signal to wait for the next word before deciding what any of them mean.
         /// </summary>
-        /// <param name="text">متن اصلی</param>
-        /// <param name="commandPhrase">عبارت دستور</param>
-        /// <param name="replacementText">متن جایگزین</param>
-        /// <returns>متن با کلمه جایگزین شده</returns>
-        private string ReplaceCommandWord(string text, string commandPhrase, string replacementText)
+        public bool CouldGrowInto(IReadOnlyList<string> words)
         {
-            if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(commandPhrase))
-                return text;
+            if (words == null || words.Count == 0) return false;
 
-            var regex = GetPhraseRegex(commandPhrase);
-            string result = regex.Replace(text, replacementText ?? "");
-
-            // پاک کردن فاصله‌های اضافی
-            result = _whitespaceRegex.Replace(result, " ").Trim();
-
-            return result;
-        }
-
-        /// <summary>
-        /// بررسی وجود دستور در متن
-        /// </summary>
-        /// <param name="text">متن مورد بررسی</param>
-        /// <param name="commandPhrase">عبارت دستور</param>
-        /// <returns>true اگر دستور در متن موجود باشد</returns>
-        private bool ContainsCommand(string text, string commandPhrase)
-        {
-            if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(commandPhrase))
-                return false;
-
-            var comparison = _caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-            
-            // تقسیم متن و دستور به کلمات
-            var words = text.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-            var commandWords = commandPhrase.Split(new char[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-
-            if (commandWords.Length == 0) return false;
-
-            // جستجوی الگوی دستور در متن
-            for (int i = 0; i <= words.Length - commandWords.Length; i++)
+            foreach (var entry in _entries)
             {
-                bool match = true;
-                for (int j = 0; j < commandWords.Length; j++)
-                {
-                    if (!string.Equals(words[i + j], commandWords[j], comparison))
-                    {
-                        match = false;
-                        break;
-                    }
-                }
-                if (match) return true;
+                if (entry.Words.Length <= words.Count) continue;
+                if (StartsWith(entry.Words, words, words.Count)) return true;
             }
 
             return false;
         }
 
         /// <summary>
-        /// حذف دستور از متن
+        /// Carries a command out. Keys and layout switches happen here; for a typed command the text
+        /// to type is returned so the caller can place it with the same spacing rules as any word.
         /// </summary>
-        /// <param name="text">متن اصلی</param>
-        /// <param name="commandPhrase">عبارت دستور برای حذف</param>
-        /// <returns>متن بدون دستور</returns>
-        private string RemoveCommandFromText(string text, string commandPhrase)
+        /// <returns>The text to type, or null when there is nothing to type.</returns>
+        public string Execute(VoiceCommand command)
         {
-            if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(commandPhrase))
-                return text;
+            if (command == null) return null;
 
-            var regex = GetPhraseRegex(commandPhrase);
-            string result = regex.Replace(text, "");
+            if (command.ActionType == CommandActionType.TypeText)
+                return string.IsNullOrWhiteSpace(command.ActionValue) ? null : command.ActionValue;
 
-            // پاک کردن فاصله‌های اضافی
-            result = _whitespaceRegex.Replace(result, " ").Trim();
-
-            return result;
+            ExecuteSystemCommand(command);
+            return null;
         }
 
-
-
-        /// <summary>
-        /// پاک‌سازی متن از فاصله‌های اضافی
-        /// </summary>
-        /// <param name="text">متن برای پاک‌سازی</param>
-        /// <returns>متن پاک‌سازی شده</returns>
-        private string CleanupText(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text))
-                return string.Empty;
-
-            // حذف فاصله‌های اضافی
-            text = _whitespaceRegex.Replace(text, " ");
-
-            return text.Trim();
-        }
-
-        /// <summary>
-        /// بررسی اینکه آیا متن شامل دستور است یا خیر
-        /// </summary>
-        /// <param name="text">متن مورد بررسی</param>
-        /// <returns>true اگر متن شامل حداقل یک دستور باشد</returns>
-        public bool HasAnyCommand(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text) || _commands.Count == 0)
-                return false;
-
-            return _commands.Any(command => ContainsCommand(text, command.Phrase));
-        }
-
-        /// <summary>
-        /// بررسی اینکه آیا یک کلمه واحد دستور است یا خیر
-        /// </summary>
-        /// <param name="word">کلمه مورد بررسی</param>
-        /// <returns>true اگر کلمه دستور باشد</returns>
-        public bool IsSingleWordCommand(string word)
-        {
-            if (string.IsNullOrWhiteSpace(word) || _commands.Count == 0)
-                return false;
-
-            var comparison = _caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-            
-            // بررسی دستورات تک کلمه‌ای
-            return _commands.Any(command => 
-                command.IsEnabled && 
-                !command.Phrase.Contains(" ") && // فقط دستورات تک کلمه‌ای
-                string.Equals(word.Trim(), command.Phrase.Trim(), comparison));
-        }
-
-        /// <summary>
-        /// جایگزینی کلمه دستوری تک‌کلمه‌ای
-        /// </summary>
-        /// <param name="word">کلمه دستور</param>
-        /// <returns>متن جایگزین یا کلمه اصلی اگر دستور نباشد</returns>
-        public string ReplaceSingleWordCommand(string word)
-        {
-            if (string.IsNullOrWhiteSpace(word) || _commands.Count == 0)
-                return word;
-
-            var comparison = _caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-            
-            // پیدا کردن دستور مطابق
-            var command = _commands.FirstOrDefault(c => 
-                c.IsEnabled && 
-                !c.Phrase.Contains(" ") && // فقط دستورات تک کلمه‌ای
-                string.Equals(word.Trim(), c.Phrase.Trim(), comparison));
-
-            if (command != null && command.ActionType == CommandActionType.TypeText && !string.IsNullOrWhiteSpace(command.ActionValue))
-            {
-                return command.ActionValue;
-            }
-
-            return word;
-        }
-
-        /// <summary>
-        /// ریست کردن تاریخچه کلمات (برای شروع جلسه جدید)
-        /// </summary>
-        public void ResetWordHistory()
-        {
-            _wordTracker.Reset();
-        }
-
-        /// <summary>
-        /// اجرای دستورات سیستمی
-        /// </summary>
-        /// <param name="command">دستور برای اجرا</param>
         private void ExecuteSystemCommand(VoiceCommand command)
         {
-            if (command == null || string.IsNullOrWhiteSpace(command.ActionValue))
-                return;
+            if (string.IsNullOrWhiteSpace(command.ActionValue)) return;
 
             try
             {
@@ -371,9 +152,55 @@ namespace Cloudict.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"خطا در اجرای دستور سیستمی {command.Phrase}: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[VoiceCommandProcessor] command '{command.Phrase}': {ex.Message}");
             }
         }
 
+        // ------------------------------------------------------------------ word comparison
+
+        private bool StartsWith(IReadOnlyList<string> haystack, IReadOnlyList<string> needle, int count)
+        {
+            for (int i = 0; i < count; i++)
+                if (!string.Equals(Normalize(haystack[i]), Normalize(needle[i]), _comparison))
+                    return false;
+
+            return true;
+        }
+
+        private static string[] Split(string phrase) =>
+            phrase.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+
+        /// <summary>
+        /// Makes spellings that look identical compare equal: the zero-width joiners Persian writes
+        /// between the halves of a word (a command stored as "نقطه‌ ویر" must match what Google
+        /// shows), and the Arabic forms of ye and kaf some keyboards produce.
+        /// </summary>
+        private static string Normalize(string word)
+        {
+            if (string.IsNullOrEmpty(word)) return string.Empty;
+
+            StringBuilder sb = null;
+
+            for (int i = 0; i < word.Length; i++)
+            {
+                var c = word[i];
+                char mapped = c;
+                bool drop = false;
+
+                switch (c)
+                {
+                    case '\u200C': case '\u200D': case '\u200E': case '\u200F': drop = true; break;
+                    case '\u064A': mapped = '\u06CC'; break;   // Arabic ye -> Persian ye
+                    case '\u0643': mapped = '\u06A9'; break;   // Arabic kaf -> Persian kaf
+                }
+
+                if ((drop || mapped != c) && sb == null)
+                    sb = new StringBuilder(word, 0, i, word.Length);
+
+                if (sb != null && !drop) sb.Append(mapped);
+            }
+
+            return sb?.ToString() ?? word;
+        }
     }
 }

@@ -70,6 +70,14 @@ Two guards in there are worth knowing about, because both fixed real bugs:
   when the word was queued raced with the previous word's delayed send, and two words dispatched
   close together arrived with no space between them.
 
+**Voice commands are matched on the word stream, never on text already typed.** The session offers
+words to `VoiceCommandProcessor` strictly in spoken order, one at a time, under one gate shared by
+the paced loop, a reset's flush and the "transfer everything" button. The matcher answers two
+questions — *does what is held match a command?* and *could it still grow into a longer one?* — so
+the first half of a two-word command is held for one word instead of being typed and erased. A
+command is therefore run exactly once, at its place in the text, and the words around it are never
+touched. A held word that is never completed is typed as an ordinary word when the speaker stops.
+
 Buffered output goes through `IDictationOutput` rather than a private buffer, because words are
 inserted **at the caret** so the user can direct where they land — and that state belongs to the
 view, not to the session.

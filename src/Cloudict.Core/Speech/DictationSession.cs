@@ -85,6 +85,22 @@ namespace Cloudict.Speech
 
         private VoiceCommandProcessor _commands;
 
+        /// <summary>
+        /// Serialises everything that decides what goes out and then sends it: taking the next word,
+        /// running a command, typing. The paced loop, a reset's flush and the "transfer everything
+        /// now" button all send words, and without one gate around the whole of "take a word, act on
+        /// it" two of them could take neighbouring words and send them in the wrong order. Always
+        /// acquired before <see cref="_gate"/>, never while holding it.
+        /// </summary>
+        private readonly object _typeGate = new object();
+
+        /// <summary>
+        /// Words taken from the page but not yet acted on because they are the beginning of a longer
+        /// voice command ("علامت" may be about to become "علامت سوال"). Guarded by <see cref="_typeGate"/>.
+        /// </summary>
+        private readonly List<string> _held = new List<string>();
+        private int _heldCount;
+
         public DictationSession(
             ISpeechEngine engine,
             ITextInjector injector,
@@ -201,7 +217,7 @@ namespace Cloudict.Speech
             Interlocked.Exchange(ref _resumeReported, 0);
 
             ResetRecognitionState();
-            ForgetCommandHistory();
+            DropHeldWords();
 
             // If it would not clear, the text is still there to be read. Record it as already
             // handled rather than hoping it goes away.
@@ -260,6 +276,8 @@ namespace Cloudict.Speech
 
         private void ResetRecognitionState()
         {
+            DropHeldWords();
+
             lock (_gate)
             {
                 _allWords.Clear();
@@ -276,16 +294,16 @@ namespace Cloudict.Speech
         }
 
         /// <summary>
-        /// Clears the voice-command matcher's memory of recent words, so a phrase spoken before a
-        /// pause cannot match again after it.
+        /// Forgets any words held back as the start of a longer voice command, so a phrase begun
+        /// before a pause cannot be completed by a word spoken after it.
         /// </summary>
-        private void ForgetCommandHistory()
+        private void DropHeldWords()
         {
-            VoiceCommandProcessor commands;
-            lock (_gate) commands = _commands;
-
-            try { commands?.ResetWordHistory(); }
-            catch (Exception ex) { Debug.WriteLine($"[DictationSession] command history: {ex.Message}"); }
+            lock (_typeGate)
+            {
+                _held.Clear();
+                Volatile.Write(ref _heldCount, 0);
+            }
         }
 
         /// <summary>
@@ -554,9 +572,8 @@ namespace Cloudict.Speech
 
                 var reset = await _engine.ResetMicrophoneAsync();
 
-                // The command matcher keeps a short history of recent words. Carrying it across a
-                // reset let the last phrase spoken before the pause match again on the other side.
-                ForgetCommandHistory();
+                // Nothing held before the pause may be completed by a word spoken after it.
+                DropHeldWords();
 
                 // Whether or not the page claims to have emptied its box, what has already been
                 // typed stays on the record until an empty box is actually observed.
@@ -585,27 +602,34 @@ namespace Cloudict.Speech
             }
         }
 
-        /// <summary>Sends every word not yet transferred, without waiting for the paced loop.</summary>
-        public async Task FlushPendingWordsAsync()
+        /// <summary>
+        /// Sends every word not yet transferred, without waiting for the paced loop. Anything held
+        /// back as the start of a longer command is settled too: nothing more is coming that could
+        /// complete it.
+        /// </summary>
+        public Task FlushPendingWordsAsync() => Task.Run(() =>
         {
-            List<string> pending;
-
-            lock (_gate)
+            // Taking the words and sending them happen under one gate, so a word the paced loop is
+            // in the middle of cannot be overtaken by the ones after it.
+            lock (_typeGate)
             {
-                int start = _lastProcessedWordIndex + 1;
-                pending = start < _allWords.Count
-                    ? _allWords.GetRange(start, _allWords.Count - start)
-                    : new List<string>();
+                List<string> pending;
 
-                _lastProcessedWordIndex = _allWords.Count - 1;
-            }
+                lock (_gate)
+                {
+                    int start = _lastProcessedWordIndex + 1;
+                    pending = start < _allWords.Count
+                        ? _allWords.GetRange(start, _allWords.Count - start)
+                        : new List<string>();
 
-            foreach (var word in pending)
-            {
-                if (await TryRunCommandAsync(word, null)) continue;
-                Emit(word);
+                    _lastProcessedWordIndex = _allWords.Count - 1;
+                }
+
+                foreach (var word in pending) OfferWord(word);
+
+                SettleHeldWords();
             }
-        }
+        });
 
         #endregion
 
@@ -631,45 +655,57 @@ namespace Cloudict.Speech
                     if (token.IsCancellationRequested) break;
                     if (_suspendRecognition) continue;
 
-                    string word;
-                    string previousWord;
-
-                    lock (_gate)
+                    // Taking a word and acting on it is one step under _typeGate, so the words go out
+                    // in exactly the order they were spoken even if a flush runs at the same time.
+                    lock (_typeGate)
                     {
-                        if (!_hasRecognizedText) continue;
+                        string word = null;
+                        bool settleHeld = false;
 
-                        if (!_transferStarted)
+                        lock (_gate)
                         {
-                            if (!_initialDelayCompleted)
-                            {
-                                var elapsed = DateTime.Now - _firstTextDetectedTime;
-                                if (elapsed.TotalMilliseconds < Settings.TransferStartDelayMs) continue;
+                            if (!_hasRecognizedText) continue;
 
-                                _initialDelayCompleted = true;
-                                Report("Main_St_StartTransfer");
+                            if (!_transferStarted)
+                            {
+                                if (!_initialDelayCompleted)
+                                {
+                                    var elapsed = DateTime.Now - _firstTextDetectedTime;
+                                    if (elapsed.TotalMilliseconds < Settings.TransferStartDelayMs) continue;
+
+                                    _initialDelayCompleted = true;
+                                    Report("Main_St_StartTransfer");
+                                }
+
+                                _transferStarted = true;
                             }
 
-                            _transferStarted = true;
+                            int next = _lastProcessedWordIndex + 1;
+
+                            if (next < _allWords.Count)
+                            {
+                                word = _allWords[next];
+                                _lastProcessedWordIndex = next;
+                            }
+                            else if (_heldCount > 0
+                                     && (DateTime.Now - _lastTextUpdateTime).TotalMilliseconds >= Settings.InactivityDelayMs)
+                            {
+                                // The speaker stopped on what could have begun a longer command. It
+                                // is not going to be completed; it was meant as the word it is.
+                                settleHeld = true;
+                            }
+                            else
+                            {
+                                continue;
+                            }
                         }
 
-                        int next = _lastProcessedWordIndex + 1;
-                        if (next >= _allWords.Count) continue;
+                        // A word taken just as stop was pressed is not typed after it.
+                        if (token.IsCancellationRequested) break;
 
-                        word = _allWords[next];
-                        previousWord = next > 0 ? _allWords[next - 1] : null;
-                        _lastProcessedWordIndex = next;
+                        if (settleHeld) SettleHeldWords();
+                        else if (!string.IsNullOrEmpty(word)) OfferWord(word);
                     }
-
-                    if (string.IsNullOrEmpty(word)) continue;
-
-                    // A word taken just as stop was pressed is not typed after it.
-                    if (token.IsCancellationRequested) break;
-
-                    if (await TryRunCommandAsync(word, previousWord)) continue;
-
-                    Emit(word);
-
-                    lock (_gate) _wordTransferredSinceReset = true;
                 }
                 catch (OperationCanceledException) { break; }
                 catch (Exception ex)
@@ -680,95 +716,87 @@ namespace Cloudict.Speech
         }
 
         /// <summary>
-        /// Checks a word against the voice commands, two-word phrases first.
+        /// Takes the next spoken word and acts on it: types it, or — when it completes a voice
+        /// command — carries the command out at exactly this point in the stream.
         ///
-        /// <para>Two-word commands are tried ahead of single words so a phrase like "علامت سوال"
-        /// wins over any single word inside it. When one matches, the previous word has usually
-        /// already been typed, so it is erased with backspaces before the replacement goes out.</para>
+        /// <para>Words arrive here one at a time and strictly in the order they were spoken, and each
+        /// is looked at once. A word that might be the first half of a longer command ("علامت" before
+        /// "سوال") is held for the next word instead of being typed and erased afterwards, so the words
+        /// on either side of a command are never touched and a command is never run a second time as
+        /// somebody's "previous word". Caller holds <see cref="_typeGate"/>.</para>
         /// </summary>
-        private async Task<bool> TryRunCommandAsync(string word, string previousWord)
+        private void OfferWord(string word)
+        {
+            _held.Add(word);
+            Volatile.Write(ref _heldCount, _held.Count);
+
+            SettleHeldWords(final: false);
+        }
+
+        /// <summary>
+        /// Decides what the held words are. With <paramref name="final"/> false a run that could still
+        /// grow into a longer command is left alone; with it true nothing more is coming, so the run is
+        /// resolved as it stands. Caller holds <see cref="_typeGate"/> (or the paced loop's gate).
+        /// </summary>
+        private void SettleHeldWords(bool final = true)
         {
             VoiceCommandProcessor commands;
             lock (_gate) commands = _commands;
 
-            if (commands == null) return false;
-
-            try
+            while (_held.Count > 0)
             {
-                if (previousWord != null)
+                if (commands != null && commands.HasCommands)
                 {
-                    var phrase = previousWord + " " + word;
-                    var result = commands.ProcessText(phrase);
+                    if (!final && commands.CouldGrowInto(_held)) break;
 
-                    if (result.CommandExecuted)
+                    var match = commands.LongestMatchAt(_held);
+                    if (match != null)
                     {
-                        await EraseAsync(previousWord);
-                        AnnounceCommand(result, phrase);
-                        RememberCommandKeys(result);
+                        // Dropped from the queue before it runs, so a failure cannot make it run again.
+                        _held.RemoveRange(0, match.WordCount);
+                        Volatile.Write(ref _heldCount, _held.Count);
 
-                        if (!string.IsNullOrEmpty(result.ProcessedText)) Emit(result.ProcessedText, prefixSpace: false);
-                        return true;
+                        RunCommand(commands, match.Command);
+                        continue;
                     }
                 }
 
-                var single = commands.ProcessText(word);
-                if (single.CommandExecuted)
+                var plain = _held[0];
+                _held.RemoveAt(0);
+                Volatile.Write(ref _heldCount, _held.Count);
+
+                Emit(plain);
+                lock (_gate) _wordTransferredSinceReset = true;
+            }
+
+            Volatile.Write(ref _heldCount, _held.Count);
+        }
+
+        private void RunCommand(VoiceCommandProcessor commands, VoiceCommand command)
+        {
+            try
+            {
+                var text = commands.Execute(command);
+
+                CommandExecuted?.Invoke(this, command.Phrase);
+
+                if (command.ActionType == CommandActionType.TypeText)
                 {
-                    AnnounceCommand(single, word);
-                    RememberCommandKeys(single);
-                    if (!string.IsNullOrEmpty(single.ProcessedText)) Emit(single.ProcessedText, prefixSpace: false);
-                    return true;
+                    // Treated as a word of its own: one space from whatever precedes it, and the
+                    // next word will be separated from it in turn.
+                    if (!string.IsNullOrEmpty(text)) Emit(text);
                 }
+                else if (command.ActionType == CommandActionType.SendKeys)
+                {
+                    RememberCommandKey(command.ActionValue);
+                }
+
+                lock (_gate) _wordTransferredSinceReset = true;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[DictationSession] command '{word}': {ex.Message}");
+                Debug.WriteLine($"[DictationSession] command '{command?.Phrase}': {ex.Message}");
             }
-
-            return false;
-        }
-
-        private void AnnounceCommand(CommandProcessResult result, string fallbackPhrase)
-        {
-            var phrase = result.CommandsExecuted?.FirstOrDefault()?.Phrase ?? fallbackPhrase;
-            CommandExecuted?.Invoke(this, phrase);
-        }
-
-        /// <summary>Removes a word already sent to the target, so a command can replace it.</summary>
-        private Task EraseAsync(string word)
-        {
-            if (string.IsNullOrEmpty(word)) return Task.CompletedTask;
-
-            if (IsLiveTransfer)
-            {
-                var trailing = " " + word;
-                var toRemove = _lastSentText.EndsWith(trailing, StringComparison.Ordinal) ? trailing
-                             : _lastSentText.EndsWith(word, StringComparison.Ordinal) ? word
-                             : null;
-
-                if (toRemove != null)
-                {
-                    for (int i = 0; i < toRemove.Length; i++) _injector.SendKey(InjectedKey.Backspace);
-                    _lastSentText = _lastSentText.Substring(0, _lastSentText.Length - toRemove.Length);
-
-                    // What now precedes the caret is the phrase's remaining tail — or, if the whole
-                    // phrase was erased, whatever was there before it, which is no longer known.
-                    lock (_gate) _lastTypedChar = _lastSentText.Length > 0 ? _lastSentText[^1] : (char?)null;
-                }
-
-                return Task.CompletedTask;
-            }
-
-            var text = _output.FinalText ?? string.Empty;
-            var withSpace = " " + word;
-
-            if (text.EndsWith(withSpace, StringComparison.Ordinal))
-                _output.FinalText = text.Substring(0, text.Length - withSpace.Length);
-            else if (text.EndsWith(word, StringComparison.Ordinal))
-                _output.FinalText = text.Substring(0, text.Length - word.Length);
-
-            _output.CaretIndex = (_output.FinalText ?? string.Empty).Length;
-            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -926,26 +954,37 @@ namespace Cloudict.Speech
         /// <summary>
         /// Keeps the spacing memory true after a key command. Enter, Tab and Space leave whitespace
         /// before the caret — the word after an Enter command must not start its new line with a
-        /// space. A Backspace or Delete leaves something unknown there.
+        /// space. Backspace takes back the last character typed. Delete works on the other side of
+        /// the caret and changes nothing before it. Anything else (a word-delete, an arrow) leaves
+        /// something unknown there, which the destination is asked about instead.
         /// </summary>
-        private void RememberCommandKeys(CommandProcessResult result)
+        private void RememberCommandKey(string key)
         {
-            if (!IsLiveTransfer || result?.CommandsExecuted == null) return;
+            if (!IsLiveTransfer) return;
 
-            foreach (var command in result.CommandsExecuted)
+            var whitespace = WhitespaceForKey(key);
+            if (whitespace != null)
             {
-                if (command?.ActionType != CommandActionType.SendKeys) continue;
+                _lastSentText += whitespace;
+                RememberTyped(whitespace[^1]);
+                return;
+            }
 
-                var whitespace = WhitespaceForKey(command.ActionValue);
-                if (whitespace != null)
-                {
-                    _lastSentText += whitespace;
-                    RememberTyped(whitespace[^1]);
-                }
-                else
-                {
+            switch ((key ?? string.Empty).Trim().ToLowerInvariant())
+            {
+                case "delete":
+                    return;
+
+                case "backspace" when _lastSentText.Length > 0:
+                    _lastSentText = _lastSentText.Substring(0, _lastSentText.Length - 1);
+                    if (_lastSentText.Length > 0) RememberTyped(_lastSentText[^1]);
+                    else lock (_gate) _lastTypedChar = null;
+                    return;
+
+                default:
+                    _lastSentText = string.Empty;
                     lock (_gate) _lastTypedChar = null;
-                }
+                    return;
             }
         }
 

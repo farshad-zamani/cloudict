@@ -8,6 +8,42 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.2.8] – 2026-10-29
+
+### Fixed
+- **A voice command now runs once, exactly where it was spoken.** While dictating live, commands were
+  looked for in the last *two* words, so every command matched twice: once as the word just reached,
+  and again as the "previous word" of the one after it. A typed command (`ویرگول`, `نقطش`…) came out
+  doubled and dragged the next word along with it; a key command (`اینتر`, `تبش`…) was pressed a
+  second time one word late. A command that began a longer phrase (`علامت سوال`) was worse: its first
+  word was typed as an ordinary word and then erased with Backspace once the second word arrived,
+  which also removed the space in front of it and — for a key command — the key itself, so the word
+  before the command came out damaged and glued to the one before that.
+  Words are now handed to the command matcher strictly in the order they were spoken, each exactly
+  once. A word that could be the first half of a longer command is held until the next word shows
+  whether it is, and is typed normally if it is not (or if the speaker stops on it); nothing is ever
+  typed and then taken back. The command itself is separated from the word before and after it by a
+  single space, like any other word, and the words on either side are never touched.
+- **Words can no longer arrive out of order when the "transfer everything now" button is pressed, or a
+  pause-reset flushes, while the paced loop is mid-word.** Taking the next word and acting on it is now
+  one step behind a single gate shared by the loop, the flush and the button.
+- **Backspace, Delete and other editing keys keep the spacing right.** After a Backspace command the
+  next word was spaced against the character that had just been deleted; it now tracks the one
+  character taken back, leaves Delete alone (it acts after the caret), and asks the destination what
+  precedes the caret after a word-delete or an arrow key.
+- **A command that only contains a command is no longer ignored by the pause-reset.** A phrase made
+  of commands alone never counted as "something was sent", so the page's buffer kept growing until a
+  normal word came along.
+
+### Changed
+- **A stored command now matches what Google Translate shows.** Zero-width joiners (the half-space in
+  `نقطه‌ ویر`) are ignored when comparing, and the Arabic *ye* and *kaf* count as the Persian ones.
+- **Voice commands are matched by a small, immutable lookup built once** instead of rebuilding and
+  re-sorting the command list and running a regular expression for every word.
+- **ChromeDriver 156.0.8078.73 is bundled**, matching the current Chrome stable, so a fresh install on
+  an up-to-date machine needs no driver download on first run. The Chrome for Testing fallback follows
+  the bundled driver's version, so it moves to 156 as well, and the mirrors serve both.
+
 ## [3.2.7] – 2026-10-10
 
 Every item below was reported from an Intel MacBook on macOS 13.7. Several turned out to affect
