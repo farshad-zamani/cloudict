@@ -11,14 +11,15 @@
         FlowDirection="{DynamicResource AppFlowDirection}"
         Background="{DynamicResource BgWindowBrush}">
 
-  <Grid Margin="10" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
+  <Grid Margin="10" RowDefinitions="Auto,Auto,*,Auto,Auto,Auto">
 
     <!-- Header: settings button on the leading edge, logo and version centred -->
-    <Grid Grid.Row="0" Margin="0,4,0,0">
+    <Grid Grid.Row="0" Margin="0,4,0,0" ColumnDefinitions="Auto,*">
       <Button x:Name="BtnSettings" Classes="subtle"
               HorizontalAlignment="Left" VerticalAlignment="Top"
               Height="36" Padding="12,0" Margin="10,6,0,0"
               Click="OnSettingsClick"
+              AutomationProperties.Name="{loc:Tr Common_Settings}"
               ToolTip.Tip="{loc:Tr Common_Settings}">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
           <Path Width="18" Height="18" Stretch="Uniform"
@@ -39,7 +40,7 @@
 
         The whole lockup reads left-to-right even in Persian, because the name is Latin.
       -->
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
+      <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
                   FlowDirection="LeftToRight" Spacing="11" Margin="0,4,0,0">
         <Image Source="avares://Cloudict/Assets/logo-mark.png" Height="46" Width="46"
                Stretch="Uniform" VerticalAlignment="Center"/>
@@ -61,6 +62,7 @@
     <!-- Controls -->
     <StackPanel Grid.Row="1" Margin="0,3,0,15">
       <Button x:Name="BtnHelperBrowser" Classes="accent"
+              AutomationProperties.Name="{loc:Tr Main_OpenHelperBrowser}"
               HorizontalAlignment="Center" Padding="20,11" Margin="0,0,0,8"
               Click="OnHelperBrowserClick">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -74,14 +76,16 @@
 
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,8" Spacing="20">
         <Button x:Name="BtnStart" Classes="circle success" Click="OnStartClick"
-                ToolTip.Tip="{loc:Tr Main_MicControlsHint}">
+                AutomationProperties.Name="{loc:Tr Main_StartDictation}"
+                ToolTip.Tip="{loc:Tr Main_StartDictation}">
           <!-- Media symbols are never mirrored: "play" points right in every language, the same way
                it does on every player. The window's right-to-left flow would otherwise flip it. -->
           <Path Width="16" Height="16" Stretch="Uniform" Fill="White" Data="{StaticResource IconPlay}"
                 FlowDirection="LeftToRight"/>
         </Button>
         <Button x:Name="BtnStop" Classes="circle accent" Click="OnStopClick"
-                ToolTip.Tip="{loc:Tr Main_MicControlsHint}">
+                AutomationProperties.Name="{loc:Tr Main_StopDictation}"
+                ToolTip.Tip="{loc:Tr Main_StopDictation}">
           <Border Width="12" Height="12" CornerRadius="2" Background="White"/>
         </Button>
       </StackPanel>
@@ -99,7 +103,9 @@
       the same pair on both boxes, so they read better as a fixed pair of marks than as another two
       labelled buttons competing with the ones that matter.
     -->
-    <Border Grid.Row="2" Classes="card" Margin="15,8,15,8">
+    <ScrollViewer Grid.Row="2" x:Name="MainContent" HorizontalScrollBarVisibility="Disabled">
+    <Grid RowDefinitions="Auto,*" MinHeight="{Binding Bounds.Height, ElementName=MainContent}">
+    <Border Grid.Row="0" Classes="card" Margin="15,8,15,8">
       <Grid Margin="12" RowDefinitions="Auto,*,Auto">
         <TextBlock Grid.Row="0" Text="{loc:Tr Main_RecognizedLabel}" Classes="h2"
                    HorizontalAlignment="Center" Margin="0,0,0,8"/>
@@ -107,18 +113,21 @@
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
           <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" Margin="10,0,0,0">
             <Button Classes="icon" Click="OnCopyRecognizedClick"
-                    ToolTip.Tip="{loc:Tr Main_CopyBtn}">
+                    AutomationProperties.Name="{loc:Tr Main_CopyRecognized}"
+                    ToolTip.Tip="{loc:Tr Main_CopyRecognized}">
               <Path Width="15" Height="15" Stretch="Uniform"
                     Fill="{DynamicResource TextSecondaryBrush}" Data="{StaticResource IconCopy}"/>
             </Button>
             <Button Classes="icon danger" Click="OnClearRecognizedClick"
-                    ToolTip.Tip="{loc:Tr Main_ClearBtn}">
+                    AutomationProperties.Name="{loc:Tr Main_ClearRecognized}"
+                    ToolTip.Tip="{loc:Tr Main_ClearRecognized}">
               <Path Width="15" Height="15" Stretch="Uniform"
-                    Fill="{DynamicResource AccentHoverBrush}" Data="{StaticResource IconTrash}"/>
+                    Fill="{DynamicResource ErrorTextBrush}" Data="{StaticResource IconTrash}"/>
             </Button>
           </StackPanel>
 
           <TextBox Grid.Column="0" x:Name="TxtRecognized"
+                   AutomationProperties.Name="{loc:Tr Main_RecognizedLabel}"
                    IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
                    FontSize="12" MinHeight="60" MaxHeight="90"
                    Watermark="{loc:Tr Main_WaitingForSpeech}"
@@ -133,7 +142,7 @@
     </Border>
 
     <!-- Final text -->
-    <Border Grid.Row="3" Classes="card" Margin="15,8,15,8">
+    <Border Grid.Row="1" Classes="card" Margin="15,8,15,8">
       <Grid Margin="12" RowDefinitions="Auto,*,Auto">
         <!--
           The title and the text area fade and lock while live transfer is on: words then go to
@@ -153,18 +162,21 @@
           </Grid.Transitions>
           <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" Margin="10,0,0,0">
             <Button Classes="icon" Click="OnCopyFinalClick"
-                    ToolTip.Tip="{loc:Tr Main_CopyBtn}">
+                    AutomationProperties.Name="{loc:Tr Main_CopyFinal}"
+                    ToolTip.Tip="{loc:Tr Main_CopyFinal}">
               <Path Width="15" Height="15" Stretch="Uniform"
                     Fill="{DynamicResource TextSecondaryBrush}" Data="{StaticResource IconCopy}"/>
             </Button>
             <Button Classes="icon danger" Click="OnClearFinalClick"
-                    ToolTip.Tip="{loc:Tr Common_Clear}">
+                    AutomationProperties.Name="{loc:Tr Main_ClearFinal}"
+                    ToolTip.Tip="{loc:Tr Main_ClearFinal}">
               <Path Width="15" Height="15" Stretch="Uniform"
-                    Fill="{DynamicResource AccentHoverBrush}" Data="{StaticResource IconTrash}"/>
+                    Fill="{DynamicResource ErrorTextBrush}" Data="{StaticResource IconTrash}"/>
             </Button>
           </StackPanel>
 
           <TextBox Grid.Column="0" x:Name="TxtFinal"
+                   AutomationProperties.Name="{loc:Tr Main_FinalLabel}"
                    TextWrapping="Wrap" AcceptsReturn="True"
                    FontSize="13" MinHeight="80"
                    Watermark="{loc:Tr Main_FinalPlaceholder}"
@@ -187,12 +199,14 @@
         </StackPanel>
       </Grid>
     </Border>
+    </Grid>
+    </ScrollViewer>
 
     <!--
       Shown only when a newer release exists. A bar rather than a dialog: an update is worth knowing
       about and never worth interrupting dictation for.
     -->
-    <Border Grid.Row="4" x:Name="UpdateBar" Classes="card" IsVisible="False"
+    <Border Grid.Row="3" x:Name="UpdateBar" Classes="card" IsVisible="False"
             Margin="15,0,15,8" Padding="14,10"
             Background="{DynamicResource AccentSoftBrush}"
             BorderBrush="{DynamicResource AccentBrush}">
@@ -200,7 +214,7 @@
         <!-- Stroked, not filled: the strokes are open lines, and a fill would close them into a blot. -->
         <Path Grid.Column="0" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"
               Data="M12 2 L12 15 M12 15 L7 10 M12 15 L17 10 M4 19 L20 19"
-              Stroke="{DynamicResource AccentHoverBrush}" StrokeThickness="2"
+              Stroke="{DynamicResource ErrorTextBrush}" StrokeThickness="2"
               StrokeLineCap="Round" StrokeJoin="Round"/>
 
         <TextBlock Grid.Column="1" x:Name="TxtUpdate" Margin="12,0" VerticalAlignment="Center"
@@ -220,7 +234,7 @@
       "گیت‌هاب" read as "هاب‌گیت" and "وب‌سایت" as "سایت‌وب" — the words were right in the resource
       file and wrong only on screen.
     -->
-    <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Center"
+    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center"
                 Margin="0,2,0,6" Spacing="8">
       <Button Classes="subtle" Padding="12,7" Tag="https://github.com/farshad-zamani" Click="OnOpenUrlClick">
         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -252,7 +266,7 @@
     </StackPanel>
 
     <!-- Status. Wraps rather than clipping: driver and browser messages run long. -->
-    <Border Grid.Row="6" Background="{DynamicResource BgPanelBrush}" MinHeight="35" Padding="8,5">
+    <Border Grid.Row="5" Background="{DynamicResource BgPanelBrush}" MinHeight="35" Padding="8,5">
       <TextBlock x:Name="TxtStatus" Classes="status" VerticalAlignment="Center" MaxHeight="64"/>
     </Border>
 

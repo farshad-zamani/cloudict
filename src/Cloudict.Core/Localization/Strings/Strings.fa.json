@@ -440,5 +440,11 @@
   "Update_Later": "الان نه",
   "Update_Open": "باز کردن صفحهٔ انتشار",
   "AddCmd_KeyLabel": "کلید اصلی",
-  "Main_St_RecoveringMic": "میکروفون گوگل متوقف شد؛ در حال حفظ متن باقی‌مانده و راه‌اندازی دوباره…"
+  "Main_St_RecoveringMic": "میکروفون گوگل متوقف شد؛ در حال حفظ متن باقی‌مانده و راه‌اندازی دوباره…",
+  "Main_StartDictation": "شروع تایپ صوتی",
+  "Main_StopDictation": "توقف تایپ صوتی",
+  "Main_CopyRecognized": "کپی متن تشخیص‌داده‌شده",
+  "Main_ClearRecognized": "پاک کردن متن تشخیص‌داده‌شده",
+  "Main_CopyFinal": "کپی متن نهایی",
+  "Main_ClearFinal": "پاک کردن متن نهایی"
 }

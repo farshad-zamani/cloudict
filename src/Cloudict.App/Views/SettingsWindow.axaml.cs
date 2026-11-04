@@ -301,7 +301,7 @@ namespace Cloudict.App.Views
         {
             TxtSaveResult.Text = message;
             TxtSaveResult.IsVisible = true;
-            TxtSaveResult.Foreground = this.FindResource(success ? "SuccessBrush" : "AccentHoverBrush") as Avalonia.Media.IBrush
+            TxtSaveResult.Foreground = this.FindResource(success ? "SuccessTextBrush" : "ErrorTextBrush") as Avalonia.Media.IBrush
                                        ?? TxtSaveResult.Foreground;
 
             var shown = ++_saveResultToken;

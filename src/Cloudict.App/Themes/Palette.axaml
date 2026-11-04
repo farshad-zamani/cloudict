@@ -15,13 +15,15 @@
   <Color x:Key="TextMutedColor">#8A8A8A</Color>
 
   <Color x:Key="AccentColor">#C2454E</Color>
-  <Color x:Key="AccentHoverColor">#D25A62</Color>
+  <Color x:Key="AccentHoverColor">#C94A54</Color>
   <Color x:Key="AccentPressedColor">#A53B43</Color>
   <Color x:Key="AccentSoftColor">#3A2226</Color>
 
-  <Color x:Key="SuccessColor">#3E9080</Color>
-  <Color x:Key="SuccessHoverColor">#4AA08D</Color>
-  <Color x:Key="SuccessPressedColor">#347567</Color>
+  <Color x:Key="SuccessColor">#2E7567</Color>
+  <Color x:Key="SuccessHoverColor">#347E70</Color>
+  <Color x:Key="SuccessPressedColor">#245D52</Color>
+  <Color x:Key="SuccessTextColor">#75C7B4</Color>
+  <Color x:Key="ErrorTextColor">#F28A93</Color>
 
   <Color x:Key="WarningColor">#D9A02B</Color>
 
@@ -43,6 +45,8 @@
   <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
   <SolidColorBrush x:Key="SuccessHoverBrush" Color="{StaticResource SuccessHoverColor}"/>
   <SolidColorBrush x:Key="SuccessPressedBrush" Color="{StaticResource SuccessPressedColor}"/>
+  <SolidColorBrush x:Key="SuccessTextBrush" Color="{StaticResource SuccessTextColor}"/>
+  <SolidColorBrush x:Key="ErrorTextBrush" Color="{StaticResource ErrorTextColor}"/>
 
   <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
 

@@ -125,13 +125,15 @@
                 <TextBlock Text="{loc:Tr Settings_SelectorsHint}" Classes="hint"/>
 
                 <TextBlock Text="{loc:Tr Settings_MicXPath}" Margin="0,8,0,0"/>
-                <TextBox x:Name="TxtMicXPath" Classes="field"/>
+                <TextBox x:Name="TxtMicXPath" Classes="field" FlowDirection="LeftToRight"
+                         AutomationProperties.Name="{loc:Tr Settings_MicXPath}"/>
 
                 <TextBlock Text="{loc:Tr Settings_AriaLabels}" Margin="0,8,0,0"/>
                 <TextBox x:Name="TxtAriaLabels" Classes="field" AcceptsReturn="True" Height="70"/>
 
                 <TextBlock Text="{loc:Tr Settings_ClassSelectors}" Margin="0,8,0,0"/>
-                <TextBox x:Name="TxtClassSelectors" Classes="field" AcceptsReturn="True" Height="70"/>
+                <TextBox x:Name="TxtClassSelectors" Classes="field" AcceptsReturn="True" Height="70"
+                         FlowDirection="LeftToRight" AutomationProperties.Name="{loc:Tr Settings_ClassSelectors}"/>
               </StackPanel>
             </Border>
           </StackPanel>
@@ -242,7 +244,7 @@
              disappearing there is otherwise nothing to tell the user it worked. -->
         <TextBlock Grid.Column="1" x:Name="TxtSaveResult" Margin="16,0" VerticalAlignment="Center"
                    TextWrapping="Wrap" IsVisible="False"
-                   Foreground="{DynamicResource SuccessBrush}"/>
+                   Foreground="{DynamicResource SuccessTextBrush}"/>
         <Button Grid.Column="2" x:Name="BtnSave" Classes="success" Content="{loc:Tr Common_Save}" Click="OnSaveClick" Margin="0,0,8,0"/>
         <Button Grid.Column="3" x:Name="BtnCancel" Classes="subtle" Content="{loc:Tr Common_Close}" Click="OnCancelClick"/>
       </Grid>

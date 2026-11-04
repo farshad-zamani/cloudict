@@ -19,31 +19,35 @@
     write "^c" and "%{F4}", a SendKeys dialect the cross-platform key parser does not read at all, so
     anything written that way silently did nothing.
   -->
-  <Grid Margin="22,18" RowDefinitions="Auto,Auto,*,Auto,Auto">
+  <Grid Margin="22,18" RowDefinitions="Auto,*,Auto">
 
     <Border Grid.Row="0" Classes="card" Padding="16,12" Margin="0,0,0,12">
       <TextBlock x:Name="TxtHeader" Classes="h1"/>
     </Border>
 
-    <Border Grid.Row="1" Classes="card" Padding="18,16">
+    <ScrollViewer Grid.Row="1" x:Name="EditorContent" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Spacing="12">
+    <Border Classes="card" Padding="18,16">
       <StackPanel Spacing="12">
 
         <StackPanel Spacing="5">
           <TextBlock Text="{loc:Tr AddCmd_PhraseLabel}"/>
           <TextBox x:Name="TxtPhrase" Classes="field"
+                   AutomationProperties.Name="{loc:Tr AddCmd_PhraseLabel}"
                    ToolTip.Tip="{loc:Tr AddCmd_PhraseTooltip}"/>
         </StackPanel>
 
         <StackPanel Spacing="5">
           <TextBlock Text="{loc:Tr AddCmd_ActionTypeLabel}"/>
           <ComboBox x:Name="CmbActionType" HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="{loc:Tr AddCmd_ActionTypeLabel}"
                     SelectionChanged="OnActionTypeChanged"/>
         </StackPanel>
 
         <!-- Typed text: whatever is entered here is sent verbatim. -->
         <StackPanel x:Name="PanelText" Spacing="5">
           <TextBlock Text="{loc:Tr AddCmd_ActionValueLabel}"/>
-          <TextBox x:Name="TxtValue" Classes="field"/>
+          <TextBox x:Name="TxtValue" Classes="field" AutomationProperties.Name="{loc:Tr AddCmd_ActionValueLabel}"/>
         </StackPanel>
 
         <!-- A key press, captured rather than spelled out. -->
@@ -77,25 +81,26 @@
           <TextBlock Text="{loc:Tr AddCmd_KeyHint}" Classes="hint"/>
         </StackPanel>
 
-        <TextBlock x:Name="TxtError" Classes="hint" IsVisible="False"
-                   Foreground="{DynamicResource AccentHoverBrush}"/>
-
       </StackPanel>
     </Border>
 
-    <Border Grid.Row="2" Classes="card" Padding="18,14" Margin="0,12,0,0">
-      <ScrollViewer>
-        <TextBlock Text="{loc:Tr AddCmd_HelpText}" Classes="hint"/>
-      </ScrollViewer>
+    <Border Classes="card" Padding="18,14">
+      <TextBlock Text="{loc:Tr AddCmd_HelpText}" Classes="hint"/>
     </Border>
+    </StackPanel>
+    </ScrollViewer>
 
-    <Border Grid.Row="4" Classes="card" Margin="0,12,0,0" Padding="14">
+    <Border Grid.Row="2" Classes="card" Margin="0,12,0,0" Padding="14">
+      <StackPanel Spacing="8">
+      <TextBlock x:Name="TxtError" Classes="hint" IsVisible="False"
+                 Foreground="{DynamicResource ErrorTextBrush}"/>
       <Grid ColumnDefinitions="*,Auto,Auto">
         <Button Grid.Column="1" x:Name="BtnSaveCommand" Classes="success" Content="{loc:Tr Common_Save}"
                 Click="OnSaveClick" Margin="0,0,8,0"/>
         <Button Grid.Column="2" x:Name="BtnCancelCommand" Classes="subtle" Content="{loc:Tr Common_Cancel}"
                 Click="OnCancelClick"/>
       </Grid>
+      </StackPanel>
     </Border>
 
   </Grid>

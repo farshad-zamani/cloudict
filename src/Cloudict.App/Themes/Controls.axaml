@@ -63,6 +63,9 @@
   <Style Selector="Button.success:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource SuccessHoverBrush}"/>
   </Style>
+  <Style Selector="Button.success:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SuccessPressedBrush}"/>
+  </Style>
 
   <Style Selector="Button.warning">
     <Setter Property="Background" Value="{DynamicResource WarningBrush}"/>
@@ -270,6 +273,7 @@
       <ControlTemplate>
         <Border Name="Chip"
                 Background="{TemplateBinding Background}"
+                BorderBrush="Transparent" BorderThickness="1"
                 CornerRadius="9"
                 Padding="{TemplateBinding Padding}">
           <Border.Transitions>
@@ -303,6 +307,10 @@
   <Style Selector="TabItem:selected:pointerover">
     <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
     <Setter Property="Foreground" Value="#FFFFFF"/>
+  </Style>
+
+  <Style Selector="TabItem:focus-visible /template/ Border#Chip">
+    <Setter Property="BorderBrush" Value="{DynamicResource TextPrimaryBrush}"/>
   </Style>
 
   <!-- Keeps the strip clear of the panel below it. -->

@@ -440,5 +440,11 @@
   "Update_Later": "Not now",
   "Update_Open": "Open the release",
   "AddCmd_KeyLabel": "Main key",
-  "Main_St_RecoveringMic": "Google Translate stopped listening; preserving pending text and restarting the microphone…"
+  "Main_St_RecoveringMic": "Google Translate stopped listening; preserving pending text and restarting the microphone…",
+  "Main_StartDictation": "Start dictation",
+  "Main_StopDictation": "Stop dictation",
+  "Main_CopyRecognized": "Copy recognized text",
+  "Main_ClearRecognized": "Clear recognized text",
+  "Main_CopyFinal": "Copy final text",
+  "Main_ClearFinal": "Clear final text"
 }

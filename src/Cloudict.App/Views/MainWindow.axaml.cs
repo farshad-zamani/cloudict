@@ -1033,6 +1033,7 @@ namespace Cloudict.App.Views
                     IconBrowser.Data = shape;
 
                 TxtBrowserLabel.Text = Loc.Get(open ? "Main_CloseHelperBrowser" : "Main_OpenHelperBrowser");
+                Avalonia.Automation.AutomationProperties.SetName(BtnHelperBrowser, TxtBrowserLabel.Text);
 
                 // Colour carries the state as well as the icon. Closed is the accent red — something
                 // still to be done, since nothing can be dictated until the browser is up. Open is
@@ -1042,7 +1043,7 @@ namespace Cloudict.App.Views
                 BtnHelperBrowser.Classes.Set("subtle", open);
 
                 var foreground = open
-                    ? Application.Current?.FindResource("AccentHoverBrush") as IBrush
+                    ? Application.Current?.FindResource("ErrorTextBrush") as IBrush
                     : Brushes.White;
 
                 if (foreground != null)

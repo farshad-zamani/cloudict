@@ -8,6 +8,24 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.2.10] – 2026-11-04
+
+Includes all microphone, spacing and voice-command corrections listed under 3.2.9 below.
+The 3.2.9 tag was an intermediate build; its release workflow was cancelled before publication
+so the UI review could be included in this public update.
+
+### Fixed
+- Main text panels scroll at small window sizes, and the command editor keeps Save/Cancel and
+  validation errors visible while its form and help scroll.
+- Button and status-text contrast improved while retaining the existing dark theme.
+- Start/Stop, Copy/Clear and essential editor fields have localized accessibility names.
+- Keyboard-focused settings tabs have a visible outline; technical selector fields edit left-to-right.
+- The Settings button and wordmark no longer share the same header space at narrow widths.
+
+### Documentation
+- Refreshed English/Persian application screenshots and recorded the scoped Impeccable UI review
+  in [docs/UI-REVIEW-3.2.10.md](docs/UI-REVIEW-3.2.10.md).
+
 ## [3.2.9] – 2026-11-04
 
 ### Fixed

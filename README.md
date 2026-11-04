@@ -111,6 +111,9 @@ is available in **English and Persian**.
 
 </details>
 
+For tested scenarios and remaining limits, see the [release verification](docs/RELEASE-3.2.10-VALIDATION.md)
+and [scoped UI review](docs/UI-REVIEW-3.2.10.md).
+
 ## Requirements
 
 - **A helper browser — usually nothing to install.** Cloudict opens Google Translate in a browser
