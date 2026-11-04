@@ -5,7 +5,6 @@
 ; ============================================================================
 
 #define MyAppName        "Cloudict"
-#define MyAppVersion     "3.2.8"
 #define MyAppPublisher   "Cloudtart"
 #define MyAppURL         "https://cloudtart.com"
 #define MyAppExeName     "Cloudict.exe"
@@ -15,6 +14,9 @@
 #ifndef MyPublishDir
 #define MyPublishDir     "..\..\src\Cloudict.App\bin\Release\net10.0\win-x64\publish"
 #endif
+; The .NET app host has a four-part numeric version. Drop only its final revision,
+; so installer metadata and filename always follow the binary actually packaged.
+#define MyAppVersion RemoveFileExt(GetFileVersion(AddBackslash(MyPublishDir) + MyAppExeName))
 #define MyIcon           "..\..\src\Cloudict.App\Assets\app-icon.ico"
 
 [Setup]

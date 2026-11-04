@@ -84,6 +84,7 @@ if ($iscc) {
 
     Write-Host "`n=== Windows installer ===" -ForegroundColor Cyan
     & $iscc @signArgs (Join-Path $repoRoot 'packaging\windows\Cloudict.iss') | Select-String 'Successful compile|Error|Sign Tool'
+    if ($LASTEXITCODE -ne 0) { throw "ISCC failed with exit code $LASTEXITCODE." }
 } else {
     Write-Warning 'Inno Setup 6 not found; skipping the Windows installer. https://jrsoftware.org/isdl.php'
 }

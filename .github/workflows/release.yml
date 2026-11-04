@@ -83,6 +83,16 @@ jobs:
 
           & $iscc @signArgs packaging\windows\Cloudict.iss
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed with exit code $LASTEXITCODE." }
+
+          [xml]$props = Get-Content src/Directory.Build.props -Raw
+          $version = [string]$props.Project.PropertyGroup.VersionPrefix
+          $setup = "dist/Cloudict-$version-Setup.exe"
+          if (-not (Test-Path -LiteralPath $setup)) { throw "Installer version mismatch: expected $setup" }
+          $metadata = [System.Diagnostics.FileVersionInfo]::GetVersionInfo((Resolve-Path $setup))
+          $actualVersion = '{0}.{1}.{2}' -f $metadata.FileMajorPart, $metadata.FileMinorPart, $metadata.FileBuildPart
+          if ($actualVersion -ne $version -or $metadata.FilePrivatePart -ne 0) {
+            throw "Installer metadata is $($metadata.FileVersion); expected $version"
+          }
         shell: pwsh
 
       - uses: actions/upload-artifact@v4

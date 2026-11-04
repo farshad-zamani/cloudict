@@ -111,8 +111,8 @@ is available in **English and Persian**.
 
 </details>
 
-For tested scenarios and remaining limits, see the [release verification](docs/RELEASE-3.2.11-VALIDATION.md)
-and [interface review](docs/UI-REVIEW-3.2.10.md).
+For tested scenarios and remaining limits, see the [release verification](docs/VALIDATION.md)
+and [interface review](docs/UI-REVIEW.md).
 
 ## Requirements
 

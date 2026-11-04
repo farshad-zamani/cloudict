@@ -1,4 +1,4 @@
-# Cloudict 3.2.10 verification
+# Cloudict 3.2.12 verification
 
 Date: 2026-11-04. Scope: intermittent recognition stops, retained microphone capture, initial
 spacing in browser editors, multi-modifier voice commands, bilingual documentation and packages.
@@ -36,7 +36,7 @@ defining a command. The existing saved format is unchanged.
 - A Stop shortcut delivered during a quick-transfer flush prevents both the later text and later
   key commands in that flush from running. Recovery with pending words is tested in both live
   injection and buffered-output modes.
-- Windows Release build and self-contained win-x64 publish succeeded. `--version` reports 3.2.10;
+- Windows Release build and self-contained win-x64 publish succeeded. `--version` reports 3.2.12;
   `--diagnose` resolves the bundled 156 driver against installed Chrome 156.
 - With a real Google Translate page in Chrome 156 and a synthetic audio device, a `getUserMedia`
   stream was `live` while the page's voice button was off. Stop made its track `ended`; Start
@@ -76,4 +76,9 @@ existing parser as well. The previous release and tag remain available.
 
 ## Interface follow-up
 
-The final public build includes the [interface review](UI-REVIEW-3.2.10.md), normal/minimum-window checks, refreshed captures and the same 214-test regression suite. The intermediate v3.2.9 tag was retained; its packaging run was cancelled before publication.
+The final public build includes the [interface review](UI-REVIEW.md), normal/minimum-window checks, refreshed captures and the same 214-test regression suite. Intermediate build tags were retained without publishing their releases.
+
+
+## Installer version check
+
+The Windows installer previously contained a hard-coded 3.2.8 version. It now derives its version from the actual published app host. CI checks both the expected installer filename and its executable version metadata before uploading. Local Inno Setup compilation verifies this independently of the application build.

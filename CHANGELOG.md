@@ -8,7 +8,7 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
-## [3.2.11] – 2026-11-04
+## [3.2.12] – 2026-11-04
 
 ### Fixed
 - Automatic microphone recovery and preservation of pending dictation.
@@ -16,6 +16,7 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 - Verified microphone activation and reliable Stop during quick transfer.
 - Leading spaces caused by invisible editor characters.
 - Small-window layouts, button contrast and keyboard accessibility.
+- Windows installer version and package filename synchronized with the application.
 
 ### Added
 - Voice shortcuts with multiple modifiers, including Ctrl+Alt+S.
