@@ -76,4 +76,4 @@ existing parser as well. The previous release and tag remain available.
 
 ## Interface follow-up
 
-The final public build includes the [scoped Impeccable UI review](UI-REVIEW-3.2.10.md), normal/minimum-window checks, refreshed captures and the same 214-test regression suite. The intermediate v3.2.9 tag was retained; its packaging run was cancelled before publication.
+The final public build includes the [interface review](UI-REVIEW-3.2.10.md), normal/minimum-window checks, refreshed captures and the same 214-test regression suite. The intermediate v3.2.9 tag was retained; its packaging run was cancelled before publication.

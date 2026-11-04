@@ -8,47 +8,18 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
-## [3.2.10] – 2026-11-04
-
-Includes all microphone, spacing and voice-command corrections listed under 3.2.9 below.
-The 3.2.9 tag was an intermediate build; its release workflow was cancelled before publication
-so the UI review could be included in this public update.
+## [3.2.11] – 2026-11-04
 
 ### Fixed
-- Main text panels scroll at small window sizes, and the command editor keeps Save/Cancel and
-  validation errors visible while its form and help scroll.
-- Button and status-text contrast improved while retaining the existing dark theme.
-- Start/Stop, Copy/Clear and essential editor fields have localized accessibility names.
-- Keyboard-focused settings tabs have a visible outline; technical selector fields edit left-to-right.
-- The Settings button and wordmark no longer share the same header space at narrow widths.
-
-### Documentation
-- Refreshed English/Persian application screenshots and recorded the scoped Impeccable UI review
-  in [docs/UI-REVIEW-3.2.10.md](docs/UI-REVIEW-3.2.10.md).
-
-## [3.2.9] – 2026-11-04
-
-### Fixed
-- A microphone that Google Translate switches off mid-session is now checked on the page on every
-  platform. After three consecutive off samples, Cloudict transfers the pending words once and
-  restarts recognition. A failed restart is retried twice before a visible stop is reported.
-  Unrelated Windows microphone sessions, muted devices and temporary WASAPI failures no longer
-  silently stop dictation. A manual Stop still wins over a recovery in progress.
-- Stop releases microphone permission for the Google Translate origin in Cloudict's helper browser,
-  including when the page's voice button is already off. This also releases a capture stream left
-  open by the page. Start restores permission; the source text is retained when stopping.
-- Starting recognition now requires confirmation that the page's microphone is actually on.
-- A voice Stop shortcut executed during quick transfer now prevents the remaining queued words
-  and commands from running. A slow caret probe also rechecks Stop before typing its word.
-- Invisible direction markers and zero-width editor placeholders no longer cause a leading space.
-  The Windows caret probe reads past these markers while preserving whitespace and Persian joiners.
+- Automatic microphone recovery and preservation of pending dictation.
+- Microphone capture released on Stop.
+- Verified microphone activation and reliable Stop during quick transfer.
+- Leading spaces caused by invisible editor characters.
+- Small-window layouts, button contrast and keyboard accessibility.
 
 ### Added
-- The voice-command editor now offers a main-key selector and independent Ctrl, Alt, Shift and
-  Win / Cmd checkboxes. Combinations such as **Ctrl+Alt+S** can be configured without pressing an
-  already registered global shortcut. Existing commands and key capture remain supported.
-- English and Persian screenshot guides, a voice-command walkthrough and the exact list of the
-  18 dictation languages offered in Settings.
+- Voice shortcuts with multiple modifiers, including Ctrl+Alt+S.
+- Refreshed English/Persian guides and screenshots for commands, settings and 18 dictation languages.
 
 ## [3.2.8] – 2026-10-29
 

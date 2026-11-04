@@ -1,8 +1,8 @@
-# Cloudict UI review with Impeccable
+# Cloudict interface review
 
 2026-11-04 · Scope: a light general review and narrow corrections to the existing Avalonia desktop
 interface, followed by a polish pass. The established dark palette, fonts, controls and workflow
-are retained. This review uses Impeccable's audit, hardening and polish guidance.
+are retained. The review covers basic layout, readability and keyboard access.
 
 ## Result
 
@@ -53,5 +53,4 @@ after the corrections below. It is not a complete accessibility or performance c
   Avalonia review and does not establish native accessibility compliance.
 
 Remaining broader work, if pursued separately: full screen-reader traversal, mixed-DPI monitor
-coverage, high-contrast system themes and measured rendering performance. The appropriate next
-passes are Impeccable `harden`/`adapt` for those specific findings, followed by `polish`.
+coverage, high-contrast system themes and measured rendering performance. Further reviews can address those specific areas.
