@@ -8,6 +8,30 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.2.9] – 2026-11-04
+
+### Fixed
+- A microphone that Google Translate switches off mid-session is now checked on the page on every
+  platform. After three consecutive off samples, Cloudict transfers the pending words once and
+  restarts recognition. A failed restart is retried twice before a visible stop is reported.
+  Unrelated Windows microphone sessions, muted devices and temporary WASAPI failures no longer
+  silently stop dictation. A manual Stop still wins over a recovery in progress.
+- Stop releases microphone permission for the Google Translate origin in Cloudict's helper browser,
+  including when the page's voice button is already off. This also releases a capture stream left
+  open by the page. Start restores permission; the source text is retained when stopping.
+- Starting recognition now requires confirmation that the page's microphone is actually on.
+- A voice Stop shortcut executed during quick transfer now prevents the remaining queued words
+  and commands from running. A slow caret probe also rechecks Stop before typing its word.
+- Invisible direction markers and zero-width editor placeholders no longer cause a leading space.
+  The Windows caret probe reads past these markers while preserving whitespace and Persian joiners.
+
+### Added
+- The voice-command editor now offers a main-key selector and independent Ctrl, Alt, Shift and
+  Win / Cmd checkboxes. Combinations such as **Ctrl+Alt+S** can be configured without pressing an
+  already registered global shortcut. Existing commands and key capture remain supported.
+- English and Persian screenshot guides, a voice-command walkthrough and the exact list of the
+  18 dictation languages offered in Settings.
+
 ## [3.2.8] – 2026-10-29
 
 ### Fixed

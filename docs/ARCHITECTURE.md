@@ -146,4 +146,28 @@ right-to-left.
 ## Notable dependencies
 
 Avalonia (interface), Selenium.WebDriver (drives the helper browser), Newtonsoft.Json (settings),
-NAudio (Windows microphone detection only).
+NAudio (Windows audio routing and microphone diagnostics).
+
+## Microphone health and release (3.2.9)
+
+`DictationSession` checks the page's microphone state once a second through `ISpeechEngine`, on
+every platform. Unknown samples and isolated off samples do not stop dictation. Three consecutive
+off samples trigger the same serialized flush/reset used for a pause, including a last source-box
+read before the flush. The already-transferred word index is retained until the box is seen empty.
+If reset cannot restart listening, two start-only retries follow; exhaustion freezes transfer and
+asks the UI to stop with a visible explanation. Stop marks the session inactive before awaiting
+the loops, so recovery cannot resume typing after a user's Stop.
+
+The UI no longer interprets Windows' machine-wide WASAPI capture state as a reason to stop a
+session. That query can report a different device, a mute or another application's stream.
+
+The engine verifies the page really entered its listening state before reporting start success.
+Explicit Stop additionally uses Chromium's `Browser.setPermission` to deny microphone capture for
+the Google Translate origin in the isolated helper browser. This terminates streams the page's
+voice-button state does not account for, without changing source text or other browser sessions.
+Explicit Start restores that origin's permission. Pause resets keep the existing permission.
+See the [protocol definition](https://chromedevtools.github.io/devtools-protocol/tot/Browser/#method-setPermission).
+
+The voice-command editor exposes the existing modifier flags as independent checkboxes beside a
+main-key selector. This avoids invoking a registered global shortcut while defining it. Values
+remain in the existing `Ctrl+Alt+S` format, with no settings migration.

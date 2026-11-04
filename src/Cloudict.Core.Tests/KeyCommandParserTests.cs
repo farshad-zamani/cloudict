@@ -52,6 +52,9 @@ namespace Cloudict.Tests
         [InlineData("Alt+F4", InjectedKey.F4, KeyModifiers.Alt)]
         [InlineData("Alt+Tab", InjectedKey.Tab, KeyModifiers.Alt)]
         [InlineData("Ctrl+Shift+S", InjectedKey.S, KeyModifiers.Control | KeyModifiers.Shift)]
+        [InlineData("Ctrl+Alt+S", InjectedKey.S, KeyModifiers.Control | KeyModifiers.Alt)]
+        [InlineData("Ctrl+Alt+Shift+S", InjectedKey.S, KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Shift)]
+        [InlineData("Ctrl+Alt+Shift+Meta+F12", InjectedKey.F12, KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Shift | KeyModifiers.Meta)]
         public void ParsesCombinations(string input, InjectedKey key, KeyModifiers modifiers)
         {
             Assert.True(KeyCommandParser.TryParse(input, out var result));

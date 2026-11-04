@@ -404,10 +404,23 @@ namespace Cloudict.Speech
         {
             if (!IsBrowserOpen) return null;
 
-            return TryScriptValue($@"
+            var state = TryScriptValue($@"
                 var b = document.querySelector('button[jsname=""{VoiceButtonJsName}""]');
                 if (!b) return 'none';
                 return b.classList.contains('{ListeningClass}') ? 'on' : 'off';");
+            if (state != "none") return state;
+
+            foreach (var xpath in MicXPaths())
+            {
+                try
+                {
+                    var button = _driver.FindElements(By.XPath(xpath)).FirstOrDefault(e => e.Displayed);
+                    if (button != null)
+                        return (button.GetAttribute("class") ?? "").Split(' ').Contains(ListeningClass) ? "on" : "off";
+                }
+                catch (WebDriverException) { }
+            }
+            return "none";
         }
 
         /// <summary>
@@ -449,7 +462,17 @@ namespace Cloudict.Speech
         public async Task<bool> StartListeningAsync()
         {
             await _micLock.WaitAsync().ConfigureAwait(false);
-            try { return await Task.Run(StartListeningCore).ConfigureAwait(false); }
+            try
+            {
+                return await Task.Run(() =>
+                {
+                    SetMicrophonePermission("granted");
+                    if (StartListeningCore()) return true;
+                    StopListeningCore();
+                    SetMicrophonePermission("denied");
+                    return false;
+                }).ConfigureAwait(false);
+            }
             finally { _micLock.Release(); }
         }
 
@@ -465,6 +488,12 @@ namespace Cloudict.Speech
 
             for (int attempt = 0; attempt < 3; attempt++)
             {
+                if (MicState() == "on")
+                {
+                    IsListening = true;
+                    Report("Main_St_MicActivated");
+                    return true;
+                }
                 if (attempt > 0)
                 {
                     Report("Main_St_MicAttempt", attempt + 1);
@@ -492,6 +521,8 @@ namespace Cloudict.Speech
                         WaitForMicState("on", TimeSpan.FromSeconds(3));
                     }
 
+                    if (MicState() != "on") continue;
+
                     IsListening = true;
                     Log("microphone activated via jsname toggle");
                     Report("Main_St_MicActivated");
@@ -500,13 +531,17 @@ namespace Cloudict.Speech
 
                 if (TryClickAny(MicXPaths()))
                 {
-                    IsListening = true;
-                    Report("Main_St_MicActivated");
-                    return true;
+                    if (WaitForMicState("on", TimeSpan.FromSeconds(3)))
+                    {
+                        IsListening = true;
+                        Report("Main_St_MicActivated");
+                        return true;
+                    }
                 }
             }
 
             Report("Main_St_MicButtonNotFound");
+            IsListening = false;
             return false;
         }
 
@@ -514,8 +549,41 @@ namespace Cloudict.Speech
         public async Task<bool> StopListeningAsync()
         {
             await _micLock.WaitAsync().ConfigureAwait(false);
-            try { return await Task.Run(StopListeningCore).ConfigureAwait(false); }
+            try
+            {
+                return await Task.Run(() =>
+                {
+                    var stopped = StopListeningCore();
+                    // The page can leave a level-meter MediaStream open after its speech button
+                    // goes off. Revoke capture for this helper origin, including when already off.
+                    // Start restores it. Other browsers, origins and applications are unaffected.
+                    var released = SetMicrophonePermission("denied");
+                    if (released) IsListening = false;
+                    return stopped || released;
+                }).ConfigureAwait(false);
+            }
             finally { _micLock.Release(); }
+        }
+
+        private bool SetMicrophonePermission(string setting)
+        {
+            if (_driver is not ChromiumDriver chromium || !IsBrowserOpen) return false;
+            try
+            {
+                chromium.ExecuteCdpCommand("Browser.setPermission", new Dictionary<string, object>
+                {
+                    ["origin"] = new Uri(BuildUrl()).GetLeftPart(UriPartial.Authority),
+                    ["permission"] = new Dictionary<string, object> { ["name"] = "microphone" },
+                    ["setting"] = setting
+                });
+                Log($"helper microphone permission: {setting}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log($"could not set helper microphone permission: {ex.GetType().Name}");
+                return false;
+            }
         }
 
         /// <summary>
@@ -541,10 +609,12 @@ namespace Cloudict.Speech
                 if (state != "on") break;   // no button, or the page cannot be asked: fall back below
 
                 // Same toggle, opposite condition: click only while it *is* listening.
-                TryScript($@"
+                if (!TryScript($@"
                     var b = document.querySelector('button[jsname=""{VoiceButtonJsName}""]');
-                    if(b && b.classList.contains('{ListeningClass}')) b.click();
-                    return true;");
+                    if(!b) return false;
+                    if(b.classList.contains('{ListeningClass}')) b.click();
+                    return true;"))
+                    TryClickAny(MicXPaths());
 
                 if (WaitForMicState("off", TimeSpan.FromSeconds(1.5)))
                 {

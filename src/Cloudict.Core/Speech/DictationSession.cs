@@ -41,6 +41,9 @@ namespace Cloudict.Speech
         private CancellationTokenSource _cancellation;
         private Task _pollLoop;
         private Task _transferLoop;
+        private long _lastHealthCheck;
+        private int _microphoneMisses;
+        private bool _microphoneFailed;
 
         // --- recognition state -------------------------------------------------------------
         private readonly List<string> _allWords = new List<string>();
@@ -214,6 +217,9 @@ namespace Cloudict.Speech
 
             // A fresh start after a wake: the guard that froze the previous session is lifted.
             _suspendRecognition = false;
+            _microphoneFailed = false;
+            _microphoneMisses = 0;
+            _lastHealthCheck = Stopwatch.GetTimestamp();
             Interlocked.Exchange(ref _resumeReported, 0);
 
             ResetRecognitionState();
@@ -382,6 +388,9 @@ namespace Cloudict.Speech
                     if (token.IsCancellationRequested) break;
                     if (_suspendRecognition) continue;
 
+                    if (await CheckMicrophoneAsync()) continue;
+                    if (token.IsCancellationRequested) break;
+
                     var text = await _engine.ReadRecognizedTextAsync();
 
                     if (string.IsNullOrWhiteSpace(text))
@@ -441,6 +450,27 @@ namespace Cloudict.Speech
                 _allWords.Clear();
                 _allWords.AddRange(Whitespace.Split(text.Trim()).Where(w => w.Length > 0));
             }
+        }
+
+        // The page owns recognition. A Windows capture session can disappear briefly, use a
+        // different default device, or belong to another application; none proves this page died.
+        private async Task<bool> CheckMicrophoneAsync()
+        {
+            if (Stopwatch.GetElapsedTime(_lastHealthCheck) < TimeSpan.FromSeconds(1)) return false;
+            _lastHealthCheck = Stopwatch.GetTimestamp();
+            var listening = await _engine.IsMicrophoneOnAsync();
+            if (!IsRunning) return true;
+            if (listening != false)
+            {
+                _microphoneMisses = 0;
+                return false;
+            }
+
+            if (++_microphoneMisses < 3) return false;
+            DiagnosticLog.Write("DictationSession", "page microphone off for three checks; preserving pending words and recovering");
+            Report("Main_St_RecoveringMic");
+            await PerformResetAsync();
+            return true;
         }
 
         /// <summary>
@@ -566,11 +596,31 @@ namespace Cloudict.Speech
                 // the microphone back on — both would happen after the user said stop.
                 if (!IsRunning) return;
 
+                // Recognition can finalize its last words when the page switches itself off.
+                // Sample that tail before clearing, using the existing word index to avoid repeats.
+                var finalText = await _engine.ReadRecognizedTextAsync();
+                if (!IsRunning) return;
+                if (!string.IsNullOrWhiteSpace(finalText) && finalText != _lastRecognizedText)
+                    OnRecognizedText(finalText);
+
                 await FlushPendingWordsAsync();
 
                 if (!IsRunning) return;
 
                 var reset = await _engine.ResetMicrophoneAsync();
+
+                // A transient speech-service error must not be treated as a manual Stop. Retrying
+                // start alone preserves the reset's clear result and never clears untransferred text.
+                var listening = reset.Listening;
+                for (var attempt = 0; !listening && attempt < 2 && IsRunning; attempt++)
+                {
+                    await Task.Delay(500);
+                    if (!IsRunning) return;
+                    listening = await _engine.StartListeningAsync();
+                }
+                if (!IsRunning) return;
+                _microphoneMisses = 0;
+                _lastHealthCheck = Stopwatch.GetTimestamp();
 
                 // Nothing held before the pause may be completed by a word spoken after it.
                 DropHeldWords();
@@ -579,11 +629,13 @@ namespace Cloudict.Speech
                 // typed stays on the record until an empty box is actually observed.
                 ReArmWithoutForgetting();
 
-                if (!reset.Listening)
+                if (!listening)
                 {
                     // Nothing more will ever be heard, so sitting here pretending to listen only
                     // invites the page to hand back the same text again.
                     Report("Main_St_MicLost");
+                    _microphoneFailed = true;
+                    DiagnosticLog.Write("DictationSession", "microphone recovery exhausted; requesting stop");
                     AutoStopped?.Invoke(this, EventArgs.Empty);
                     return;
                 }
@@ -598,7 +650,7 @@ namespace Cloudict.Speech
             {
                 // Lifted when the reset is over — unless the machine slept, in which case the
                 // session stays frozen until it is stopped and started again.
-                if (Volatile.Read(ref _resumeReported) == 0) _suspendRecognition = false;
+                if (Volatile.Read(ref _resumeReported) == 0 && !_microphoneFailed) _suspendRecognition = false;
             }
         }
 
@@ -613,6 +665,7 @@ namespace Cloudict.Speech
             // in the middle of cannot be overtaken by the ones after it.
             lock (_typeGate)
             {
+                if (!IsRunning) return;
                 List<string> pending;
 
                 lock (_gate)
@@ -625,7 +678,11 @@ namespace Cloudict.Speech
                     _lastProcessedWordIndex = _allWords.Count - 1;
                 }
 
-                foreach (var word in pending) OfferWord(word);
+                foreach (var word in pending)
+                {
+                    if (!IsRunning) break;
+                    OfferWord(word);
+                }
 
                 SettleHeldWords();
             }
@@ -743,7 +800,7 @@ namespace Cloudict.Speech
             VoiceCommandProcessor commands;
             lock (_gate) commands = _commands;
 
-            while (_held.Count > 0)
+            while (IsRunning && _held.Count > 0)
             {
                 if (commands != null && commands.HasCommands)
                 {
@@ -774,6 +831,7 @@ namespace Cloudict.Speech
 
         private void RunCommand(VoiceCommandProcessor commands, VoiceCommand command)
         {
+            if (!IsRunning) return;
             try
             {
                 var text = commands.Execute(command);
@@ -808,7 +866,7 @@ namespace Cloudict.Speech
         /// </summary>
         private void Emit(string text, bool prefixSpace = true)
         {
-            if (string.IsNullOrEmpty(text)) return;
+            if (!IsRunning || string.IsNullOrEmpty(text)) return;
 
             if (IsLiveTransfer)
             {
@@ -828,6 +886,9 @@ namespace Cloudict.Speech
 
                 try
                 {
+                    // The caret probe above can wait for a slow target. A Stop arriving during
+                    // that wait must still prevent this word from reaching the application.
+                    if (!IsRunning) return;
                     _injector.TypeText(toSend);
                     _lastSentText += toSend;
                     RememberTyped(toSend[^1]);
@@ -937,7 +998,8 @@ namespace Cloudict.Speech
         /// never at the very start of a field.
         /// </summary>
         internal static bool NeedsSpaceAfter(char? before) =>
-            before is char c && !char.IsWhiteSpace(c) && OpeningMarks.IndexOf(c) < 0;
+            before is char c && !char.IsWhiteSpace(c) && OpeningMarks.IndexOf(c) < 0
+            && !CaretProbe.IsLayoutMarker(c);
 
         private const string OpeningMarks = "([{«‹“‘„";
 

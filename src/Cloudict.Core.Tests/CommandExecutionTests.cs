@@ -33,9 +33,45 @@ namespace Cloudict.Core.Tests
             new VoiceCommand(6, "cap", CommandActionType.TypeText, "CAP"),
             new VoiceCommand(7, "cap lock", CommandActionType.SendKeys, "Tab"),
             new VoiceCommand(8, "nuke word", CommandActionType.SendKeys, "Ctrl+Backspace"),
+            new VoiceCommand(9, "stop typing", CommandActionType.SendKeys, "Ctrl+Alt+S"),
         };
 
         // ---------------------------------------------------------------- one run, in the right place
+
+        [Fact]
+        public async Task A_multi_modifier_voice_command_sends_the_whole_chord_once()
+        {
+            var field = await Dictate("one stop typing");
+            Assert.Equal("one", field.Text);
+            Assert.Single(field.Log, e => e == "C(Control, Alt+S)");
+            Assert.DoesNotContain(field.Log, e => e == "K(S)");
+        }
+
+        [Fact]
+        public async Task A_stop_shortcut_during_a_flush_prevents_later_text_and_commands()
+        {
+            var engine = new Stub();
+            var field = new Field();
+            var settings = new AppSettings { ProcessDelayMs = 50, TransferStartDelayMs = 10000, InactivityDelayMs = 60000 };
+            using var session = new DictationSession(engine, field, () => settings, new NullOutput()) { IsLiveTransfer = true };
+            session.UpdateCommands(new VoiceCommandProcessor(Commands, field));
+            var recognized = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            session.RecognizedTextChanged += (_, _) => recognized.TrySetResult();
+            Task stopping = null;
+            field.OnChord = () => stopping = session.StopAsync();
+            try
+            {
+                Assert.True(await session.StartAsync());
+                engine.Speak("one stop typing two enter three");
+                await recognized.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                await session.FlushPendingWordsAsync();
+                Assert.NotNull(stopping);
+                await stopping;
+                Assert.Equal("one", field.Text);
+                Assert.Equal(new[] { "T(one)", "C(Control, Alt+S)" }, field.Log);
+            }
+            finally { await session.StopAsync(); }
+        }
 
         [Fact]
         public async Task A_typed_command_runs_once_between_its_neighbours()
@@ -367,6 +403,7 @@ namespace Cloudict.Core.Tests
         /// <summary>A text field: typed text lands at the end, Backspace removes a character, Enter a newline.</summary>
         private sealed class Field : ITextInjector
         {
+            public Action OnChord { get; set; }
             private readonly object _gate = new object();
             private string _text = string.Empty;
             private readonly List<string> _log = new List<string>();
@@ -397,6 +434,7 @@ namespace Cloudict.Core.Tests
             public void SendChord(InjectedKey key, KeyModifiers modifiers)
             {
                 lock (_gate) _log.Add("C(" + modifiers + "+" + key + ")");
+                OnChord?.Invoke();
             }
 
             public void Refresh() { }

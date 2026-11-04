@@ -22,6 +22,13 @@ namespace Cloudict.Abstractions
         public static CaretProbe Unknown => new CaretProbe(false, null);
         public static CaretProbe AtStart => new CaretProbe(true, null);
         public static CaretProbe After(char c) => new CaretProbe(true, c);
+
+        /// <summary>Invisible layout markers used by bidirectional and browser text editors.
+        /// Joiners are deliberately excluded: a Persian half-space belongs to a real word.</summary>
+        public static bool IsLayoutMarker(char c) => c is
+            '\u200B' or '\u200E' or '\u200F' or '\u061C' or '\uFEFF' or
+            '\u202A' or '\u202B' or '\u202C' or '\u202D' or '\u202E' or
+            '\u2066' or '\u2067' or '\u2068' or '\u2069';
     }
 
     /// <summary>

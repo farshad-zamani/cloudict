@@ -35,6 +35,15 @@ namespace Cloudict.Core.Tests
         [InlineData('(', false)]
         [InlineData('«', false)]
         [InlineData('“', false)]
+        [InlineData('\u200B', false)]
+        [InlineData('\u200E', false)]
+        [InlineData('\u200F', false)]
+        [InlineData('\u061C', false)]
+        [InlineData('\uFEFF', false)]
+        [InlineData('\u2067', false)]
+        [InlineData('\u2069', false)]
+        [InlineData('\u200C', true)]
+        [InlineData('\u200D', true)]
         public void A_space_is_needed_after_anything_but_whitespace_or_an_opening_mark(char before, bool needed) =>
             Assert.Equal(needed, DictationSession.NeedsSpaceAfter(before));
 

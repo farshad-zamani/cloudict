@@ -221,7 +221,7 @@ namespace Cloudict.Core.Tests
             }
 
             public Task<bool> OpenBrowserAsync(CancellationToken ct = default) => Task.FromResult(true);
-            public Task<bool> StartListeningAsync() => Task.FromResult(true);
+            public Task<bool> StartListeningAsync() => Task.FromResult(ResetCount == 0 || CanRestart);
             public Task<bool> StopListeningAsync() => Task.FromResult(true);
 
             public Task<string> ReadRecognizedTextAsync()

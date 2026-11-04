@@ -22,7 +22,7 @@ the most accurate available — completely free**, by automating the **Google Tr
 page through a Chrome session. No paid API, no account, and no local model.
 
 It also includes a **voice-command** system: say a keyword to insert punctuation, press a
-key (Enter, Tab, …), switch the keyboard language, or run a program.
+key or shortcut (Enter, Tab, Ctrl+Alt+S, …), or switch the keyboard language.
 
 > ℹ️ **How recognition works (and its trade-off):** recognition relies on the public
 > Google Translate web UI driven via Selenium. It's free and needs no API key, but it can
@@ -34,18 +34,82 @@ key (Enter, Tab, …), switch the keyboard language, or run a program.
 - 🎙️ **Dictate anywhere** — recognized text is typed into the active window, with a space added
   where the text before the caret needs one, so phrases never run together.
 - 🖥️ **Windows, Linux and macOS** — one application, one interface, three systems.
-- 🌍 **Dictate in many languages** — pick your speech/typing language from 20+ options
+- 🌍 **18 dictation languages** — pick your speech/typing language from Settings
   (English, Persian, Arabic, French, German, Spanish, Russian, Hindi, Chinese, and more).
 - 🌐 **Bilingual UI** — English by default, Persian selectable (and easy to add more
   languages). Full RTL/LTR support.
-- ⌨️ **Global hotkeys** — `Ctrl+Alt+A` to start/stop, `Ctrl+Alt+S` to stop (configurable).
-- 🗣️ **Voice commands** — punctuation, special keys, keyboard-language switching, launching
-  programs.
+- ⌨️ **Global hotkeys** — `Ctrl+Alt+A` to start, `Ctrl+Alt+S` to stop (configurable).
+- 🗣️ **Voice commands** — punctuation, text snippets, keyboard-language switching and shortcuts
+  with multiple modifiers.
 - 🛠️ **Tunable** — adjust transfer delays and Google Translate selectors from Settings.
-- 🔌 **Works offline on first run** — the matching browser driver ships inside every package.
+- 🔌 **Bundled browser driver** — every package includes a driver; speech recognition requires internet.
 - 🔔 **Tells you about new versions** — a notice in the window when a release is out, with a
   direct download for your system. It only reports and links; it never installs anything by
   itself, and it can be switched off in Settings.
+
+## See Cloudict in action
+
+Actual Windows application captures in English. The text and custom commands below are examples
+configured for this guide. [View the Persian interface](README.fa.md#نمای-برنامه).
+
+<p align="center"><img src="docs/images/main-en.png" width="420" alt="Cloudict main window with an example of collected dictation" /></p>
+
+### Turn spoken phrases into actions
+
+Keep commands for each dictation language separately. Add or edit a phrase to insert punctuation,
+type a reusable snippet, press a key or shortcut, or switch the keyboard to Persian or English.
+Persian includes a ready-made command set; other languages start with an empty set you can customize.
+
+![Voice commands with example punctuation, editing shortcuts, snippets and a stop command](docs/images/voice-commands-en.png)
+
+To stop dictation by voice, add **stop typing**, choose **Send key**, select **S**, and tick
+**Ctrl** and **Alt**. Save the command, then save Settings. Say the phrase while dictation is
+running. It sends `Ctrl+Alt+S`, the default Stop shortcut. If you changed your Stop shortcut,
+choose that combination instead. Once stopped, use the Start button or hotkey to listen again.
+
+![Choose multiple modifiers for a voice shortcut without pressing the shortcut itself](docs/images/command-shortcut-en.png)
+
+<details>
+<summary>More command possibilities: text snippets and keyboard actions</summary>
+
+Type text inserts exactly the value you enter — from a comma to a signature or a complete sentence.
+Send key supports letters, digits, F1–F12, navigation/editing keys, and combinations of Ctrl, Alt,
+Shift and Win / Cmd. Layout-switch commands change the operating-system keyboard layout; they do
+not change the recognition language. Keyboard-layout switching is currently implemented on Windows.
+
+![A reusable text-snippet command](docs/images/command-text-en.png)
+
+![The four available voice-command action types](docs/images/command-actions-en.png)
+
+</details>
+
+### Pick your language and helper browser
+
+Cloudict offers these **18 dictation languages**. Recognition uses the selected browser's online
+speech service, so availability depends on that service and your connection. The interface itself
+is available in **English and Persian**.
+
+| | | |
+|---|---|---|
+| English | فارسی — Persian | العربية — Arabic |
+| Français — French | Deutsch — German | Español — Spanish |
+| Italiano — Italian | Português — Portuguese | Русский — Russian |
+| Türkçe — Turkish | Nederlands — Dutch | Polski — Polish |
+| Українська — Ukrainian | Svenska — Swedish | हिन्दी — Hindi |
+| 中文 — Chinese | 日本語 — Japanese | 한국어 — Korean |
+
+![Speech-engine settings and the dictation-language selector](docs/images/speech-engine-en.png)
+
+<details>
+<summary>Language picker, general settings and Google Translate settings</summary>
+
+![The language picker in the running application](docs/images/languages-en.png)
+
+![Interface language, global shortcuts and general preferences](docs/images/general-en.png)
+
+![Editable Google Translate page selectors](docs/images/google-settings-en.png)
+
+</details>
 
 ## Requirements
 

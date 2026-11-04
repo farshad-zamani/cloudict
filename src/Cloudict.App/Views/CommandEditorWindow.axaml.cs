@@ -36,6 +36,9 @@ namespace Cloudict.App.Views
         private readonly VoiceCommand _original;
         private string _keyValue = string.Empty;
         private bool _capturing;
+        private bool _updatingKeySelection;
+        private readonly InjectedKey[] _availableKeys = Enum.GetValues<InjectedKey>()
+            .Where(k => k != InjectedKey.None).ToArray();
 
         /// <summary>The command as edited, or null when the user cancelled.</summary>
         public VoiceCommand Result { get; private set; }
@@ -45,7 +48,8 @@ namespace Cloudict.App.Views
         {
             InitializeComponent();
 
-            WindowSizing.FitToWorkArea(this, 720, 620);
+            WindowSizing.FitToWorkArea(this, 720, 700);
+            CmbCommandKey.ItemsSource = _availableKeys.Select(KeyNames.ToDisplayName).ToList();
 
             _original = existing;
 
@@ -83,6 +87,7 @@ namespace Cloudict.App.Views
                 // command is never silently rewritten just by being opened.
                 _keyValue = command.ActionValue ?? string.Empty;
                 TxtKeyValue.Text = _keyValue;
+                if (KeyCommandParser.TryParse(_keyValue, out var key)) SetKeySelection(key);
             }
             else
             {
@@ -116,6 +121,44 @@ namespace Cloudict.App.Views
 
         #region Key capture
 
+        private Cloudict.Abstractions.KeyModifiers SelectedModifiers()
+        {
+            var modifiers = Cloudict.Abstractions.KeyModifiers.None;
+            if (ChkKeyCtrl.IsChecked == true) modifiers |= Cloudict.Abstractions.KeyModifiers.Control;
+            if (ChkKeyAlt.IsChecked == true) modifiers |= Cloudict.Abstractions.KeyModifiers.Alt;
+            if (ChkKeyShift.IsChecked == true) modifiers |= Cloudict.Abstractions.KeyModifiers.Shift;
+            if (ChkKeyMeta.IsChecked == true) modifiers |= Cloudict.Abstractions.KeyModifiers.Meta;
+            return modifiers;
+        }
+
+        private void OnKeySelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateKeySelection();
+        private void OnKeyModifiersChanged(object sender, RoutedEventArgs e) => UpdateKeySelection();
+
+        private void UpdateKeySelection()
+        {
+            if (_updatingKeySelection || CmbCommandKey == null || ChkKeyMeta == null) return;
+            var index = CmbCommandKey.SelectedIndex;
+            if (index < 0 || index >= _availableKeys.Length) return;
+            _capturing = false;
+            _keyValue = new HotkeyBinding(_availableKeys[index], SelectedModifiers()).ToString();
+            TxtKeyValue.Text = _keyValue;
+            HideError();
+        }
+
+        private void SetKeySelection(KeyCommand key)
+        {
+            _updatingKeySelection = true;
+            try
+            {
+                CmbCommandKey.SelectedIndex = Array.IndexOf(_availableKeys, key.Key);
+                ChkKeyCtrl.IsChecked = key.Modifiers.HasFlag(Cloudict.Abstractions.KeyModifiers.Control);
+                ChkKeyAlt.IsChecked = key.Modifiers.HasFlag(Cloudict.Abstractions.KeyModifiers.Alt);
+                ChkKeyShift.IsChecked = key.Modifiers.HasFlag(Cloudict.Abstractions.KeyModifiers.Shift);
+                ChkKeyMeta.IsChecked = key.Modifiers.HasFlag(Cloudict.Abstractions.KeyModifiers.Meta);
+            }
+            finally { _updatingKeySelection = false; }
+        }
+
         private void OnCaptureKeyClick(object sender, RoutedEventArgs e)
         {
             _capturing = true;
@@ -128,7 +171,7 @@ namespace Cloudict.App.Views
             if (!_capturing) return;
 
             // A modifier on its own is the user still assembling the combination.
-            if (IsModifier(e.Key)) return;
+            if (IsModifier(e.Key)) { e.Handled = true; return; }
 
             e.Handled = true;
 
@@ -145,7 +188,7 @@ namespace Cloudict.App.Views
                 return;
             }
 
-            var modifiers = Cloudict.Abstractions.KeyModifiers.None;
+            var modifiers = SelectedModifiers();
             if (e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Control)) modifiers |= Cloudict.Abstractions.KeyModifiers.Control;
             if (e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Alt)) modifiers |= Cloudict.Abstractions.KeyModifiers.Alt;
             if (e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Shift)) modifiers |= Cloudict.Abstractions.KeyModifiers.Shift;
@@ -153,6 +196,7 @@ namespace Cloudict.App.Views
 
             _keyValue = new HotkeyBinding(key, modifiers).ToString();
             TxtKeyValue.Text = _keyValue;
+            SetKeySelection(new KeyCommand(key, modifiers));
             _capturing = false;
 
             HideError();

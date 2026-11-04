@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:Cloudict.App.Localization"
         x:Class="Cloudict.App.Views.CommandEditorWindow"
-        Width="720" Height="620"
+        Width="720" Height="700"
         MinWidth="600" MinHeight="460"
         WindowStartupLocation="CenterOwner"
         Icon="avares://Cloudict/Assets/app-icon.ico"
@@ -60,6 +60,20 @@
                     Margin="8,0,0,0" Padding="16,10"
                     Content="{loc:Tr AddCmd_ChooseKey}" Click="OnCaptureKeyClick"/>
           </Grid>
+          <WrapPanel Orientation="Horizontal" FlowDirection="LeftToRight">
+            <ComboBox x:Name="CmbCommandKey" Width="180" Margin="0,6,14,0"
+                      AutomationProperties.Name="{loc:Tr AddCmd_KeyLabel}"
+                      PlaceholderText="{loc:Tr AddCmd_KeyLabel}"
+                      SelectionChanged="OnKeySelectionChanged"/>
+            <CheckBox x:Name="ChkKeyCtrl" Content="Ctrl" Margin="0,6,12,0"
+                      IsCheckedChanged="OnKeyModifiersChanged"/>
+            <CheckBox x:Name="ChkKeyAlt" Content="Alt" Margin="0,6,12,0"
+                      IsCheckedChanged="OnKeyModifiersChanged"/>
+            <CheckBox x:Name="ChkKeyShift" Content="Shift" Margin="0,6,12,0"
+                      IsCheckedChanged="OnKeyModifiersChanged"/>
+            <CheckBox x:Name="ChkKeyMeta" Content="Win / Cmd" Margin="0,6,0,0"
+                      IsCheckedChanged="OnKeyModifiersChanged"/>
+          </WrapPanel>
           <TextBlock Text="{loc:Tr AddCmd_KeyHint}" Classes="hint"/>
         </StackPanel>
 

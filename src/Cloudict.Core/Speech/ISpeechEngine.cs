@@ -26,6 +26,9 @@ namespace Cloudict.Speech
         /// <summary>Stops listening.</summary>
         Task<bool> StopListeningAsync();
 
+        /// <summary>The page's listening state; null if this engine cannot determine it.</summary>
+        Task<bool?> IsMicrophoneOnAsync() => Task.FromResult<bool?>(null);
+
         /// <summary>The text the page is currently showing, or empty.</summary>
         Task<string> ReadRecognizedTextAsync();
 

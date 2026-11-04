@@ -92,14 +92,18 @@ namespace Cloudict.Platform.Windows
                 if (before.MoveEndpointByRange(TextPatternRangeEndpoint_End, range, TextPatternRangeEndpoint_Start) != 0)
                     return CaretProbe.Unknown;
 
-                // Stretch it one character backwards and read that character.
-                if (before.MoveEndpointByUnit(TextPatternRangeEndpoint_Start, TextUnit_Character, -1, out var moved) != 0)
-                    return CaretProbe.Unknown;
-                if (moved == 0) return CaretProbe.AtStart;
-
-                if (before.GetText(8, out var text) != 0 || string.IsNullOrEmpty(text)) return CaretProbe.Unknown;
-
-                return CaretProbe.After(text[^1]);
+                // A visually empty Chromium editor can contain only a direction marker or ZWSP.
+                // Walk past those markers, keeping actual whitespace and Persian joiners intact.
+                for (var attempt = 0; attempt < 16; attempt++)
+                {
+                    if (before.MoveEndpointByUnit(TextPatternRangeEndpoint_Start, TextUnit_Character, -1, out var moved) != 0)
+                        return CaretProbe.Unknown;
+                    if (moved == 0) return CaretProbe.AtStart;
+                    if (before.GetText(64, out var text) != 0 || string.IsNullOrEmpty(text)) return CaretProbe.Unknown;
+                    for (var i = text.Length - 1; i >= 0; i--)
+                        if (!CaretProbe.IsLayoutMarker(text[i])) return CaretProbe.After(text[i]);
+                }
+                return CaretProbe.Unknown;
             }
             catch (Exception ex)
             {
