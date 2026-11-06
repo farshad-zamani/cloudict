@@ -144,6 +144,107 @@ public class MicrophoneRecoveryTests
         Assert.Equal(starts, engine.Starts);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Manual_mode_flushes_the_final_tail_once_without_clearing_or_restarting(bool live)
+    {
+        var settings = new AppSettings { KeepMicrophoneActive = false, ProcessDelayMs = 50, TransferStartDelayMs = 50,
+            WordByWordDelayMs = 1000, InactivityDelayMs = 10000 };
+        var engine = new Engine();
+        var output = new Output();
+        var injector = new Injector();
+        using var session = new DictationSession(engine, injector, () => settings, output) { IsLiveTransfer = live };
+        var stopped = 0;
+        session.AutoStopped += (_, _) => Interlocked.Increment(ref stopped);
+        try
+        {
+            await session.StartAsync();
+            engine.Text = "one two three four five six";
+            engine.Mic = false;
+            await Until(() => Volatile.Read(ref stopped) == 1);
+            await Task.Delay(1200);
+            Assert.Equal(1, stopped);
+            Assert.Equal("one two three four five six", live ? injector.Text : output.FinalText);
+            Assert.Equal("one two three four five six", engine.Text);
+            Assert.Equal(1, engine.Starts);
+            Assert.Equal(0, engine.Resets);
+        }
+        finally { await session.StopAsync(); }
+        Assert.True(await session.StartAsync());
+        Assert.Equal(2, engine.Starts);
+        await session.StopAsync();
+    }
+
+    [Fact]
+    public async Task Manual_mode_does_not_reset_on_silence_or_continuous_run_limit()
+    {
+        var settings = new AppSettings { KeepMicrophoneActive = false, ProcessDelayMs = 50, TransferStartDelayMs = 50,
+            WordByWordDelayMs = 50, InactivityDelayMs = 100 };
+        var engine = new Engine();
+        var output = new Output();
+        using var session = new DictationSession(engine, new Injector(), () => settings, output) { MaxContinuousMs = 100 };
+        try
+        {
+            await session.StartAsync();
+            engine.Text = "one two";
+            await Until(() => output.FinalText == "one two");
+            engine.Text = "one two three";
+            await Until(() => output.FinalText == "one two three");
+            await Task.Delay(1200);
+            Assert.True(session.IsRunning);
+            Assert.Equal(1, engine.Starts);
+            Assert.Equal(0, engine.Resets);
+        }
+        finally { await session.StopAsync(); }
+    }
+
+    [Fact]
+    public async Task Disabling_continuous_listening_during_a_browser_reset_releases_capture_and_stops()
+    {
+        var settings = new AppSettings { ProcessDelayMs = 50, WordByWordDelayMs = 50, InactivityDelayMs = 10000 };
+        var engine = new Engine { SlowReset = true };
+        using var session = new DictationSession(engine, new Injector(), () => settings, new Output());
+        var stopped = 0;
+        session.AutoStopped += (_, _) => Interlocked.Increment(ref stopped);
+        try
+        {
+            await session.StartAsync();
+            engine.Mic = false;
+            await engine.ResetEntered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            settings.KeepMicrophoneActive = false;
+            await Until(() => Volatile.Read(ref stopped) == 1);
+            Assert.False(engine.Mic);
+            Assert.True(session.IsResetting);
+            var starts = engine.Starts;
+            await Task.Delay(1200);
+            Assert.Equal(starts, engine.Starts);
+        }
+        finally { await session.StopAsync(); }
+    }
+
+    [Fact]
+    public async Task Disabling_continuous_listening_during_a_start_retry_releases_capture()
+    {
+        var settings = new AppSettings { ProcessDelayMs = 50, WordByWordDelayMs = 50, InactivityDelayMs = 10000 };
+        var engine = new Engine { SlowRetryStart = true };
+        using var session = new DictationSession(engine, new Injector(), () => settings, new Output());
+        var stopped = 0;
+        session.AutoStopped += (_, _) => Interlocked.Increment(ref stopped);
+        try
+        {
+            await session.StartAsync();
+            engine.FailedStarts = 1;
+            engine.Mic = false;
+            await engine.RetryEntered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            settings.KeepMicrophoneActive = false;
+            await Until(() => Volatile.Read(ref stopped) == 1);
+            Assert.False(engine.Mic);
+            Assert.Equal(3, engine.Starts);
+        }
+        finally { await session.StopAsync(); }
+    }
+
     private static DictationSession Session(Engine engine, Output output, int wordDelay = 50, Injector injector = null) =>
         new(engine, injector ?? new Injector(), () => new AppSettings {
             ProcessDelayMs = 50, TransferStartDelayMs = 50, WordByWordDelayMs = wordDelay,
@@ -163,13 +264,20 @@ public class MicrophoneRecoveryTests
         public bool? Mic = true;
         public int Starts, Resets, Checks, FailedStarts;
         public bool SlowReset;
+        public bool SlowRetryStart;
         public TaskCompletionSource ResetEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource RetryEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task<bool> OpenBrowserAsync(CancellationToken ct = default) => Task.FromResult(true);
-        public Task<bool> StartListeningAsync()
+        public async Task<bool> StartListeningAsync()
         {
-            Interlocked.Increment(ref Starts);
+            var starts = Interlocked.Increment(ref Starts);
+            if (SlowRetryStart && starts > 2)
+            {
+                RetryEntered.TrySetResult();
+                await Task.Delay(700);
+            }
             Mic = Interlocked.Decrement(ref FailedStarts) < 0;
-            return Task.FromResult(Mic == true);
+            return Mic == true;
         }
         public Task<bool> StopListeningAsync() { Mic = false; return Task.FromResult(true); }
         public Task<bool?> IsMicrophoneOnAsync() { Interlocked.Increment(ref Checks); return Task.FromResult(Mic); }

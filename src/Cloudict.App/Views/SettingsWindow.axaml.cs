@@ -4,6 +4,10 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
+using Avalonia.Platform.Storage;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -18,6 +22,8 @@ namespace Cloudict.App.Views
         private readonly ObservableCollection<VoiceCommand> _commands = new ObservableCollection<VoiceCommand>();
 
         private AppSettings _settings;
+        private bool _importedSettings;
+        private bool _transferBusy;
 
         /// <summary>Which dictation language the grid's contents belong to.</summary>
         private string _commandLanguage;
@@ -217,42 +223,93 @@ namespace Cloudict.App.Views
 
         #region Actions
 
+        private async void OnExportSettingsClick(object sender, RoutedEventArgs e) => await ExportAsync(commandsOnly: false);
+        private async void OnExportCommandsClick(object sender, RoutedEventArgs e) => await ExportAsync(commandsOnly: true);
+        private async void OnImportSettingsClick(object sender, RoutedEventArgs e) => await ImportAsync(commandsOnly: false);
+        private async void OnImportCommandsClick(object sender, RoutedEventArgs e) => await ImportAsync(commandsOnly: true);
+
+        private static FilePickerFileType BackupFileType => new("Cloudict JSON") { Patterns = new[] { "*.json" } };
+
+        private async Task ExportAsync(bool commandsOnly)
+        {
+            if (_transferBusy) return;
+            _transferBusy = true;
+            try
+            {
+                CollectEdits();
+                var json = commandsOnly ? SettingsTransfer.ExportCommands(_settings) : SettingsTransfer.ExportSettings(_settings);
+                var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = Loc.Get(commandsOnly ? "Settings_ExportCommands" : "Settings_ExportAll"),
+                    SuggestedFileName = commandsOnly ? "cloudict-voice-commands.json" : "cloudict-settings.json",
+                    DefaultExtension = "json", FileTypeChoices = new[] { BackupFileType }, ShowOverwritePrompt = true
+                });
+                if (file == null) return;
+                using (file)
+                await using (var stream = await file.OpenWriteAsync())
+                {
+                    if (stream.CanSeek) stream.SetLength(0);
+                    await using var writer = new StreamWriter(stream, new UTF8Encoding(false));
+                    await writer.WriteAsync(json);
+                }
+                ShowSaveResult(Loc.Get("Settings_Exported"), true);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[SettingsWindow] export failed: {ex.Message}");
+                ShowSaveResult(Loc.Get("Settings_ExportFailed"), false, persistent: true);
+            }
+            finally { _transferBusy = false; }
+        }
+
+        private async Task ImportAsync(bool commandsOnly)
+        {
+            if (_transferBusy) return;
+            _transferBusy = true;
+            try
+            {
+                var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+                {
+                    Title = Loc.Get(commandsOnly ? "Settings_ImportCommands" : "Settings_ImportAll"),
+                    AllowMultiple = false, FileTypeFilter = new[] { BackupFileType }
+                });
+                if (files.Count == 0) return;
+                string json;
+                using (var file = files[0])
+                await using (var stream = await file.OpenReadAsync())
+                using (var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true))
+                {
+                    var buffer = new char[8192];
+                    var text = new StringBuilder();
+                    int count;
+                    while ((count = await reader.ReadAsync(buffer, 0, buffer.Length)) != 0)
+                    {
+                        if (text.Length + count > SettingsTransfer.MaximumBytes) throw new InvalidDataException("Backup too large.");
+                        text.Append(buffer, 0, count);
+                    }
+                    json = text.ToString();
+                }
+                if (commandsOnly) CollectEdits();
+                var imported = commandsOnly ? SettingsTransfer.ImportCommands(json, _settings) : SettingsTransfer.ImportSettings(json);
+                // Assign only after the entire file passes validation. Save remains a separate action.
+                _settings = imported;
+                if (!commandsOnly) _importedSettings = true;
+                PopulateFromSettings();
+                ShowSaveResult(Loc.Get("Settings_Imported"), true, persistent: true);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[SettingsWindow] import failed: {ex.Message}");
+                ShowSaveResult(Loc.Get("Settings_ImportFailed"), false, persistent: true);
+            }
+            finally { _transferBusy = false; }
+        }
+
         private void OnSaveClick(object sender, RoutedEventArgs e)
         {
             try
             {
-                _settings.TypingLanguage = SelectedCode(CmbTypingLanguage, "en");
-                _settings.UILanguage = SelectedCode(CmbUiLanguage, "en");
-                _settings.HelperBrowser = SelectedCode(CmbHelperBrowser, Cloudict.Speech.HelperBrowsers.Auto);
-
-                _settings.ProcessDelayMs = ParseDelay(TxtProcessDelay.Text, _settings.ProcessDelayMs);
-                _settings.WordByWordDelayMs = ParseDelay(TxtWordDelay.Text, _settings.WordByWordDelayMs);
-                _settings.TransferStartDelayMs = ParseDelay(TxtStartDelay.Text, _settings.TransferStartDelayMs);
-                _settings.InactivityDelayMs = ParseDelay(TxtInactivityDelay.Text, _settings.InactivityDelayMs);
-
-                _settings.MicButtonXPath = TxtMicXPath.Text?.Trim();
-                _settings.TextBoxAriaLabels = SplitLines(TxtAriaLabels.Text);
-                _settings.TextBoxClassSelectors = SplitLines(TxtClassSelectors.Text);
-
-                _settings.MinimizeToTray = ChkMinimizeToTray.IsChecked == true;
-                _settings.ShowStatusIndicator = ChkShowIndicator.IsChecked == true;
-                _settings.OpenBrowserOnStartup = ChkOpenBrowserOnStartup.IsChecked == true;
-                _settings.CheckForUpdates = ChkCheckForUpdates.IsChecked == true;
-
-                // Live transfer belongs to the main window, which saves it the moment it is
-                // toggled. Re-read it so a toggle made while this dialog was open is not
-                // overwritten by the value that was loaded when the dialog opened.
-                _settings.LiveTransferEnabled = AppServices.Settings.LoadSettings().LiveTransferEnabled;
-
-                _settings.GlobalShortcutEnabled = ChkShortcutEnabled.IsChecked == true;
-                _settings.ShortcutCtrl = ChkToggleCtrl.IsChecked == true;
-                _settings.ShortcutAlt = ChkToggleAlt.IsChecked == true;
-                _settings.ShortcutKey = string.IsNullOrWhiteSpace(TxtToggleKey.Text) ? "A" : TxtToggleKey.Text.Trim();
-                _settings.StopShortcutCtrl = ChkStopCtrl.IsChecked == true;
-                _settings.StopShortcutAlt = ChkStopAlt.IsChecked == true;
-                _settings.StopShortcutKey = string.IsNullOrWhiteSpace(TxtStopKey.Text) ? "S" : TxtStopKey.Text.Trim();
-
-                _settings.SetVoiceCommandsFor(_commandLanguage ?? _settings.TypingLanguage, _commands.ToList());
+                CollectEdits();
 
                 // Saving deliberately leaves the window open. Closing on save meant anyone
                 // adjusting two things in different tabs had to reopen Settings between them, and
@@ -272,6 +329,47 @@ namespace Cloudict.App.Views
                 Debug.WriteLine($"[SettingsWindow] save failed: {ex.Message}");
                 ShowSaveResult(Loc.Get("Settings_SaveFailed"), success: false);
             }
+        }
+
+        private void CollectEdits()
+        {
+            _settings.TypingLanguage = SelectedCode(CmbTypingLanguage, "en");
+            _settings.UILanguage = SelectedCode(CmbUiLanguage, "en");
+            _settings.HelperBrowser = SelectedCode(CmbHelperBrowser, Cloudict.Speech.HelperBrowsers.Auto);
+
+            _settings.ProcessDelayMs = ParseDelay(TxtProcessDelay.Text, _settings.ProcessDelayMs);
+            _settings.WordByWordDelayMs = ParseDelay(TxtWordDelay.Text, _settings.WordByWordDelayMs);
+            _settings.TransferStartDelayMs = ParseDelay(TxtStartDelay.Text, _settings.TransferStartDelayMs);
+            _settings.InactivityDelayMs = ParseDelay(TxtInactivityDelay.Text, _settings.InactivityDelayMs);
+
+            _settings.MicButtonXPath = TxtMicXPath.Text?.Trim();
+            _settings.TextBoxAriaLabels = SplitLines(TxtAriaLabels.Text);
+            _settings.TextBoxClassSelectors = SplitLines(TxtClassSelectors.Text);
+
+            _settings.MinimizeToTray = ChkMinimizeToTray.IsChecked == true;
+            _settings.ShowStatusIndicator = ChkShowIndicator.IsChecked == true;
+            _settings.OpenBrowserOnStartup = ChkOpenBrowserOnStartup.IsChecked == true;
+            _settings.CheckForUpdates = ChkCheckForUpdates.IsChecked == true;
+
+            // Live transfer belongs to the main window, which saves it the moment it is
+            // toggled. Re-read it so a toggle made while this dialog was open is not
+            // overwritten by the value that was loaded when the dialog opened.
+            if (!_importedSettings)
+            {
+                var current = AppServices.Settings.LoadSettings();
+                _settings.LiveTransferEnabled = current.LiveTransferEnabled;
+                _settings.KeepMicrophoneActive = current.KeepMicrophoneActive;
+            }
+
+            _settings.GlobalShortcutEnabled = ChkShortcutEnabled.IsChecked == true;
+            _settings.ShortcutCtrl = ChkToggleCtrl.IsChecked == true;
+            _settings.ShortcutAlt = ChkToggleAlt.IsChecked == true;
+            _settings.ShortcutKey = string.IsNullOrWhiteSpace(TxtToggleKey.Text) ? "A" : TxtToggleKey.Text.Trim();
+            _settings.StopShortcutCtrl = ChkStopCtrl.IsChecked == true;
+            _settings.StopShortcutAlt = ChkStopAlt.IsChecked == true;
+            _settings.StopShortcutKey = string.IsNullOrWhiteSpace(TxtStopKey.Text) ? "S" : TxtStopKey.Text.Trim();
+
+            _settings.SetVoiceCommandsFor(_commandLanguage ?? _settings.TypingLanguage, _commands.ToList());
         }
 
         /// <summary>Keeps an unparseable or out-of-range entry from corrupting a working delay.</summary>
@@ -297,7 +395,7 @@ namespace Cloudict.App.Views
         /// Reports the outcome beside the buttons, and clears it after a few seconds so it does not
         /// sit there claiming a save that happened several edits ago.
         /// </summary>
-        private void ShowSaveResult(string message, bool success)
+        private void ShowSaveResult(string message, bool success, bool persistent = false)
         {
             TxtSaveResult.Text = message;
             TxtSaveResult.IsVisible = true;
@@ -305,6 +403,8 @@ namespace Cloudict.App.Views
                                        ?? TxtSaveResult.Foreground;
 
             var shown = ++_saveResultToken;
+
+            if (persistent) return;
 
             Avalonia.Threading.DispatcherTimer.RunOnce(() =>
             {

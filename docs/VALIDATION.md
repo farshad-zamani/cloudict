@@ -1,4 +1,47 @@
-# Cloudict 3.2.12 verification
+# Cloudict 3.2.13 verification
+
+Date: 2026-11-06. Scope: optional continuous listening, portable settings and voice commands,
+recognized-text controls, and refreshed English/Persian screenshots.
+
+- **240 Core tests passed** in Release configuration. New coverage checks manual listening in
+  buffered/live modes, final-tail transfer exactly once without clearing the source, no automatic
+  pause/continuous-run resets when disabled, and disabling continuous listening during a browser
+  reset or start retry. Existing continuous-recovery, Stop, spacing and command regressions remain included.
+- Full settings and all saved command languages round-trip without modifying their source.
+  Separate command imports preserve unrelated settings/languages, including intentionally empty
+  sets and disabled commands. Legacy commands migrate on a copy. Invalid JSON, incompatible
+  format/version, duplicate properties, trailing documents, oversized files, invalid settings,
+  null commands and unsupported key commands are rejected.
+- Saving an imported configuration preserves exact selector lists and writes the previous
+  configuration to the existing rollback backup. Deserialization replaces initialized lists,
+  preventing default selectors from accumulating on every load.
+- Actual Windows English/Persian windows passed minimum-size layout checks: main 470×560,
+  settings 820×520 and editor 600×460. The new down-arrow and listening switch have localized
+  accessible names. The command grid retains usable height; its actions scroll into view above
+  the settings footer. The backup tab scrolls at the minimum size.
+- The real settings-window export/import handlers were exercised with a controlled picker result
+  and native Windows storage-file streams: export includes unsaved edits without applying them,
+  imported main-window options survive Save/reload, invalid/cancelled imports retain the draft,
+  and closing without Save discards imported settings. This checks the app's file workflow;
+  interactive navigation of the platform's file-picker dialog was not automated.
+- **20 real Windows captures** (10 per interface language) were refreshed from isolated example
+  settings, including the new Backup tab and updated command controls. No transfer-delay
+  screenshot is included. The main, Backup and command layouts were visually reviewed.
+- The release workflow builds native Windows, Linux and both macOS architectures, validates the
+  Windows installer filename/embedded version, and uploads packages to a draft release before
+  public publication.
+- Local self-contained win-x64 publishing and Inno Setup compilation succeeded. Both
+  `Cloudict.exe --version` and the generated `Cloudict-3.2.13-Setup.exe` metadata report 3.2.13.
+
+Continuous listening defaults on to preserve existing behavior; turning it off is remembered.
+Full imports are staged until Save; restart after saving for every imported option to take effect.
+Browser profiles and OS permissions are configured separately. Local UI checks were on Windows;
+the multi-hour speech and pre-existing dependency limitations below still apply. There was no new
+multi-hour microphone endurance run in this update.
+
+---
+
+# Previous verification: Cloudict 3.2.12
 
 Date: 2026-11-04. Scope: intermittent recognition stops, retained microphone capture, initial
 spacing in browser editors, multi-modifier voice commands, bilingual documentation and packages.

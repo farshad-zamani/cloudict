@@ -1,5 +1,12 @@
 # Cloudict interface review
 
+2026-11-06 update: the recognized-text toolbar now contains Copy, quick transfer (red down-arrow)
+and Clear. A remembered continuous-listening switch replaces the old text button below the box.
+Settings adds a scrolling Backup tab and separate command import/export actions. The commands
+tab itself scrolls so its grid and actions remain usable at 820×520. These additions were rendered
+and checked in English/Persian at the normal and minimum sizes; existing colors and focus styling
+were preserved. This extends the limited review below, without broadening its certification claims.
+
 2026-11-04 · Scope: a light general review and narrow corrections to the existing Avalonia desktop
 interface, followed by a polish pass. The established dark palette, fonts, controls and workflow
 are retained. The review covers basic layout, readability and keyboard access.

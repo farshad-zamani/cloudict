@@ -428,6 +428,7 @@ namespace Cloudict.App.Views
         {
             _session.IsLiveTransfer = _settings?.LiveTransferEnabled == true;
             BtnLiveTransfer.IsChecked = _session.IsLiveTransfer;
+            BtnKeepMicrophone.IsChecked = _settings?.KeepMicrophoneActive == true;
             ApplyFinalTextAvailability();
         }
 
@@ -907,6 +908,13 @@ namespace Cloudict.App.Views
             };
         }
 
+        private void OnKeepMicrophoneClick(object sender, RoutedEventArgs e)
+        {
+            _settings.KeepMicrophoneActive = BtnKeepMicrophone.IsChecked == true;
+            AppServices.Settings.SaveSettings(_settings);
+            SetStatus(Loc.Get(_settings.KeepMicrophoneActive ? "Main_St_KeepMicrophoneOn" : "Main_St_KeepMicrophoneOff"));
+        }
+
         private void OnLiveTransferClick(object sender, RoutedEventArgs e)
         {
             _session.IsLiveTransfer = BtnLiveTransfer.IsChecked == true;
@@ -1094,8 +1102,8 @@ namespace Cloudict.App.Views
         }
 
         /// <summary>
-        /// Google Translate's microphone died and would not restart. The session cannot tear itself
-        /// down from inside its own loops, so it asks here.
+        /// The page stopped with automatic restart disabled, or recovery failed. The session
+        /// cannot tear itself down from inside its own loops, so it asks here.
         /// </summary>
         private void OnSessionAutoStopped(object sender, EventArgs e) =>
             Dispatcher.UIThread.Post(async () =>
@@ -1107,8 +1115,9 @@ namespace Cloudict.App.Views
 
                 await StopDictationAsync(notify: false);
 
-                SetStatus(Loc.Get("Main_St_MicLost"));
-                if (!alreadyTold) Notify(Loc.Get("Notify_MicLost"));
+                var message = _settings.KeepMicrophoneActive ? "Main_St_MicLost" : "Main_St_MicStoppedManualMode";
+                SetStatus(Loc.Get(message));
+                if (!alreadyTold) Notify(Loc.Get(_settings.KeepMicrophoneActive ? "Notify_MicLost" : message));
             });
 
         /// <summary>

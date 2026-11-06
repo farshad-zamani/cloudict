@@ -60,7 +60,9 @@ Translate keeps *revising* words it has already shown while the user carries on 
 cannot simply be forwarded as it appears. `DictationSession` waits before starting
 (`TransferStartDelayMs`), paces itself word by word (`WordByWordDelayMs`), and after a silence
 (`InactivityDelayMs`) flushes what is pending and restarts the microphone so the page's buffer never
-grows long enough to be rewritten wholesale.
+grows long enough to be rewritten wholesale. Automatic pause/continuous-run resets and recovery
+are controlled by `KeepMicrophoneActive` (default true). When disabled, three confirmed page-off
+samples flush the final tail once and request Stop without clearing or restarting the page.
 
 Two guards in there are worth knowing about, because both fixed real bugs:
 
@@ -82,7 +84,17 @@ Buffered output goes through `IDictationOutput` rather than a private buffer, be
 inserted **at the caret** so the user can direct where they land — and that state belongs to the
 view, not to the session.
 
+## Portable settings
+
+`SettingsTransfer` creates version-1 `Cloudict.Settings` and `Cloudict.VoiceCommands` JSON
+envelopes. Import validates the complete document on an independent copy before the settings
+window stages it; only Save writes it through `SettingsManager` with the existing rollback backup.
+Command-only imports replace included language sets and command options while retaining other
+languages and application preferences. Initialized collections are replaced during deserialization
+so selector defaults do not accumulate. Backups exclude browser profiles and OS permissions.
+
 ## Browser provisioning
+
 
 ChromeDriver must match the installed Chrome's major version, and Chrome updates itself, so "which
 driver do we run?" is a moving target. Cloudict 2.x delegated this to `WebDriverManager`, which

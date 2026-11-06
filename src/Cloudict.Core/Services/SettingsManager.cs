@@ -75,7 +75,7 @@ namespace Cloudict.Services
                 if (File.Exists(SettingsFilePath))
                 {
                     string json = File.ReadAllText(SettingsFilePath);
-                    var settings = JsonConvert.DeserializeObject<AppSettings>(json);
+                    var settings = Deserialize(json);
 
                     if (settings != null && settings.IsValid())
                     {
@@ -98,7 +98,7 @@ namespace Cloudict.Services
                     if (File.Exists(BackupFilePath))
                     {
                         string backupJson = File.ReadAllText(BackupFilePath);
-                        var backupSettings = JsonConvert.DeserializeObject<AppSettings>(backupJson);
+                        var backupSettings = Deserialize(backupJson);
 
                         if (backupSettings != null && backupSettings.IsValid())
                         {
@@ -120,6 +120,11 @@ namespace Cloudict.Services
 
             return GetDefaultSettings();
         }
+
+        // Replace initialized lists rather than appending the serialized values to defaults.
+        // This also keeps imported selectors identical after the next load.
+        private static AppSettings Deserialize(string json) => JsonConvert.DeserializeObject<AppSettings>(json,
+            new JsonSerializerSettings { ObjectCreationHandling = ObjectCreationHandling.Replace });
 
         public bool SaveSettings(AppSettings settings)
         {

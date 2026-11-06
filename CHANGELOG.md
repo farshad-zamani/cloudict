@@ -8,6 +8,21 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
+## [3.2.13] – 2026-11-06
+
+### Added
+- Optional continuous Google Translate listening, remembered between runs.
+- Full settings export/import, including voice commands for all saved languages.
+- Separate voice-command export/import.
+
+### Changed
+- Quick transfer moved to the down-arrow icon beside recognized text.
+- Updated English/Persian guides and screenshots.
+- Voice-command controls remain reachable in small windows.
+
+### Fixed
+- Saved selector lists no longer accumulate duplicate defaults on load.
+
 ## [3.2.12] – 2026-11-04
 
 ### Fixed

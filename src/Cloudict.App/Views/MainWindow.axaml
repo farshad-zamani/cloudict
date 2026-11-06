@@ -118,6 +118,14 @@
               <Path Width="15" Height="15" Stretch="Uniform"
                     Fill="{DynamicResource TextSecondaryBrush}" Data="{StaticResource IconCopy}"/>
             </Button>
+            <Button x:Name="BtnQuickTransfer" Classes="icon danger" Click="OnQuickTransferClick"
+                    AutomationProperties.Name="{loc:Tr Main_QuickTransfer}"
+                    ToolTip.Tip="{loc:Tr Main_QuickTransfer}">
+              <Path Width="16" Height="16" Stretch="Uniform"
+                    Stroke="{DynamicResource ErrorTextBrush}" StrokeThickness="2"
+                    StrokeLineCap="Round" StrokeJoin="Round"
+                    Data="M8 2 L8 14 M3 9 L8 14 L13 9"/>
+            </Button>
             <Button Classes="icon danger" Click="OnClearRecognizedClick"
                     AutomationProperties.Name="{loc:Tr Main_ClearRecognized}"
                     ToolTip.Tip="{loc:Tr Main_ClearRecognized}">
@@ -136,7 +144,12 @@
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center"
                     Margin="0,10,0,0">
-          <Button Classes="accent" Content="{loc:Tr Main_QuickTransfer}" Click="OnQuickTransferClick"/>
+          <ToggleSwitch x:Name="BtnKeepMicrophone" Classes="mode"
+                        OnContent="{loc:Tr Main_KeepMicrophone}"
+                        OffContent="{loc:Tr Main_KeepMicrophone}"
+                        AutomationProperties.Name="{loc:Tr Main_KeepMicrophone}"
+                        ToolTip.Tip="{loc:Tr Main_KeepMicrophoneTip}"
+                        Click="OnKeepMicrophoneClick"/>
         </StackPanel>
       </Grid>
     </Border>

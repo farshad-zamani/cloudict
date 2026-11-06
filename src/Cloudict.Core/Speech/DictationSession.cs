@@ -126,9 +126,9 @@ namespace Cloudict.Speech
         public event EventHandler<string> CommandExecuted;
 
         /// <summary>
-        /// Raised when recognition has died and cannot be brought back — Google Translate's own
-        /// microphone has stopped and will not restart. The session cannot tear itself down from
-        /// inside its own loops, so the owner is asked to call <see cref="StopAsync"/>.
+        /// Raised when the page stops and automatic restart is disabled, or recovery fails.
+        /// The session cannot tear itself down from inside its own loops, so the owner is asked
+        /// to call <see cref="StopAsync"/>.
         /// </summary>
         public event EventHandler AutoStopped;
 
@@ -467,10 +467,40 @@ namespace Cloudict.Speech
             }
 
             if (++_microphoneMisses < 3) return false;
+            if (!Settings.KeepMicrophoneActive)
+            {
+                // Preserve the final tail without clearing the page or turning capture back on.
+                _suspendRecognition = true;
+                try
+                {
+                    var finalText = await _engine.ReadRecognizedTextAsync();
+                    if (!IsRunning) return true;
+                    if (!string.IsNullOrWhiteSpace(finalText) && finalText != _lastRecognizedText)
+                    {
+                        OnRecognizedText(finalText);
+                        RecognizedTextChanged?.Invoke(this, finalText);
+                    }
+                    await FlushPendingWordsAsync();
+                    if (!IsRunning) return true;
+                    RequestMicrophoneStop();
+                    return true;
+                }
+                finally
+                {
+                    if (!_microphoneFailed && Volatile.Read(ref _resumeReported) == 0) _suspendRecognition = false;
+                }
+            }
             DiagnosticLog.Write("DictationSession", "page microphone off for three checks; preserving pending words and recovering");
             Report("Main_St_RecoveringMic");
             await PerformResetAsync();
             return true;
+        }
+
+        private void RequestMicrophoneStop()
+        {
+            _microphoneFailed = true;
+            Report("Main_St_MicStoppedManualMode");
+            AutoStopped?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -504,6 +534,7 @@ namespace Cloudict.Speech
         /// </summary>
         private async Task CheckForInactivityAsync()
         {
+            if (!Settings.KeepMicrophoneActive) return;
             bool shouldReset;
 
             lock (_gate)
@@ -529,7 +560,7 @@ namespace Cloudict.Speech
         /// </summary>
         private async Task CheckContinuousRunAsync()
         {
-            if (MaxContinuousMs <= 0) return;
+            if (MaxContinuousMs <= 0 || !Settings.KeepMicrophoneActive) return;
 
             bool due;
 
@@ -577,6 +608,7 @@ namespace Cloudict.Speech
         {
             // Stop observing *before* the reset: reading or transferring while the box is being
             // cleared is what used to re-send text that had already been typed.
+            if (!Settings.KeepMicrophoneActive || !IsRunning) return;
             _suspendRecognition = true;
 
             try
@@ -607,18 +639,35 @@ namespace Cloudict.Speech
 
                 if (!IsRunning) return;
 
+                // The user may switch continuous listening off while the flush is awaiting.
+                if (!Settings.KeepMicrophoneActive) return;
                 var reset = await _engine.ResetMicrophoneAsync();
+
+                // An engine reset already in flight cannot be cancelled; release capture if the
+                // user disabled continuous listening while it was awaiting the browser.
+                if (IsRunning && !Settings.KeepMicrophoneActive)
+                {
+                    await _engine.StopListeningAsync();
+                    if (IsRunning) RequestMicrophoneStop();
+                    return;
+                }
 
                 // A transient speech-service error must not be treated as a manual Stop. Retrying
                 // start alone preserves the reset's clear result and never clears untransferred text.
                 var listening = reset.Listening;
-                for (var attempt = 0; !listening && attempt < 2 && IsRunning; attempt++)
+                for (var attempt = 0; !listening && attempt < 2 && IsRunning && Settings.KeepMicrophoneActive; attempt++)
                 {
                     await Task.Delay(500);
-                    if (!IsRunning) return;
+                    if (!IsRunning || !Settings.KeepMicrophoneActive) return;
                     listening = await _engine.StartListeningAsync();
                 }
                 if (!IsRunning) return;
+                if (!Settings.KeepMicrophoneActive)
+                {
+                    await _engine.StopListeningAsync();
+                    if (IsRunning) RequestMicrophoneStop();
+                    return;
+                }
                 _microphoneMisses = 0;
                 _lastHealthCheck = Stopwatch.GetTimestamp();
 

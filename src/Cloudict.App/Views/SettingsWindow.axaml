@@ -202,13 +202,15 @@
 
       <!-- Voice commands -->
       <TabItem Header="{loc:Tr Settings_Tab_VoiceCommands}">
-        <Grid Margin="22,20" RowDefinitions="Auto,*,Auto">
+        <ScrollViewer x:Name="VoiceCommandsContent" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="22,20" RowDefinitions="Auto,Auto,Auto">
           <TextBlock Grid.Row="0" Text="{loc:Tr Settings_VoiceCommandsHint}" Classes="hint" Margin="0,0,0,10"/>
 
           <Border Grid.Row="1" Classes="card">
             <!-- Compiled bindings need the row type named up front; it also makes a
                  renamed property a build error rather than a blank column. -->
             <DataGrid x:Name="GridCommands" AutoGenerateColumns="False"
+                      MinHeight="180" MaxHeight="400"
                       x:DataType="model:VoiceCommand"
                       IsReadOnly="True" GridLinesVisibility="Horizontal"
                       Background="Transparent"
@@ -224,13 +226,50 @@
             </DataGrid>
           </Border>
 
-          <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0" Spacing="8">
-            <Button x:Name="BtnAddCommand" Classes="success" Content="{loc:Tr SW_AddCommand}" Click="OnAddCommandClick"/>
-            <Button x:Name="BtnEditCommand" Classes="subtle" Content="{loc:Tr Settings_EditCommand}" Click="OnEditCommandClick"/>
-            <Button x:Name="BtnDeleteCommand" Classes="accent" Content="{loc:Tr SW_DeleteCommand}" Click="OnDeleteCommandClick"/>
-            <Button Classes="subtle" Content="{loc:Tr SW_RestoreDefaults}" Click="OnRestoreCommandsClick"/>
+          <StackPanel Grid.Row="2" Margin="0,12,0,0" Spacing="4">
+            <WrapPanel>
+              <Button x:Name="BtnAddCommand" Classes="success" Margin="0,0,8,8" Content="{loc:Tr SW_AddCommand}" Click="OnAddCommandClick"/>
+              <Button x:Name="BtnEditCommand" Classes="subtle" Margin="0,0,8,8" Content="{loc:Tr Settings_EditCommand}" Click="OnEditCommandClick"/>
+              <Button x:Name="BtnDeleteCommand" Classes="accent" Margin="0,0,8,8" Content="{loc:Tr SW_DeleteCommand}" Click="OnDeleteCommandClick"/>
+              <Button Classes="subtle" Margin="0,0,8,8" Content="{loc:Tr SW_RestoreDefaults}" Click="OnRestoreCommandsClick"/>
+            </WrapPanel>
+            <WrapPanel>
+              <Button x:Name="BtnExportCommands" Classes="subtle" Margin="0,0,8,0" Content="{loc:Tr Settings_ExportCommands}" Click="OnExportCommandsClick"/>
+              <Button x:Name="BtnImportCommands" Classes="subtle" Content="{loc:Tr Settings_ImportCommands}" Click="OnImportCommandsClick"/>
+            </WrapPanel>
           </StackPanel>
         </Grid>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="{loc:Tr Settings_Tab_Backup}">
+        <ScrollViewer>
+          <StackPanel Margin="22,20" Spacing="16">
+            <Border Classes="card" Padding="18">
+              <StackPanel Spacing="12">
+                <TextBlock Text="{loc:Tr Settings_BackupHeading}" Classes="h2"/>
+                <TextBlock Text="{loc:Tr Settings_BackupHint}" Classes="hint" TextWrapping="Wrap"/>
+                <WrapPanel>
+                  <Button x:Name="BtnExportSettings" Classes="subtle" Margin="0,0,8,8"
+                          Content="{loc:Tr Settings_ExportAll}" Click="OnExportSettingsClick"/>
+                  <Button x:Name="BtnImportSettings" Classes="subtle" Margin="0,0,8,8"
+                          Content="{loc:Tr Settings_ImportAll}" Click="OnImportSettingsClick"/>
+                </WrapPanel>
+                <TextBlock Text="{loc:Tr Settings_BackupImportHint}" Classes="hint" TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+            <Border Classes="card" Padding="18">
+              <StackPanel Spacing="12">
+                <TextBlock Text="{loc:Tr Settings_CommandsBackupHeading}" Classes="h2"/>
+                <TextBlock Text="{loc:Tr Settings_CommandsBackupHint}" Classes="hint" TextWrapping="Wrap"/>
+                <WrapPanel>
+                  <Button Classes="subtle" Margin="0,0,8,8" Content="{loc:Tr Settings_ExportCommands}" Click="OnExportCommandsClick"/>
+                  <Button Classes="subtle" Margin="0,0,8,8" Content="{loc:Tr Settings_ImportCommands}" Click="OnImportCommandsClick"/>
+                </WrapPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
       </TabItem>
 
     </TabControl>

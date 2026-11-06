@@ -41,6 +41,8 @@ key or shortcut (Enter, Tab, Ctrl+Alt+S, …), or switch the keyboard language.
 - ⌨️ **Global hotkeys** — `Ctrl+Alt+A` to start, `Ctrl+Alt+S` to stop (configurable).
 - 🗣️ **Voice commands** — punctuation, text snippets, keyboard-language switching and shortcuts
   with multiple modifiers.
+- 🎙️ **Optional continuous listening** — keep Google Translate listening automatically, or restart it yourself.
+- 💾 **Portable settings** — export/import the complete configuration or voice commands separately.
 - 🛠️ **Tunable** — adjust transfer delays and Google Translate selectors from Settings.
 - 🔌 **Bundled browser driver** — every package includes a driver; speech recognition requires internet.
 - 🔔 **Tells you about new versions** — a notice in the window when a release is out, with a
@@ -53,6 +55,27 @@ Actual Windows application captures in English. The text and custom commands bel
 configured for this guide. [View the Persian interface](README.fa.md#نمای-برنامه).
 
 <p align="center"><img src="docs/images/main-en.png" width="420" alt="Cloudict main window with an example of collected dictation" /></p>
+
+**Keep Google Translate listening**, below the recognized-text box, remembers your choice. It is
+on by default to preserve continuous dictation: Cloudict restarts the microphone after pauses or
+interruptions until you press Stop. Turn it off to prevent automatic restarts; when Google Translate
+stops listening, pending words are transferred once and you press Start to listen again.
+The red **down-arrow** between Copy and Clear transfers pending words immediately.
+
+### Back up settings and voice commands
+
+Open **Settings → Backup** to export all settings, including voice commands for every saved
+language, to a JSON file. On the other computer, import that file, review the settings and press
+**Save**. Restart Cloudict after saving for all imported options to take effect. Closing without
+saving discards the import. Browser profiles and operating-system microphone permissions are
+configured separately on each computer.
+
+**Export voice commands** and **Import voice commands** are also available in the Voice Commands
+tab. These include all saved language sets and command options. Import replaces the languages in
+the file while preserving your other language sets and app settings. Both backup types use
+versioned JSON files up to 8 MB; choose the matching import action.
+
+![Export or import all settings and voice commands separately](docs/images/backup-en.png)
 
 ### Turn spoken phrases into actions
 
