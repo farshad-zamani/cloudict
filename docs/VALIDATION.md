@@ -1,4 +1,4 @@
-# Cloudict 3.2.15 verification
+# Cloudict 3.2.16 verification
 
 Date: 2026-11-06. Scope: Windows upgrade shutdown, plus the verified microphone corrections below.
 
@@ -26,6 +26,11 @@ and the real Cloudict MainWindow with isolated settings and 1.8-second simulated
 | Updated installer, tray-hidden app | One close confirmation, no Retry, exit code 0 |
 | Close declined | App left running; preparation stopped before deleting files |
 | Cloudict running from another path | Other process left running; installation succeeded |
+| Silent upgrade with running app | No close prompt or Retry; app exited and installation succeeded |
+
+Visible/tray/declined-close cases were also checked through the interactive wizard. Silent mode
+keeps Inno's automatic-close behavior; `/NOCLOSEAPPLICATIONS` stops preparation with the app left
+running. The temporary fixture disables directory-exists warnings for its unregistered test folder.
 
 The timeout is a bounded fallback; a full 60-second hung-process scenario was not part of this
 integration run. Existing installed user files/settings were not used as the test installation.

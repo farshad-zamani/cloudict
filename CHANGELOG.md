@@ -8,7 +8,7 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
-## [3.2.15] – 2026-11-06
+## [3.2.16] – 2026-11-06
 
 ### Fixed
 - Restored normal pause and long-dictation resets with the keep-listening option off.

@@ -93,12 +93,15 @@ begin
         Exit;
       end;
 
-    if SuppressibleMsgBox('Cloudict is running. Close it and continue installing?',
-      mbConfirmation, MB_YESNO, IDYES) <> IDYES then
-    begin
-      Result := 'Cloudict was left running. Close it when you are ready to continue.';
-      Exit;
-    end;
+    // Match Inno's existing silent-install behavior: close automatically unless
+    // /NOCLOSEAPPLICATIONS was specified, without adding a blocking dialog.
+    if not WizardSilent then
+      if SuppressibleMsgBox('Cloudict is running. Close it and continue installing?',
+        mbConfirmation, MB_YESNO, IDYES) <> IDYES then
+      begin
+        Result := 'Cloudict was left running. Close it when you are ready to continue.';
+        Exit;
+      end;
 
     WizardForm.PreparingLabel.Caption := 'Waiting for Cloudict to close...';
     WizardForm.PreparingLabel.Visible := True;
