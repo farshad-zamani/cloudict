@@ -60,9 +60,12 @@ Translate keeps *revising* words it has already shown while the user carries on 
 cannot simply be forwarded as it appears. `DictationSession` waits before starting
 (`TransferStartDelayMs`), paces itself word by word (`WordByWordDelayMs`), and after a silence
 (`InactivityDelayMs`) flushes what is pending and restarts the microphone so the page's buffer never
-grows long enough to be rewritten wholesale. Automatic pause/continuous-run resets and recovery
-are controlled by `KeepMicrophoneActive` (default true). When disabled, three confirmed page-off
+grows long enough to be rewritten wholesale. These normal pause/continuous-run resets, including
+their start retries, are independent of `KeepMicrophoneActive`. That option (default true) controls
+only recovery when the page stops its own microphone. With it disabled, three confirmed page-off
 samples flush the final tail once and request Stop without clearing or restarting the page.
+Only a reset explicitly requested as keep-alive recovery may be cancelled by changing that option;
+normal dictation resets always finish, unless the user presses Stop or the machine suspends.
 
 Two guards in there are worth knowing about, because both fixed real bugs:
 

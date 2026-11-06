@@ -278,6 +278,27 @@ namespace Cloudict.Core.Tests
 
         // ---------------------------------------------------------------- the matcher on its own
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Commands_and_typing_across_pause_resets_work_identically_in_both_keep_alive_modes(bool keepAlive)
+        {
+            var engine = new Stub();
+            var field = new Field();
+            await using var run = await Run.Start(engine, field, keepAlive: keepAlive);
+            engine.Speak("one two new line three comma");
+            await run.WaitForReset(engine);
+            Assert.Equal(1, engine.ResetCount);
+            Assert.Equal("one two\nthree ,", field.Text);
+            engine.Speak("four enter five stop typing");
+            await run.WaitForReset(engine);
+            Assert.Equal(2, engine.ResetCount);
+            Assert.Equal("one two\nthree , four\nfive", field.Text);
+            Assert.Equal(2, field.Log.Count(e => e == "K(Enter)"));
+            Assert.Single(field.Log, e => e == "C(Control, Alt+S)");
+            Assert.Single(field.Log, e => e.StartsWith("T(", StringComparison.Ordinal) && e.Contains(","));
+        }
+
         [Fact]
         public void The_matcher_prefers_the_longest_command_and_reports_how_many_words_it_used()
         {
@@ -365,14 +386,15 @@ namespace Cloudict.Core.Tests
 
             private Run(DictationSession session) => _session = session;
 
-            public static async Task<Run> Start(Stub engine, Field field, int wordByWordMs = 50, int inactivityMs = 300)
+            public static async Task<Run> Start(Stub engine, Field field, int wordByWordMs = 50, int inactivityMs = 300, bool keepAlive = true)
             {
                 var settings = new AppSettings
                 {
                     ProcessDelayMs = 50,
                     WordByWordDelayMs = wordByWordMs,
                     TransferStartDelayMs = 100,
-                    InactivityDelayMs = inactivityMs
+                    InactivityDelayMs = inactivityMs,
+                    KeepMicrophoneActive = keepAlive
                 };
 
                 var session = new DictationSession(engine, field, () => settings, new NullOutput()) { IsLiveTransfer = true };

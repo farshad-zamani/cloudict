@@ -57,9 +57,11 @@ configured for this guide. [View the Persian interface](README.fa.md#نمای-ب
 <p align="center"><img src="docs/images/main-en.png" width="420" alt="Cloudict main window with an example of collected dictation" /></p>
 
 **Keep Google Translate listening**, below the recognized-text box, remembers your choice. It is
-on by default to preserve continuous dictation: Cloudict restarts the microphone after pauses or
-interruptions until you press Stop. Turn it off to prevent automatic restarts; when Google Translate
-stops listening, pending words are transferred once and you press Start to listen again.
+on by default: when Google Translate stops its own microphone, Cloudict restarts it to stay ready
+for speech until you press Stop or turn this option off. With the option off, the site is allowed
+to remain stopped; pending words are transferred once and you press Start to listen again.
+**Normal typing, text transfer, pause resets and long-dictation resets work the same in both modes.**
+Turning this option off while dictating does not stop dictation or cancel a normal reset in progress.
 The red **down-arrow** between Copy and Clear transfers pending words immediately.
 
 ### Back up settings and voice commands

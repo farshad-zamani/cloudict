@@ -1112,12 +1112,13 @@ namespace Cloudict.App.Views
 
                 var alreadyTold = _micLossAnnounced;
                 _micLossAnnounced = true;
+                var keepAliveDisabled = _session.StoppedForDisabledKeepAlive;
 
                 await StopDictationAsync(notify: false);
 
-                var message = _settings.KeepMicrophoneActive ? "Main_St_MicLost" : "Main_St_MicStoppedManualMode";
+                var message = keepAliveDisabled ? "Main_St_MicStoppedManualMode" : "Main_St_MicLost";
                 SetStatus(Loc.Get(message));
-                if (!alreadyTold) Notify(Loc.Get(_settings.KeepMicrophoneActive ? "Notify_MicLost" : message));
+                if (!alreadyTold) Notify(Loc.Get(keepAliveDisabled ? message : "Notify_MicLost"));
             });
 
         /// <summary>

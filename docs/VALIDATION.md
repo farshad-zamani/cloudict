@@ -1,4 +1,44 @@
-# Cloudict 3.2.13 verification
+# Cloudict 3.2.14 verification
+
+Date: 2026-11-06. Scope: restore normal dictation resets independently of the keep-listening option.
+
+Version 3.2.13 incorrectly made normal pause/continuous-run resets conditional on
+`KeepMicrophoneActive`. That changed typing behavior when the option was off. The two normal
+reset-trigger methods are restored to their 3.2.12 behavior; only resets explicitly requested to
+recover a page-stopped microphone consult the option, including cancellation during their retries.
+Turning the option off does not stop dictation or interrupt an ordinary reset already in progress.
+
+## Regression and browser checks
+
+- **254 Core tests passed** in Release configuration. Self-contained win-x64 publishing and
+  local Inno Setup compilation succeeded; the executable and installer metadata report 3.2.14.
+- Repeated phrases with pending words flush once and reset normally with keep-listening both on
+  and off, in both buffered and live-transfer modes. Only a subsequent page-owned microphone stop
+  produces different behavior: recover with the option on, leave stopped with it off.
+- Long-dictation limits, normal reset retries, Stop during reset and failure reporting work in
+  both modes. Switching the option off during an ordinary reset or its retry does not cancel it.
+- Voice commands spanning repeated pause resets execute once in order in both modes, including
+  Enter, punctuation and Ctrl+Alt+S. Existing spacing, command and settings-transfer tests remain
+  included in the complete Core suite.
+- Real Chrome / Google Translate check with a synthetic audio device and injected source text:
+  normal pause flush/reset restarted the actual microphone with the option off and on. Clicking
+  the site's real voice toggle off was left stopped with the option off and recovered with it on.
+  The transferred text was unchanged, and explicit Stop left the microphone off in both cases.
+  This uses the real engine and page state; it does not establish natural-speech accuracy or a
+  multi-hour idle/endurance result.
+- Existing settings/command backup behavior and window layouts are retained. Tooltip and mode
+  status messages now explicitly distinguish keep-alive from normal dictation resets.
+
+The release uses the existing native package matrix and installer-version validation. The
+pre-existing dependency warnings and broader verification limits recorded below still apply.
+
+---
+
+# Previous verification: Cloudict 3.2.13
+
+**Superseded behavior:** the 3.2.13 checks below included the incorrect expectation that disabling
+keep-listening should suppress normal resets. Version 3.2.14 replaces that expectation and restores
+the normal reset behavior in both modes, as described above.
 
 Date: 2026-11-06. Scope: optional continuous listening, portable settings and voice commands,
 recognized-text controls, and refreshed English/Persian screenshots.

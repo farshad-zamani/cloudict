@@ -165,6 +165,7 @@ public class MicrophoneRecoveryTests
             await Until(() => Volatile.Read(ref stopped) == 1);
             await Task.Delay(1200);
             Assert.Equal(1, stopped);
+            Assert.True(session.StoppedForDisabledKeepAlive);
             Assert.Equal("one two three four five six", live ? injector.Text : output.FinalText);
             Assert.Equal("one two three four five six", engine.Text);
             Assert.Equal(1, engine.Starts);
@@ -172,29 +173,176 @@ public class MicrophoneRecoveryTests
         }
         finally { await session.StopAsync(); }
         Assert.True(await session.StartAsync());
+        Assert.False(session.StoppedForDisabledKeepAlive);
         Assert.Equal(2, engine.Starts);
         await session.StopAsync();
     }
 
-    [Fact]
-    public async Task Manual_mode_does_not_reset_on_silence_or_continuous_run_limit()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Speech_pause_resets_and_transfer_are_identical_with_keep_alive_on_or_off(bool keepAlive, bool live)
     {
-        var settings = new AppSettings { KeepMicrophoneActive = false, ProcessDelayMs = 50, TransferStartDelayMs = 50,
-            WordByWordDelayMs = 50, InactivityDelayMs = 100 };
+        var settings = new AppSettings { KeepMicrophoneActive = keepAlive, ProcessDelayMs = 50, TransferStartDelayMs = 50,
+            WordByWordDelayMs = 1000, InactivityDelayMs = 200 };
         var engine = new Engine();
         var output = new Output();
-        using var session = new DictationSession(engine, new Injector(), () => settings, output) { MaxContinuousMs = 100 };
+        var injector = new Injector();
+        using var session = new DictationSession(engine, injector, () => settings, output) { IsLiveTransfer = live };
+        var stopped = 0;
+        session.AutoStopped += (_, _) => Interlocked.Increment(ref stopped);
+        Func<string> typed = () => live ? injector.Text : output.FinalText;
+        try
+        {
+            await session.StartAsync();
+            engine.Text = "one two three four five six";
+            await Until(() => engine.Resets == 1 && !session.IsResetting);
+            Assert.Equal("one two three four five six", typed());
+            engine.Text = "next phrase";
+            await Until(() => engine.Resets == 2 && !session.IsResetting);
+            Assert.Equal("one two three four five six next phrase", typed());
+            Assert.Equal(0, stopped);
+            Assert.True(session.IsRunning);
+
+            // With no more speech the page eventually switches itself off. Only this behavior
+            // depends on the switch; normal dictation above must not.
+            engine.Mic = false;
+            if (keepAlive)
+            {
+                await Until(() => engine.Resets == 3 && !session.IsResetting);
+                Assert.True(engine.Mic);
+                Assert.Equal(0, stopped);
+            }
+            else
+            {
+                await Until(() => Volatile.Read(ref stopped) == 1);
+                Assert.Equal(2, engine.Resets);
+                Assert.Equal(3, engine.Starts);
+                Assert.False(engine.Mic);
+            }
+            Assert.Equal("one two three four five six next phrase", typed());
+        }
+        finally { await session.StopAsync(); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Continuous_run_limit_resets_normally_in_both_keep_alive_modes(bool keepAlive)
+    {
+        var settings = new AppSettings { KeepMicrophoneActive = keepAlive, ProcessDelayMs = 50, TransferStartDelayMs = 50,
+            WordByWordDelayMs = 50, InactivityDelayMs = 10000 };
+        var engine = new Engine();
+        var output = new Output();
+        using var session = new DictationSession(engine, new Injector(), () => settings, output) { MaxContinuousMs = 150 };
         try
         {
             await session.StartAsync();
             engine.Text = "one two";
             await Until(() => output.FinalText == "one two");
-            engine.Text = "one two three";
-            await Until(() => output.FinalText == "one two three");
-            await Task.Delay(1200);
+            await Task.Delay(200);
+            engine.Text = "one two three four";
+            await Until(() => engine.Resets == 1 && !session.IsResetting);
+            Assert.Equal("one two three four", output.FinalText);
             Assert.True(session.IsRunning);
+            Assert.True(engine.Mic);
+        }
+        finally { await session.StopAsync(); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Disabling_keep_alive_during_a_normal_reset_or_its_retry_does_not_interrupt_dictation(bool retry)
+    {
+        var settings = new AppSettings { ProcessDelayMs = 50, TransferStartDelayMs = 50,
+            WordByWordDelayMs = 50, InactivityDelayMs = 200 };
+        var engine = new Engine { SlowReset = !retry, SlowRetryStart = retry };
+        var output = new Output();
+        using var session = new DictationSession(engine, new Injector(), () => settings, output);
+        var stopped = 0;
+        session.AutoStopped += (_, _) => Interlocked.Increment(ref stopped);
+        try
+        {
+            await session.StartAsync();
+            if (retry) engine.FailedStarts = 1;
+            engine.Text = "first phrase";
+            await (retry ? engine.RetryEntered.Task : engine.ResetEntered.Task).WaitAsync(TimeSpan.FromSeconds(10));
+            settings.KeepMicrophoneActive = false;
+            await Until(() => !session.IsResetting);
+            Assert.True(session.IsRunning);
+            Assert.True(engine.Mic);
+            Assert.Equal(0, stopped);
+            Assert.Equal("first phrase", output.FinalText);
+            engine.Text = "second phrase";
+            await Until(() => output.FinalText == "first phrase second phrase");
+        }
+        finally { await session.StopAsync(); }
+    }
+
+    [Fact]
+    public async Task Idle_timeout_with_keep_alive_off_does_not_restart_before_any_speech()
+    {
+        var settings = new AppSettings { KeepMicrophoneActive = false, ProcessDelayMs = 50 };
+        var engine = new Engine();
+        using var session = new DictationSession(engine, new Injector(), () => settings, new Output());
+        var stopped = 0;
+        session.AutoStopped += (_, _) => Interlocked.Increment(ref stopped);
+        try
+        {
+            await session.StartAsync();
+            engine.Mic = false;
+            await Until(() => Volatile.Read(ref stopped) == 1);
             Assert.Equal(1, engine.Starts);
             Assert.Equal(0, engine.Resets);
+        }
+        finally { await session.StopAsync(); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Manual_stop_during_a_normal_reset_wins_in_both_keep_alive_modes(bool keepAlive)
+    {
+        var settings = new AppSettings { KeepMicrophoneActive = keepAlive, ProcessDelayMs = 50, TransferStartDelayMs = 50,
+            WordByWordDelayMs = 50, InactivityDelayMs = 200 };
+        var engine = new Engine { SlowReset = true };
+        using var session = new DictationSession(engine, new Injector(), () => settings, new Output());
+        await session.StartAsync();
+        engine.Text = "first phrase";
+        await engine.ResetEntered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await session.StopAsync();
+        var starts = engine.Starts;
+        await Task.Delay(1200);
+        Assert.False(session.IsRunning);
+        Assert.False(engine.Mic);
+        Assert.Equal(starts, engine.Starts);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_normal_reset_failure_uses_the_same_retries_and_failure_reason_in_both_modes(bool keepAlive)
+    {
+        var settings = new AppSettings { KeepMicrophoneActive = keepAlive, ProcessDelayMs = 50, TransferStartDelayMs = 50,
+            WordByWordDelayMs = 50, InactivityDelayMs = 200 };
+        var engine = new Engine();
+        var output = new Output();
+        using var session = new DictationSession(engine, new Injector(), () => settings, output);
+        var stopped = 0;
+        session.AutoStopped += (_, _) => Interlocked.Increment(ref stopped);
+        try
+        {
+            await session.StartAsync();
+            engine.FailedStarts = 20;
+            engine.Text = "first phrase";
+            await Until(() => Volatile.Read(ref stopped) == 1);
+            Assert.Equal(4, engine.Starts);
+            Assert.Equal(1, engine.Resets);
+            Assert.False(session.StoppedForDisabledKeepAlive);
+            Assert.Equal("first phrase", output.FinalText);
         }
         finally { await session.StopAsync(); }
     }

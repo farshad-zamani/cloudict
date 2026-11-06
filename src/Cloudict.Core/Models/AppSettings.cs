@@ -166,7 +166,7 @@ namespace Cloudict
         /// </summary>
         public bool LiveTransferEnabled { get; set; } = false;
 
-        /// <summary>Restart Google Translate after pauses or a dropped microphone, until Stop.</summary>
+        /// <summary>Restart a microphone stopped by Google Translate. Normal dictation resets always run.</summary>
         public bool KeepMicrophoneActive { get; set; } = true;
 
         /// <summary>
