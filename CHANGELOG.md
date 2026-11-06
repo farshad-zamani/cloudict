@@ -8,12 +8,13 @@ project aims to follow [Semantic Versioning](https://semver.org/).
 > over a long period before being published as free, open-source software. The entries below
 > document the public releases.
 
-## [3.2.14] – 2026-11-06
+## [3.2.15] – 2026-11-06
 
 ### Fixed
 - Restored normal pause and long-dictation resets with the keep-listening option off.
 - Keep-listening now controls only restarting the microphone after Google Translate stops it.
 - Turning keep-listening off no longer interrupts normal resets or their activation retries.
+- Windows upgrades wait for Cloudict to finish closing and continue without an unnecessary Retry prompt.
 
 ## [3.2.13] – 2026-11-06
 

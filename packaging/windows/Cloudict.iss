@@ -117,6 +117,8 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent runascurrentuser
 
 [Code]
+#include "close-running-app.iss"
+
 {
   Rescues settings from a pre-2.2.6 install before the folder is emptied.
 
@@ -129,7 +131,8 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   OldSettings, NewDir, NewSettings: String;
 begin
-  Result := '';
+  Result := CloseCloudictForUpgrade();
+  if Result <> '' then Exit;
 
   OldSettings := ExpandConstant('{app}\settings.json');
   NewDir      := ExpandConstant('{userappdata}\Cloudict');

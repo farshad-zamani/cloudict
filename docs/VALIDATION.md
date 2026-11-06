@@ -1,4 +1,44 @@
-# Cloudict 3.2.14 verification
+# Cloudict 3.2.15 verification
+
+Date: 2026-11-06. Scope: Windows upgrade shutdown, plus the verified microphone corrections below.
+
+## Windows installer shutdown
+
+The existing async window-close handler cancels the first close while audio/browser cleanup
+finishes. Avalonia propagates that cancellation to Windows' shutdown query; Inno Setup treats
+the resulting Restart Manager failure as a reason to show Retry, even though Cloudict is already
+exiting. This was reproduced with the actual MainWindow/lifetime and a delayed browser cleanup:
+the previous installer required one Retry before completing successfully.
+
+The installer now closes the matching installed Cloudict executable normally in `PrepareToInstall`
+and waits for its process to exit before any migration or file cleanup. It checks the full executable
+path, keeps process handles to avoid PID-reuse races, includes tray-hidden main windows, and never
+force-terminates the application. If closure is declined or does not finish within 60 seconds,
+preparation stops before file replacement. Restart Manager remains available for other file locks.
+
+Integration checks used a separate install directory and test installer identity, no shortcuts,
+and the real Cloudict MainWindow with isolated settings and 1.8-second simulated browser cleanup:
+
+| Scenario | Result |
+|---|---|
+| Previous installer, running app | One Retry required; installation then succeeded |
+| Updated installer, visible app | One close confirmation, no Retry, exit code 0 |
+| Updated installer, tray-hidden app | One close confirmation, no Retry, exit code 0 |
+| Close declined | App left running; preparation stopped before deleting files |
+| Cloudict running from another path | Other process left running; installation succeeded |
+
+The timeout is a bounded fallback; a full 60-second hung-process scenario was not part of this
+integration run. Existing installed user files/settings were not used as the test installation.
+The change is installer-only; the runtime shutdown and dictation code remain those verified in
+3.2.14. Native package builds and the complete Core suite run in the release workflow.
+
+Implementation references: [Inno preparation event](https://jrsoftware.org/ishelp/topic_scriptevents.htm),
+[Inno shutdown handling](https://github.com/jrsoftware/issrc/blob/main/Projects/Src/Setup.Install.HelperFunc.pas),
+[Avalonia 11.2.3 shutdown](https://github.com/AvaloniaUI/Avalonia/blob/11.2.3/src/Avalonia.Controls/ApplicationLifetimes/ClassicDesktopStyleApplicationLifetime.cs).
+
+---
+
+# Previous verification: Cloudict 3.2.14
 
 Date: 2026-11-06. Scope: restore normal dictation resets independently of the keep-listening option.
 
